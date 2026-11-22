@@ -1,0 +1,6 @@
+interface:
+  display_name: "扁平代理协作管理"
+  short_description: "把扁平管理原则转成代理职责、授权、信息访问与可核验的执行机制"
+  default_prompt: "使用 $flat-agent-management 复核当前多代理方案，给出职责、执行机制及可核验的完成条件。"
+policy:
+  allow_implicit_invocation: true

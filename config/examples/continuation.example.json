@@ -1,0 +1,32 @@
+{
+  "_readme": "Let the scheduled continuation job wake an original session after a subscription quota stop (`openclaw agent`), as if the owner had said 'continue'. That command is accepted only from accounts listed in commands.ownerAllowFrom: the owner and every bot account except the Desktop operator (the desktop role has its own queue-based continuation). Use the same user IDs as in config/crew.json. All bots are listed (not only the ones that need waking) also so that every bot can call the Desktop operator to use the computer tool; the Desktop operator itself is left out.",
+  "commands": {
+    "ownerAllowFrom": [
+      "discord:<OWNER_USER_ID>",
+      "discord:<MAIN_BOT_USER_ID>",
+      "discord:<TASK_AUDITOR_BOT_USER_ID>",
+      "discord:<SYSTEM_AUDITOR_BOT_USER_ID>",
+      "discord:<DIARY_BOT_USER_ID>",
+      "discord:<STANDBY_A_BOT_USER_ID>",
+      "discord:<STANDBY_B_BOT_USER_ID>",
+      "discord:<WORKER_A_BOT_USER_ID>",
+      "discord:<WORKER_B_BOT_USER_ID>"
+    ]
+  },
+  "agents": {
+    "entries": {
+      "desktop": {
+        "tools": {
+          "alsoAllow": [
+            "computer"
+          ]
+        }
+      },
+      "system-auditor": {
+        "subagents": {
+          "model": null
+        }
+      }
+    }
+  }
+}

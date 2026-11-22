@@ -1,0 +1,723 @@
+{
+  "版本": 1,
+  "说明": "Audit guard rules. Applies only to the system-auditor and task-auditor roles; any option not listed is refused. p4ApprovalTest stays false except while testing the approval-forwarding path. Fixed snippets are matched on a normalized text: whole lines starting with # , blank lines and trailing whitespace are ignored, code lines must match character for character (indentation included, no quote substitution). This assumes a snippet has no block that uses # lines or blank lines as data (heredoc data blocks, triple-quoted strings, multi-line double-quoted strings); run the precondition scan in tests/audit-guard.test.mjs before changing a snippet. Trigger-script exception: exec calls sent by the trigger scripts of the daily audit and the deep review skip the per-item command-text check only when ALL of these hold: role is system-auditor; session key is exactly agent:system-auditor:cron:<job id>:trigger; run id starts with cron-trigger:<same job id>:; the job id is listed in triggerJobs below. Everything else (exec extra parameters, always-refused tools, write/edit rules) stays in force, and every pass-through is logged with the job id, the first 200 characters and the sha256 of the whole command. paths.dataRoot / paths.projectRoot here are defaults; config/crew.json (paths.dataRoot, paths.projectRoot) overrides them. Snippet 'file' is relative to projectRoot and may be an object keyed by locale; 'start'/'end' likewise. The system-auditor git rule needs 'git -C <dataRoot or projectRoot> [--no-pager] log ...' (requireC); only log is allowed (show can print whole files); no -p/-S/-G/--grep/--graph/-s; at most one commit argument without a colon; at most 5 paths after --. jq is checked with a forbidden-words filter (env, ENV, input, inputs, debug, stderr, halt, import, include ...): it only over-blocks, it is not a proof that a filter is safe. sed accepts Nd, N,Md, N,$d and -n with /regex/p.",
+  "p4ApprovalTest": false,
+  "triggerJobs": {
+    "00000000-0000-4000-8000-000000000001": "daily-audit",
+    "00000000-0000-4000-8000-000000000002": "deep-review"
+  },
+  "p4Test": {
+    "agentId": "worker-e",
+    "channelId": "100000000000000100",
+    "command": "echo P4转发测试"
+  },
+  "paths": {
+    "dataRoot": "/opt/solofleet-data",
+    "projectRoot": "/opt/solofleet"
+  },
+  "writeDirs": [
+    "审计/日审",
+    "审计/额度读数",
+    "审计/异常深审",
+    "审计/周审",
+    "审计/异常标记"
+  ],
+  "denyWriteDirs": [
+    "审计/发布/凭据"
+  ],
+  "editExtra": [
+    "项目/*/PROJECT.md",
+    "项目/*/任务/*.md"
+  ],
+  "snippets": [
+    {
+      "name": "业务日期片段",
+      "file": {
+        "zh-CN": "jobs/daily-audit.zh-CN.md",
+        "en": "jobs/daily-audit.md"
+      },
+      "start": {
+        "zh-CN": "# 业务日期片段开始",
+        "en": "# business-date-snippet begin"
+      },
+      "end": {
+        "zh-CN": "# 业务日期片段结束",
+        "en": "# business-date-snippet end"
+      },
+      "vars": {
+        "HM": {
+          "re": "^[0-2][0-9]:[0-5][0-9]$",
+          "required": true
+        },
+        "DOW": {
+          "re": "^[0-6]?$",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "范围外文件查法",
+      "file": {
+        "zh-CN": "jobs/daily-audit.zh-CN.md",
+        "en": "jobs/daily-audit.md"
+      },
+      "start": {
+        "zh-CN": "# 范围外文件查法开始",
+        "en": "# out-of-scope-file-check begin"
+      },
+      "end": {
+        "zh-CN": "# 范围外文件查法结束",
+        "en": "# out-of-scope-file-check end"
+      },
+      "vars": {
+        "A": {
+          "re": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+          "required": true
+        },
+        "B": {
+          "re": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+          "required": true
+        },
+        "DR": {
+          "enum": [
+            "${dataRoot}"
+          ],
+          "required": true
+        },
+        "PR": {
+          "enum": [
+            "${projectRoot}"
+          ],
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "周审程序核对",
+      "file": {
+        "zh-CN": "jobs/weekly-audit.zh-CN.md",
+        "en": "jobs/weekly-audit.md"
+      },
+      "start": {
+        "zh-CN": "# 周审程序核对开始",
+        "en": "# weekly-program-check begin"
+      },
+      "end": {
+        "zh-CN": "# 周审程序核对结束",
+        "en": "# weekly-program-check end"
+      },
+      "vars": {}
+    }
+  ],
+  "roles": {
+    "task-auditor": {
+      "allowSemicolon": true,
+      "programs": {
+        "ls": {
+          "kind": "generic",
+          "flags": "1aAlhRtrSdFTn",
+          "valued": ""
+        },
+        "cat": {
+          "kind": "generic",
+          "flags": "nbsvet",
+          "valued": ""
+        },
+        "grep": {
+          "kind": "generic",
+          "flags": "nrRilLcEFwxvhHosqz",
+          "valued": "mABCef",
+          "patterns": {
+            "m": "^\\d+$",
+            "A": "^\\d+$",
+            "B": "^\\d+$",
+            "C": "^\\d+$"
+          },
+          "longs": {
+            "--include": 1,
+            "--exclude": 1,
+            "--exclude-dir": 1,
+            "--color": 1
+          },
+          "longPatterns": {
+            "--color": "^never$"
+          }
+        },
+        "head": {
+          "kind": "generic",
+          "flags": "",
+          "valued": "nc",
+          "patterns": {
+            "n": "^\\d+$",
+            "c": "^\\d+$"
+          },
+          "numericShortcut": true
+        },
+        "tail": {
+          "kind": "generic",
+          "flags": "",
+          "valued": "nc",
+          "patterns": {
+            "n": "^\\+?\\d+$",
+            "c": "^\\+?\\d+$"
+          },
+          "numericShortcut": true
+        },
+        "wc": {
+          "kind": "generic",
+          "flags": "lwcm",
+          "valued": ""
+        },
+        "shasum": {
+          "kind": "generic",
+          "flags": "c",
+          "valued": "a",
+          "patterns": {
+            "a": "^(1|256|512)$"
+          }
+        },
+        "sort": {
+          "kind": "generic",
+          "flags": "nrufbshV",
+          "valued": "tk",
+          "patterns": {
+            "t": "^.$",
+            "k": "^[0-9][0-9A-Za-z.,]*$"
+          }
+        },
+        "comm": {
+          "kind": "generic",
+          "flags": "123i",
+          "valued": "",
+          "exactPositional": 2
+        },
+        "cd": {
+          "kind": "generic",
+          "flags": "",
+          "valued": "",
+          "maxPositional": 1
+        },
+        "date": {
+          "kind": "date",
+          "onlyFormat": true,
+          "allowTzDate": true
+        },
+        "git": {
+          "kind": "git",
+          "subcommands": {
+            "log": {
+              "flags": [
+                "--oneline",
+                "--stat",
+                "--name-only",
+                "--name-status",
+                "--follow",
+                "--no-color",
+                "--graph",
+                "--decorate",
+                "--no-decorate",
+                "--abbrev-commit",
+                "-p",
+                "-s",
+                "--shortstat"
+              ],
+              "valued": [
+                "-n",
+                "-S",
+                "-G",
+                "--since",
+                "--until",
+                "--author",
+                "--grep",
+                "--date",
+                "--max-count"
+              ],
+              "eqValued": [
+                "--format",
+                "--pretty"
+              ],
+              "numeric": true
+            },
+            "show": {
+              "flags": [
+                "--stat",
+                "--name-only",
+                "--name-status",
+                "--no-color",
+                "-p",
+                "-s",
+                "--oneline",
+                "--shortstat"
+              ],
+              "eqValued": [
+                "--format",
+                "--pretty"
+              ]
+            },
+            "diff": {
+              "flags": [
+                "--stat",
+                "--name-only",
+                "--name-status",
+                "--cached",
+                "--staged",
+                "--no-color",
+                "-p",
+                "-U",
+                "--shortstat",
+                "--numstat",
+                "-w"
+              ]
+            },
+            "status": {
+              "flags": [
+                "-s",
+                "--short",
+                "--porcelain",
+                "-b",
+                "--branch",
+                "--no-color"
+              ]
+            },
+            "rev-parse": {
+              "flags": [
+                "--verify",
+                "--abbrev-ref",
+                "--show-toplevel",
+                "--is-inside-work-tree",
+                "--short"
+              ],
+              "eqValued": [
+                "--short"
+              ]
+            },
+            "ls-files": {
+              "flags": [
+                "-s",
+                "--stage",
+                "-m",
+                "-o",
+                "-d",
+                "-c",
+                "--others",
+                "--cached",
+                "--exclude-standard",
+                "-z",
+                "--deleted",
+                "--modified"
+              ]
+            },
+            "blame": {
+              "flags": [
+                "-l",
+                "-w",
+                "-s",
+                "--porcelain",
+                "-e"
+              ],
+              "valued": [
+                "-L"
+              ]
+            },
+            "cat-file": {}
+          }
+        },
+        "diff": {
+          "kind": "diff"
+        },
+        "stat": {
+          "kind": "generic",
+          "flags": "",
+          "valued": "ft"
+        },
+        "xxd": {
+          "kind": "generic",
+          "flags": "pu",
+          "valued": "lscg",
+          "patterns": {
+            "l": "^\\d+$",
+            "s": "^[+-]?\\d+$",
+            "c": "^\\d+$",
+            "g": "^\\d+$"
+          },
+          "maxPositional": 1
+        },
+        "od": {
+          "kind": "generic",
+          "flags": "vcbdox",
+          "valued": "AtjN",
+          "patterns": {
+            "A": "^[doxn]$",
+            "t": "^[a-z][0-9]*[a-z]*$",
+            "j": "^\\d+$",
+            "N": "^\\d+$"
+          },
+          "maxPositional": 1
+        },
+        "find": {
+          "kind": "find",
+          "valued": [
+            "-name",
+            "-iname",
+            "-path",
+            "-ipath",
+            "-type",
+            "-maxdepth",
+            "-mindepth",
+            "-mtime",
+            "-mmin",
+            "-newer",
+            "-size",
+            "-perm",
+            "-user",
+            "-newermt"
+          ],
+          "bare": [
+            "-empty",
+            "-print",
+            "-print0",
+            "-prune",
+            "-not",
+            "!",
+            "(",
+            ")",
+            "-o",
+            "-a"
+          ]
+        },
+        "sed": {
+          "kind": "sed"
+        }
+      }
+    },
+    "system-auditor": {
+      "allowSemicolon": true,
+      "programs": {
+        "ls": {
+          "kind": "generic",
+          "flags": "1aAlhRtrSdFTn",
+          "valued": ""
+        },
+        "cat": {
+          "kind": "generic",
+          "flags": "nbsvet",
+          "valued": ""
+        },
+        "grep": {
+          "kind": "generic",
+          "flags": "nrRilLcEFwxvhHosqz",
+          "valued": "mABCef",
+          "patterns": {
+            "m": "^\\d+$",
+            "A": "^\\d+$",
+            "B": "^\\d+$",
+            "C": "^\\d+$"
+          },
+          "longs": {
+            "--include": 1,
+            "--exclude": 1,
+            "--exclude-dir": 1,
+            "--color": 1
+          },
+          "longPatterns": {
+            "--color": "^never$"
+          }
+        },
+        "head": {
+          "kind": "generic",
+          "flags": "",
+          "valued": "nc",
+          "patterns": {
+            "n": "^\\d+$",
+            "c": "^\\d+$"
+          },
+          "numericShortcut": true
+        },
+        "tail": {
+          "kind": "generic",
+          "flags": "",
+          "valued": "nc",
+          "patterns": {
+            "n": "^\\+?\\d+$",
+            "c": "^\\+?\\d+$"
+          },
+          "numericShortcut": true
+        },
+        "wc": {
+          "kind": "generic",
+          "flags": "lwcm",
+          "valued": ""
+        },
+        "shasum": {
+          "kind": "generic",
+          "flags": "c",
+          "valued": "a",
+          "patterns": {
+            "a": "^(1|256|512)$"
+          }
+        },
+        "sort": {
+          "kind": "generic",
+          "flags": "nrufbshV",
+          "valued": "tk",
+          "patterns": {
+            "t": "^.$",
+            "k": "^[0-9][0-9A-Za-z.,]*$"
+          }
+        },
+        "comm": {
+          "kind": "generic",
+          "flags": "123i",
+          "valued": "",
+          "exactPositional": 2
+        },
+        "cd": {
+          "kind": "generic",
+          "flags": "",
+          "valued": "",
+          "maxPositional": 1
+        },
+        "date": {
+          "kind": "date"
+        },
+        "sed": {
+          "kind": "sed"
+        },
+        "jq": {
+          "kind": "jq",
+          "flags": "rceSs",
+          "valued": "",
+          "longs": {
+            "--arg": 2,
+            "--argjson": 2
+          },
+          "forbidFilter": "\\b(?:env|ENV|__loc__|__prog_args|input_filename|input|inputs|debug|stderr|halt|halt_error|import|include)\\b"
+        },
+        "git": {
+          "kind": "git",
+          "requireC": true,
+          "repos": [
+            "dataRoot",
+            "projectRoot"
+          ],
+          "subcommands": {
+            "log": {
+              "flags": [
+                "--oneline",
+                "--stat",
+                "--name-only",
+                "--name-status",
+                "--no-color",
+                "--decorate",
+                "--no-decorate",
+                "--abbrev-commit",
+                "--shortstat",
+                "--follow"
+              ],
+              "valued": [
+                "-n",
+                "--since",
+                "--until",
+                "--author",
+                "--max-count",
+                "--date"
+              ],
+              "eqValued": [
+                "--format",
+                "--pretty"
+              ],
+              "numeric": true,
+              "patterns": {
+                "n": "^\\d+$"
+              },
+              "longPatterns": {
+                "--max-count": "^\\d+$",
+                "--since": "^[^-].{0,99}$",
+                "--until": "^[^-].{0,99}$",
+                "--author": "^[^-].{0,99}$",
+                "--date": "^[a-z-]{1,20}$"
+              },
+              "maxPositional": 1,
+              "maxPathspec": 5
+            }
+          }
+        },
+        "find": {
+          "kind": "find",
+          "valued": [
+            "-name",
+            "-iname",
+            "-path",
+            "-ipath",
+            "-type",
+            "-maxdepth",
+            "-mindepth",
+            "-mtime",
+            "-mmin",
+            "-newer",
+            "-size",
+            "-perm",
+            "-user",
+            "-newermt"
+          ],
+          "bare": [
+            "-empty",
+            "-print",
+            "-print0",
+            "-prune",
+            "-not",
+            "!",
+            "(",
+            ")",
+            "-o",
+            "-a"
+          ]
+        },
+        "openclaw": {
+          "kind": "openclaw",
+          "subcommands": {
+            "automations list": {
+              "flags": [
+                "--all",
+                "--json"
+              ]
+            },
+            "automations runs": {
+              "flags": [
+                "--json"
+              ],
+              "valued": [
+                "--limit",
+                "--offset"
+              ],
+              "maxPositional": 1
+            },
+            "automations show": {
+              "flags": [
+                "--json"
+              ],
+              "maxPositional": 1
+            },
+            "workboard list": {
+              "flags": [
+                "--include-archived",
+                "--json"
+              ],
+              "valued": [
+                "--board",
+                "--status"
+              ]
+            },
+            "workboard show": {
+              "flags": [
+                "--json"
+              ],
+              "maxPositional": 1
+            },
+            "audit": {
+              "flags": [
+                "--explain",
+                "--json"
+              ],
+              "valued": [
+                "--after",
+                "--agent",
+                "--before",
+                "--channel",
+                "--cursor",
+                "--direction",
+                "--execution",
+                "--kind",
+                "--limit",
+                "--run",
+                "--session",
+                "--status"
+              ]
+            },
+            "message read": {
+              "flags": [
+                "--json"
+              ],
+              "valued": [
+                "--channel",
+                "--account",
+                "--target",
+                "--limit",
+                "--before"
+              ]
+            },
+            "message thread list": {
+              "flags": [
+                "--include-archived",
+                "--json"
+              ],
+              "valued": [
+                "--channel",
+                "--account",
+                "--guild-id",
+                "--channel-id",
+                "--before",
+                "--limit"
+              ]
+            },
+            "message search": {
+              "flags": [
+                "--json"
+              ],
+              "valued": [
+                "--channel",
+                "--account",
+                "--guild-id",
+                "--channel-id",
+                "--query",
+                "--author-id",
+                "--limit"
+              ]
+            },
+            "models list": {
+              "flags": [
+                "--all",
+                "--plain",
+                "--json",
+                "--refresh"
+              ],
+              "valued": [
+                "--provider"
+              ]
+            },
+            "models aliases list": {
+              "flags": [
+                "--plain",
+                "--json"
+              ]
+            }
+          }
+        },
+        "stat": {
+          "kind": "generic",
+          "flags": "",
+          "valued": "ft"
+        }
+      },
+      "codexbar": [
+        "/Applications/CodexBar.app/Contents/Helpers/CodexBarCLI",
+        "usage",
+        "--provider",
+        "claude",
+        "--source",
+        "cli",
+        "--format",
+        "json",
+        "--no-credits"
+      ],
+      "publish": {
+        "python": "/usr/bin/python3",
+        "script": "${projectRoot}/scripts/automation/publish-self.py",
+        "tasks": [
+          "异常深审",
+          "周审"
+        ]
+      }
+    }
+  }
+}

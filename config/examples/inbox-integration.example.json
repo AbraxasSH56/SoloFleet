@@ -1,0 +1,22 @@
+{
+  "_readme": "Load the personal-inbox plugin (this repository's plugins/personal-inbox) and enable it. The plugin reads owner, channel, bot IDs, time zone, locale and paths from config/crew.json, so nothing else is configured here. Set SOLOFLEET_CONFIG if your crew.json lives elsewhere.",
+  "_replyCard": "config.executionRecord is the reply card under each bot reply (model, route, effort, changed files). It is ON by default, so this block only spells the defaults out; set enabled to false to turn the card off. quotaSource off (default) leaves the remaining-quota line out. To get that line, install the CodexBar command line (a separate macOS app, https://github.com/steipete/CodexBar), set quotaSource to cli and give credentialProfilePath (see docs/en/configuration.md). The card does NOT need OpenClaw's usage-footer settings (messages.responseUsage / messages.usageTemplate): it reads the per-turn model and effort from the host's usage state. Leave messages.responseUsage off; if you turn it on, a footer line is folded into the card only when it equals the card's own model line, and any other footer text stays in the reply, so you would see usage text twice.",
+  "plugins": {
+    "load": {
+      "paths": [
+        "<PROJECT_ROOT>/plugins/personal-inbox"
+      ]
+    },
+    "entries": {
+      "personal-inbox": {
+        "enabled": true,
+        "config": {
+          "executionRecord": {
+            "enabled": true,
+            "quotaSource": "off"
+          }
+        }
+      }
+    }
+  }
+}

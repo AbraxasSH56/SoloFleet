@@ -1,0 +1,293 @@
+{
+  "_readme": "Tool allow-lists per role, merged from the reference setup. Merge this fragment into the same `agents.entries.<id>` objects as agents-and-workers.example.json. Tool groups: workboard_* = task board; personal_inbox_* and pending_decision_* = the personal-inbox plugin (capture, follow-up cards, document sync, waiting-for-you ledger); web_search and web_fetch = web research; exec, process, apply_patch, browser = command and browser access (the audit guard and the plugin hooks limit what the audit roles may run); computer = the native desktop tool, only for the Desktop operator (screen work also needs Peekaboo installed on the Mac); automations, intent, memory_* = scheduled jobs, standing intents and memory search for the Controller. The two audit roles are narrowed here to reading plus what they need to write their own report (the task auditor reports in its audit thread through `message`; the system auditor also writes files in its report folders). The audit guard in plugins/personal-inbox/audit-guard.mjs additionally limits commands and write locations; the reference deployment used wider lists, which only worked because that guard was in place, so keep the lists narrow.",
+  "_groups": {
+    "controller-steering": [
+      "sessions_spawn",
+      "sessions_list",
+      "sessions_history",
+      "session_status",
+      "sessions_yield",
+      "sessions_send",
+      "agents_list"
+    ],
+    "inbox-integration": [
+      "personal_inbox_capture",
+      "personal_inbox_lookup",
+      "personal_inbox_link_card"
+    ],
+    "followup-tools": [
+      "automations",
+      "intent",
+      "memory_search",
+      "memory_get"
+    ],
+    "document-sync-tools": [
+      "personal_inbox_sync_register",
+      "personal_inbox_sync_apply",
+      "personal_inbox_sync_verify"
+    ],
+    "waiting-for-you ledger": [
+      "pending_decision_register",
+      "pending_decision_update"
+    ],
+    "web-search-tools": [
+      "web_search"
+    ],
+    "web-fetch-tools": [
+      "web_fetch"
+    ],
+    "worker-runtime-tools": [
+      "exec",
+      "process",
+      "web_fetch",
+      "web_search",
+      "personal_inbox_sync_apply"
+    ]
+  },
+  "agents": {
+    "entries": {
+      "main": {
+        "tools": {
+          "allow": [
+            "read",
+            "write",
+            "edit",
+            "sessions_spawn",
+            "sessions_list",
+            "sessions_history",
+            "session_status",
+            "message",
+            "workboard_list",
+            "workboard_read",
+            "workboard_create",
+            "workboard_claim",
+            "workboard_complete",
+            "workboard_block",
+            "workboard_release",
+            "workboard_heartbeat",
+            "workboard_worker_log",
+            "workboard_runs",
+            "workboard_promote",
+            "workboard_specify",
+            "workboard_comment",
+            "workboard_artifact_add",
+            "workboard_proof_add",
+            "personal_inbox_capture",
+            "personal_inbox_lookup",
+            "personal_inbox_link_card",
+            "agents_list",
+            "sessions_yield",
+            "sessions_send",
+            "memory_search",
+            "memory_get",
+            "intent",
+            "automations",
+            "personal_inbox_sync_register",
+            "personal_inbox_sync_apply",
+            "personal_inbox_sync_verify",
+            "pending_decision_register",
+            "pending_decision_update",
+            "web_fetch",
+            "web_search",
+            "apply_patch",
+            "browser",
+            "exec",
+            "process"
+          ]
+        }
+      },
+      "desktop": {
+        "tools": {
+          "allow": [
+            "read",
+            "write",
+            "edit",
+            "workboard_list",
+            "workboard_read",
+            "workboard_create",
+            "workboard_claim",
+            "workboard_complete",
+            "workboard_block",
+            "workboard_release",
+            "workboard_heartbeat",
+            "workboard_worker_log",
+            "workboard_runs",
+            "workboard_promote",
+            "workboard_specify",
+            "workboard_comment",
+            "workboard_artifact_add",
+            "workboard_proof_add",
+            "personal_inbox_sync_apply",
+            "web_fetch",
+            "web_search",
+            "exec",
+            "process",
+            "computer"
+          ]
+        }
+      },
+      "task-auditor": {
+        "tools": {
+          "allow": [
+            "read",
+            "exec",
+            "message",
+            "workboard_list",
+            "workboard_read",
+            "workboard_runs",
+            "web_fetch",
+            "web_search"
+          ]
+        }
+      },
+      "system-auditor": {
+        "tools": {
+          "allow": [
+            "read",
+            "write",
+            "edit",
+            "exec",
+            "message",
+            "sessions_list",
+            "sessions_history",
+            "session_status",
+            "workboard_list",
+            "workboard_read",
+            "workboard_runs",
+            "personal_inbox_sync_verify",
+            "web_fetch",
+            "web_search"
+          ]
+        }
+      },
+      "diary": {
+        "tools": {
+          "allow": [
+            "read",
+            "write",
+            "edit",
+            "message",
+            "workboard_list",
+            "workboard_read"
+          ]
+        }
+      },
+      "standby-a": {
+        "tools": {
+          "allow": [
+            "read",
+            "write",
+            "edit",
+            "workboard_list",
+            "workboard_read",
+            "workboard_create",
+            "workboard_claim",
+            "workboard_complete",
+            "workboard_block",
+            "workboard_release",
+            "workboard_heartbeat",
+            "workboard_worker_log",
+            "workboard_runs",
+            "workboard_promote",
+            "workboard_specify",
+            "workboard_comment",
+            "workboard_artifact_add",
+            "workboard_proof_add",
+            "personal_inbox_sync_apply",
+            "web_fetch",
+            "web_search",
+            "exec",
+            "process"
+          ]
+        }
+      },
+      "standby-b": {
+        "tools": {
+          "allow": [
+            "read",
+            "write",
+            "edit",
+            "workboard_list",
+            "workboard_read",
+            "workboard_create",
+            "workboard_claim",
+            "workboard_complete",
+            "workboard_block",
+            "workboard_release",
+            "workboard_heartbeat",
+            "workboard_worker_log",
+            "workboard_runs",
+            "workboard_promote",
+            "workboard_specify",
+            "workboard_comment",
+            "workboard_artifact_add",
+            "workboard_proof_add",
+            "personal_inbox_sync_apply",
+            "web_fetch",
+            "web_search",
+            "exec",
+            "process"
+          ]
+        }
+      },
+      "worker-a": {
+        "tools": {
+          "allow": [
+            "read",
+            "write",
+            "edit",
+            "workboard_list",
+            "workboard_read",
+            "workboard_create",
+            "workboard_claim",
+            "workboard_complete",
+            "workboard_block",
+            "workboard_release",
+            "workboard_heartbeat",
+            "workboard_worker_log",
+            "workboard_runs",
+            "workboard_promote",
+            "workboard_specify",
+            "workboard_comment",
+            "workboard_artifact_add",
+            "workboard_proof_add",
+            "personal_inbox_sync_apply",
+            "web_fetch",
+            "web_search",
+            "exec",
+            "process"
+          ]
+        }
+      },
+      "worker-b": {
+        "tools": {
+          "allow": [
+            "read",
+            "write",
+            "edit",
+            "workboard_list",
+            "workboard_read",
+            "workboard_create",
+            "workboard_claim",
+            "workboard_complete",
+            "workboard_block",
+            "workboard_release",
+            "workboard_heartbeat",
+            "workboard_worker_log",
+            "workboard_runs",
+            "workboard_promote",
+            "workboard_specify",
+            "workboard_comment",
+            "workboard_artifact_add",
+            "workboard_proof_add",
+            "personal_inbox_sync_apply",
+            "web_fetch",
+            "web_search",
+            "exec",
+            "process"
+          ]
+        }
+      }
+    }
+  }
+}

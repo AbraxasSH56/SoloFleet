@@ -1,0 +1,18 @@
+{
+  "_readme": "The Desktop operator: the only role that drives the screen, through OpenClaw's native `computer` tool (with Peekaboo installed for screen reading). It has its own workspace; the plugin's desktop lock, sensitive-click approval cards and stuck guard apply to it. Replace the placeholders and merge into agents.entries.",
+  "agents": {
+    "entries": {
+      "desktop": {
+        "name": "Desktop operator",
+        "workspace": "<WORKSPACE_ROOT>/desktop",
+        "model": "anthropic/<SONNET_MODEL_ID>",
+        "tools": {
+          "profile": "coding",
+          "alsoAllow": [
+            "computer"
+          ]
+        }
+      }
+    }
+  }
+}

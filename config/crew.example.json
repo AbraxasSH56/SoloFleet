@@ -1,0 +1,116 @@
+{
+  "_readme": "Central deployment config for SoloFleet. Copy to config/crew.json and fill in your own values. Every ID below is a placeholder. Programs look for the file in this order: $SOLOFLEET_CONFIG, config/crew.json, config/crew.example.json.",
+  "owner": {
+    "userId": "100000000000000001",
+    "title": "the owner"
+  },
+  "guildId": "100000000000000002",
+  "channels": {
+    "workshop": "100000000000000003",
+    "approval": "100000000000000004",
+    "lounge": "100000000000000005",
+    "diary": "100000000000000006"
+  },
+  "excludedChannels": {
+    "completionNotice": [
+      "100000000000000003",
+      "100000000000000005"
+    ],
+    "approvalReminder": [
+      "100000000000000005"
+    ]
+  },
+  "bots": {
+    "main": {
+      "userId": "100000000000000011"
+    },
+    "desktop": {
+      "userId": "100000000000000012"
+    },
+    "task-auditor": {
+      "userId": "100000000000000013"
+    },
+    "system-auditor": {
+      "userId": "100000000000000014"
+    },
+    "diary": {
+      "userId": "100000000000000015"
+    },
+    "standby-a": {
+      "userId": "100000000000000016"
+    },
+    "standby-b": {
+      "userId": "100000000000000017"
+    },
+    "worker-a": {
+      "userId": "100000000000000021"
+    },
+    "worker-b": {
+      "userId": "100000000000000022"
+    }
+  },
+  "timezone": "UTC",
+  "locale": "en",
+  "replyLanguage": "English",
+  "paths": {
+    "dataRoot": "/opt/solofleet-data",
+    "workspaceRoot": "/opt/solofleet/runtime",
+    "projectRoot": "/opt/solofleet",
+    "nodeBin": "/usr/local/bin/node",
+    "openclawBin": "/usr/local/bin/openclaw",
+    "openclawHome": "~/.openclaw",
+    "openclawInstallDir": "/usr/local/lib/node_modules/openclaw",
+    "codexbarBin": "",
+    "claudeBin": ""
+  },
+  "auditAreas": {
+    "review": "",
+    "roster": "",
+    "backup": ""
+  },
+  "jobs": {
+    "dailyAudit": {
+      "time": "18:05"
+    },
+    "weeklyAudit": {
+      "time": "19:00",
+      "weekday": 0
+    },
+    "deepReview": {
+      "time": "19:00"
+    },
+    "patrol": {
+      "time": "18:30"
+    },
+    "diary": {
+      "time": "22:00"
+    },
+    "followups": {
+      "time": "09:00"
+    },
+    "sessionReset": {
+      "time": "18:00"
+    },
+    "publishSelf": {
+      "effectiveFrom": {
+        "巡查": "2030-01-01",
+        "异常深审": "2030-01-01",
+        "周审": "2030-01-01"
+      }
+    }
+  },
+  "models": {
+    "latest-opus": "the newest Opus alias your OpenClaw resolves",
+    "latest-sonnet": "the newest Sonnet alias your OpenClaw resolves"
+  },
+  "attachCard": {
+    "quotaSource": "off",
+    "modelFamilies": [
+      "sonnet",
+      "opus",
+      "haiku",
+      "fable"
+    ],
+    "scopedWeeklyFamily": "fable"
+  }
+}

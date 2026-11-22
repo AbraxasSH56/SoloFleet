@@ -1,0 +1,6 @@
+interface:
+  display_name: "STE 文档写作与维护"
+  short_description: "以 STE 原则维护中英文过程文档，保留目标、原意和真实状态"
+  default_prompt: "使用 $ste-document-maintenance 撰写或更新这份文档，保留目标、事实和当前状态。"
+policy:
+  allow_implicit_invocation: true

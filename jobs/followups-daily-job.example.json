@@ -1,0 +1,23 @@
+{
+  "_readme": "Example of a native OpenClaw cron job for the Controller's daily follow-up: a trigger script (scripts/followups-trigger.js) reads FOLLOWUPS.md and only wakes the model when an active item is due. Optional: the patrol (jobs/patrol.md) can carry the same due reminders, in which case you do not need this separate job. Replace every <PLACEHOLDER>; the run time comes from config/crew.json jobs.followups.time.",
+  "agentId": "main",
+  "workspaceRecord": "FOLLOWUPS.md",
+  "timezone": "<TIMEZONE>",
+  "schedule": {
+    "kind": "cron",
+    "expr": "0 9 * * *",
+    "tz": "<TIMEZONE>",
+    "staggerMs": 0
+  },
+  "conditionGate": {
+    "requiredBeforeActivation": true,
+    "scriptFile": "<PROJECT_ROOT>/scripts/followups-trigger.js",
+    "contract": "An automation trigger.script on a cron schedule returns {fire, message?, state?}; fire=false skips the agent turn. The script reads FOLLOWUPS.md from the owning agent's workspace with the native read tool (30 second and 5 tool call budget).",
+    "rule": "Read only the FOLLOWUPS.md JSON index. Fire when an item with status active has nextReview due or overdue (in the configured time zone) and was not already mentioned today; items without a deadline are limited to one per week across the list. Empty or not-due state returns fire=false; an unreadable or malformed file fails visibly."
+  },
+  "agentTurnPayload": {
+    "kind": "agentTurn",
+    "model": "<MODEL_REF>",
+    "message": "Daily follow-up. The trigger script found at least one due candidate (candidate IDs are in the attached event text). Read FOLLOWUPS.md in your workspace and re-read only those candidates plus the task-board or standing-intent state they point to. Judge from the saved reason, progress, review date and the owner's latest feedback whether a reminder is worth sending. Items without a deadline: at most one per week. The same item: at most once per day. Items that need the owner to act or decide: at most three, one sentence each, with a first step and the expected effort or budget. Work you already pushed forward: one summary sentence; for the rest, only the count (keep the full count of the list). Do not turn wishes into tasks, do not edit the owner's original words, do not create duplicate items. If nothing deserves a reminder, return NO_REPLY. Send with the message tool only when a reminder is really needed, only to channel:<WORKSHOP_CHANNEL_ID> and nowhere else. After the message has really been delivered (you hold the send receipt), update the item's lastMentionedDate and, if needed, nextReview in FOLLOWUPS.md; never mark an item as reminded without a real delivery receipt. Reply in the language you normally use with the owner, in plain words."
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "toolName": "message",
+  "params": {
+    "action": "send",
+    "message": "【测试】请示：选 1 还是选 2？\n1. 选 1\n2. 选 2",
+    "components": {
+      "blocks": [
+        {
+          "type": "actions",
+          "buttons": [
+            {
+              "label": "选1",
+              "style": "primary",
+              "allowedUsers": [
+                "100000000000000001"
+              ]
+            },
+            {
+              "label": "选2",
+              "style": "secondary",
+              "allowedUsers": [
+                "100000000000000001"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "final": true
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"channel\": \"discord\",\n  \"to\": \"channel:100000000000000119\",\n  \"via\": \"direct\",\n  \"mediaUrl\": null,\n  \"result\": {\n    \"target\": {\n      \"kind\": \"channel\",\n      \"id\": \"100000000000000119\"\n    },\n    \"receipt\": {\n      \"primaryPlatformMessageId\": \"100000000000000118\",\n      \"platformMessageIds\": [\n        \"100000000000000118\"\n      ],\n      \"parts\": [\n        {\n          \"platformMessageId\": \"100000000000000118\",\n          \"kind\": \"card\",\n          \"index\": 0,\n          \"raw\": {\n            \"channel\": \"discord\",\n            \"messageId\": \"100000000000000118\",\n            \"channelId\": \"100000000000000119\"\n          }\n        }\n      ],\n      \"sentAt\": 1795306699257,\n      \"raw\": [\n        {\n          \"channel\": \"discord\",\n          \"messageId\": \"100000000000000118\",\n          \"channelId\": \"100000000000000119\"\n        }\n      ],\n      \"sourceResults\": [\n        {\n          \"channel\": \"discord\",\n          \"messageId\": \"100000000000000118\"\n        }\n      ]\n    },\n    \"messageId\": \"100000000000000118\",\n    \"channel\": \"discord\"\n  },\n  \"deliveryStatus\": \"sent\",\n  \"payloadOutcomes\": [\n    {\n      \"index\": 0,\n      \"status\": \"sent\",\n      \"resultCount\": 1\n    }\n  ],\n  \"sourceReplyRoute\": \"current-source\"\n}"
+      }
+    ],
+    "details": {
+      "channel": "discord",
+      "to": "channel:100000000000000119",
+      "via": "direct",
+      "mediaUrl": null,
+      "result": {
+        "target": {
+          "kind": "channel",
+          "id": "100000000000000119"
+        },
+        "receipt": {
+          "primaryPlatformMessageId": "100000000000000118",
+          "platformMessageIds": [
+            "100000000000000118"
+          ],
+          "parts": [
+            {
+              "platformMessageId": "100000000000000118",
+              "kind": "card",
+              "index": 0,
+              "raw": {
+                "channel": "discord",
+                "messageId": "100000000000000118",
+                "channelId": "100000000000000119"
+              }
+            }
+          ],
+          "sentAt": 1795306699257,
+          "raw": [
+            {
+              "channel": "discord",
+              "messageId": "100000000000000118",
+              "channelId": "100000000000000119"
+            }
+          ],
+          "sourceResults": [
+            {
+              "channel": "discord",
+              "messageId": "100000000000000118"
+            }
+          ]
+        },
+        "messageId": "100000000000000118",
+        "channel": "discord"
+      },
+      "deliveryStatus": "sent",
+      "payloadOutcomes": [
+        {
+          "index": 0,
+          "status": "sent",
+          "resultCount": 1
+        }
+      ],
+      "sourceReplyRoute": "current-source",
+      "messageDelivery": {
+        "status": "settled",
+        "primaryPlatformMessageId": "100000000000000118",
+        "partialDelivery": false,
+        "createdThreadIds": []
+      }
+    }
+  }
+}

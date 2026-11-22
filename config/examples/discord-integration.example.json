@@ -1,0 +1,219 @@
+{
+  "_readme": "Connect OpenClaw to Discord with one Discord application per bot (one account per role) and bind each account to one agent. Replace every <PLACEHOLDER>; tokens are read from environment variables, never written here. Merge this fragment into your OpenClaw config (for example with `openclaw config patch`).",
+  "channels": {
+    "discord": {
+      "enabled": true,
+      "defaultAccount": "default",
+      "dmPolicy": "allowlist",
+      "allowFrom": [
+        "<OWNER_USER_ID>"
+      ],
+      "groupPolicy": "allowlist",
+      "intents": {
+        "messageContent": true,
+        "guildMembers": false,
+        "presence": false,
+        "voiceStates": false
+      },
+      "guilds": {
+        "<GUILD_ID>": {
+          "users": [
+            "<OWNER_USER_ID>"
+          ],
+          "requireMention": true,
+          "channels": {
+            "<LOUNGE_CHANNEL_ID>": {
+              "enabled": true,
+              "requireMention": true
+            }
+          }
+        }
+      },
+      "accounts": {
+        "default": {
+          "name": "Controller",
+          "enabled": true,
+          "applicationId": "<MAIN_APPLICATION_ID>",
+          "token": {
+            "source": "env",
+            "provider": "default",
+            "id": "DISCORD_BOT_TOKEN_MAIN"
+          },
+          "guilds": {
+            "<GUILD_ID>": {
+              "channels": {
+                "<WORKSHOP_CHANNEL_ID>": {
+                  "enabled": true,
+                  "requireMention": false
+                },
+                "<APPROVAL_CHANNEL_ID>": {
+                  "enabled": true,
+                  "requireMention": false
+                }
+              }
+            }
+          }
+        },
+        "desktop": {
+          "name": "Desktop operator",
+          "enabled": true,
+          "applicationId": "<DESKTOP_APPLICATION_ID>",
+          "token": {
+            "source": "env",
+            "provider": "default",
+            "id": "DISCORD_BOT_TOKEN_DESKTOP"
+          }
+        },
+        "task-auditor": {
+          "name": "Task auditor",
+          "enabled": true,
+          "applicationId": "<TASK_AUDITOR_APPLICATION_ID>",
+          "token": {
+            "source": "env",
+            "provider": "default",
+            "id": "DISCORD_BOT_TOKEN_TASK_AUDITOR"
+          }
+        },
+        "system-auditor": {
+          "name": "System auditor",
+          "enabled": true,
+          "applicationId": "<SYSTEM_AUDITOR_APPLICATION_ID>",
+          "token": {
+            "source": "env",
+            "provider": "default",
+            "id": "DISCORD_BOT_TOKEN_SYSTEM_AUDITOR"
+          }
+        },
+        "diary": {
+          "name": "Diary keeper",
+          "enabled": true,
+          "applicationId": "<DIARY_APPLICATION_ID>",
+          "token": {
+            "source": "env",
+            "provider": "default",
+            "id": "DISCORD_BOT_TOKEN_DIARY"
+          }
+        },
+        "standby-a": {
+          "name": "Standby A",
+          "enabled": true,
+          "applicationId": "<STANDBY_A_APPLICATION_ID>",
+          "token": {
+            "source": "env",
+            "provider": "default",
+            "id": "DISCORD_BOT_TOKEN_STANDBY_A"
+          }
+        },
+        "standby-b": {
+          "name": "Standby B",
+          "enabled": true,
+          "applicationId": "<STANDBY_B_APPLICATION_ID>",
+          "token": {
+            "source": "env",
+            "provider": "default",
+            "id": "DISCORD_BOT_TOKEN_STANDBY_B"
+          }
+        },
+        "worker-a": {
+          "name": "Worker A",
+          "enabled": true,
+          "applicationId": "<WORKER_A_APPLICATION_ID>",
+          "token": {
+            "source": "env",
+            "provider": "default",
+            "id": "DISCORD_BOT_TOKEN_WORKER_A"
+          }
+        },
+        "worker-b": {
+          "name": "Worker B",
+          "enabled": true,
+          "applicationId": "<WORKER_B_APPLICATION_ID>",
+          "token": {
+            "source": "env",
+            "provider": "default",
+            "id": "DISCORD_BOT_TOKEN_WORKER_B"
+          }
+        }
+      }
+    }
+  },
+  "bindings": [
+    {
+      "agentId": "main",
+      "match": {
+        "channel": "discord",
+        "accountId": "default"
+      }
+    },
+    {
+      "agentId": "desktop",
+      "match": {
+        "channel": "discord",
+        "accountId": "desktop"
+      }
+    },
+    {
+      "agentId": "task-auditor",
+      "match": {
+        "channel": "discord",
+        "accountId": "task-auditor"
+      }
+    },
+    {
+      "agentId": "system-auditor",
+      "match": {
+        "channel": "discord",
+        "accountId": "system-auditor"
+      }
+    },
+    {
+      "agentId": "diary",
+      "match": {
+        "channel": "discord",
+        "accountId": "diary"
+      }
+    },
+    {
+      "agentId": "standby-a",
+      "match": {
+        "channel": "discord",
+        "accountId": "standby-a"
+      }
+    },
+    {
+      "agentId": "standby-b",
+      "match": {
+        "channel": "discord",
+        "accountId": "standby-b"
+      }
+    },
+    {
+      "agentId": "worker-a",
+      "match": {
+        "channel": "discord",
+        "accountId": "worker-a"
+      }
+    },
+    {
+      "agentId": "worker-b",
+      "match": {
+        "channel": "discord",
+        "accountId": "worker-b"
+      }
+    }
+  ],
+  "session": {
+    "threadBindings": {
+      "enabled": true,
+      "idleHours": 24,
+      "maxAgeHours": 0,
+      "spawnSessions": true
+    }
+  },
+  "_notes": [
+    "Only the owner (<OWNER_USER_ID>) is allowed to talk to the bots; every other user is ignored.",
+    "Guild channels are mention-only by default. The Controller answers in the Workshop and Approval channels without a mention (set on its own account). A project channel's lead bot gets the same relaxed setting from scripts/automation/lead-free.mjs when a project is created.",
+    "If you do not give the System auditor its own Discord application, delete its account and binding; it then reads Discord through the default account.",
+    "Add more worker-* roles the same way: one account, one binding, one agent entry."
+  ]
+}

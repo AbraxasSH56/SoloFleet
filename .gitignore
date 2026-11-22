@@ -1,0 +1,21 @@
+# Local configuration with your real IDs and paths: never commit it.
+config/crew.json
+config/*.local.json
+
+# Secrets and runtime data
+.env
+.env.*
+*.secret
+*.pem
+*.key
+*.sqlite
+*.db
+*.jsonl
+*.lock
+*.log
+
+# Tool and OS leftovers
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store

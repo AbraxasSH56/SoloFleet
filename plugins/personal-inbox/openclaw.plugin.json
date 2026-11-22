@@ -1,0 +1,62 @@
+{
+  "id": "personal-inbox",
+  "name": "SoloFleet Personal Inbox",
+  "description": "SoloFleet program layer for OpenClaw: completion gate, audit guard, desktop lock, approval handling, pending-decision ledger, reply card and note inbox.",
+  "categories": [
+    "other"
+  ],
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "tools": [
+      "personal_inbox_capture",
+      "personal_inbox_lookup",
+      "personal_inbox_link_card",
+      "personal_inbox_sync_register",
+      "personal_inbox_sync_apply",
+      "personal_inbox_sync_verify",
+      "pending_decision_register",
+      "pending_decision_update"
+    ]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "syncRoot": {
+        "type": "string",
+        "description": "Absolute project root for registered document sync targets; defaults to the main workspace's project parent."
+      },
+      "executionRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Reply card (model, route, effort, changed files) under each reply. On by default; set false to turn it off."
+          },
+          "quotaSource": {
+            "type": "string",
+            "enum": [
+              "off",
+              "cache",
+              "cli"
+            ],
+            "default": "off",
+            "description": "Remaining-quota readout on the reply card. 'off' (default): no quota line; the card still shows model, route, effort and changed files. 'cli': sample the CodexBar CLI (needs credentialProfilePath). 'cache': read a widget export file (snapshotPath)."
+          },
+          "snapshotPath": {
+            "type": "string",
+            "description": "Exact existing widget quota export for explicit legacy cache mode only; CLI mode does not read this path."
+          },
+          "credentialProfilePath": {
+            "type": "string",
+            "description": "Path of the Claude credential profile, used only as a non-secret fingerprint to match the quota source to your account; file contents are never read. Only needed for quotaSource 'cli' or 'cache'."
+          }
+        }
+      }
+    }
+  }
+}

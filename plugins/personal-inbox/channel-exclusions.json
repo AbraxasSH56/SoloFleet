@@ -1,0 +1,5 @@
+{
+  "_readme": "Optional extra channel IDs (numeric strings) that should be left out. The main place for these lists is config/crew.json (excludedChannels); IDs here are merged in. completionNotice: channels where the program must not post the closing 'completion record' line. approvalReminder: channels where the 'pending approvals' reminder is not injected.",
+  "completionNotice": [],
+  "approvalReminder": []
+}

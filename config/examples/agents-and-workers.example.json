@@ -1,0 +1,130 @@
+{
+  "_readme": "Declare the agents (roles), their workspaces, models and which agents each one may start as sub-agents. Workers use the `worker-` prefix (the programs recognise workers by it); add more `worker-*` entries by copying a worker entry. Model references are placeholders: use your own model ids. The two standby bots use their own API-credit providers (see api-credit-providers.example.json). Which tools each agent may call is in agent-tools.example.json.",
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/<OPUS_MODEL_ID>",
+        "fallbacks": []
+      },
+      "utilityModel": "anthropic/<SONNET_MODEL_ID>"
+    },
+    "entries": {
+      "main": {
+        "name": "Controller",
+        "workspace": "<WORKSPACE_ROOT>/main",
+        "model": "anthropic/<OPUS_MODEL_ID>",
+        "utilityModel": "anthropic/<SONNET_MODEL_ID>",
+        "subagents": {
+          "model": {
+            "primary": "anthropic/<SONNET_MODEL_ID>",
+            "fallbacks": []
+          },
+          "allowAgents": [
+            "worker-a",
+            "worker-b",
+            "task-auditor",
+            "system-auditor",
+            "desktop"
+          ]
+        }
+      },
+      "desktop": {
+        "name": "Desktop operator",
+        "workspace": "<WORKSPACE_ROOT>/desktop",
+        "model": "anthropic/<SONNET_MODEL_ID>",
+        "utilityModel": "anthropic/<SONNET_MODEL_ID>",
+        "subagents": {
+          "model": {
+            "primary": "anthropic/<SONNET_MODEL_ID>",
+            "fallbacks": []
+          }
+        }
+      },
+      "task-auditor": {
+        "name": "Task auditor",
+        "workspace": "<WORKSPACE_ROOT>/task-auditor",
+        "model": "anthropic/<SONNET_MODEL_ID>",
+        "utilityModel": "anthropic/<SONNET_MODEL_ID>",
+        "subagents": {
+          "model": {
+            "primary": "anthropic/<SONNET_MODEL_ID>",
+            "fallbacks": []
+          }
+        }
+      },
+      "system-auditor": {
+        "name": "System auditor",
+        "workspace": "<WORKSPACE_ROOT>/system-auditor",
+        "model": "anthropic/<OPUS_MODEL_ID>",
+        "utilityModel": "anthropic/<SONNET_MODEL_ID>",
+        "subagents": {
+          "model": null,
+          "allowAgents": [
+            "worker-a",
+            "worker-b"
+          ]
+        }
+      },
+      "diary": {
+        "name": "Diary keeper",
+        "workspace": "<WORKSPACE_ROOT>/diary",
+        "model": "anthropic/<SONNET_MODEL_ID>",
+        "utilityModel": "anthropic/<SONNET_MODEL_ID>",
+        "subagents": {
+          "model": {
+            "primary": "anthropic/<SONNET_MODEL_ID>",
+            "fallbacks": []
+          }
+        }
+      },
+      "standby-a": {
+        "name": "Standby A",
+        "workspace": "<WORKSPACE_ROOT>/standby-a",
+        "model": "anthropic-standby-a/<MODEL_ID>",
+        "utilityModel": "anthropic-standby-a/<MODEL_ID>",
+        "subagents": {
+          "model": {
+            "primary": "anthropic-standby-a/<MODEL_ID>",
+            "fallbacks": []
+          }
+        }
+      },
+      "standby-b": {
+        "name": "Standby B",
+        "workspace": "<WORKSPACE_ROOT>/standby-b",
+        "model": "anthropic-standby-b/<MODEL_ID>",
+        "utilityModel": "anthropic-standby-b/<MODEL_ID>",
+        "subagents": {
+          "model": {
+            "primary": "anthropic-standby-b/<MODEL_ID>",
+            "fallbacks": []
+          }
+        }
+      },
+      "worker-a": {
+        "name": "Worker A",
+        "workspace": "<WORKSPACE_ROOT>/worker-a",
+        "model": "anthropic/<SONNET_MODEL_ID>",
+        "utilityModel": "anthropic/<SONNET_MODEL_ID>",
+        "subagents": {
+          "model": {
+            "primary": "anthropic/<SONNET_MODEL_ID>",
+            "fallbacks": []
+          }
+        }
+      },
+      "worker-b": {
+        "name": "Worker B",
+        "workspace": "<WORKSPACE_ROOT>/worker-b",
+        "model": "anthropic/<SONNET_MODEL_ID>",
+        "utilityModel": "anthropic/<SONNET_MODEL_ID>",
+        "subagents": {
+          "model": {
+            "primary": "anthropic/<SONNET_MODEL_ID>",
+            "fallbacks": []
+          }
+        }
+      }
+    }
+  }
+}

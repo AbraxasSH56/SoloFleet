@@ -1,0 +1,14 @@
+# Example deny list: paths the auditor must never read.
+# One entry per line, relative to the folder being audited (AUDIT_WORKDIR).
+# A folder entry covers everything below it. Globs are allowed.
+# Replace these with the entries that fit your own project.
+
+.env
+.env.*
+*.pem
+*.key
+*.sqlite
+*.jsonl
+secrets
+config/local
+backups

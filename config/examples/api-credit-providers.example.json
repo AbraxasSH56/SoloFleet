@@ -1,0 +1,72 @@
+{
+  "_readme": "Three separate Anthropic API providers for the API credit that some subscription plans include (no card on file, nothing is bought, the credit simply runs out): `anthropic-api` for the scheduled jobs (daily audit, patrol, deep review, weekly audit, optionally diary), `anthropic-standby-a` and `anthropic-standby-b` for the two standby bots. Each provider has its own key (its own environment variable) so the Console shows usage per key and one route can be stopped by revoking one key. No fallbacks are configured: when the credit is used up the call is refused and the job stops (scripts/automation/api-quota-gate.mjs pauses and resumes the audit jobs); nothing silently switches back to the subscription. Field names follow the reference deployment's notes: check them against your OpenClaw version's config schema before applying. A new provider name must also be added to API_PROVIDERS in plugins/personal-inbox/execution-record.mjs, otherwise the reply footer shows the model line as unknown.",
+  "models": {
+    "providers": {
+      "anthropic-api": {
+        "api": "anthropic-messages",
+        "baseUrl": "https://api.anthropic.com",
+        "runtime": "openclaw",
+        "apiKey": {
+          "source": "env",
+          "provider": "default",
+          "id": "ANTHROPIC_API_KEY_CRON"
+        },
+        "cacheRetention": "short",
+        "models": [
+          {
+            "id": "<MODEL_ID>",
+            "name": "<MODEL_NAME>",
+            "reasoning": true,
+            "maxTokens": 64000,
+            "contextWindow": 200000
+          }
+        ]
+      },
+      "anthropic-standby-a": {
+        "api": "anthropic-messages",
+        "baseUrl": "https://api.anthropic.com",
+        "runtime": "openclaw",
+        "apiKey": {
+          "source": "env",
+          "provider": "default",
+          "id": "ANTHROPIC_API_KEY_STANDBY_A"
+        },
+        "cacheRetention": "short",
+        "models": [
+          {
+            "id": "<MODEL_ID>",
+            "name": "<MODEL_NAME>",
+            "reasoning": true,
+            "maxTokens": 64000,
+            "contextWindow": 200000
+          }
+        ]
+      },
+      "anthropic-standby-b": {
+        "api": "anthropic-messages",
+        "baseUrl": "https://api.anthropic.com",
+        "runtime": "openclaw",
+        "apiKey": {
+          "source": "env",
+          "provider": "default",
+          "id": "ANTHROPIC_API_KEY_STANDBY_B"
+        },
+        "cacheRetention": "short",
+        "models": [
+          {
+            "id": "<MODEL_ID>",
+            "name": "<MODEL_NAME>",
+            "reasoning": true,
+            "maxTokens": 64000,
+            "contextWindow": 200000
+          }
+        ]
+      }
+    }
+  },
+  "_usage": {
+    "scheduled jobs": "set the job's model to anthropic-api/<MODEL_ID> and leave fallbacks empty",
+    "standby-a": "agents.entries.standby-a.model = anthropic-standby-a/<MODEL_ID> (see agents-and-workers.example.json)",
+    "standby-b": "agents.entries.standby-b.model = anthropic-standby-b/<MODEL_ID>"
+  }
+}

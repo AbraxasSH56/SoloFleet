@@ -1,0 +1,31 @@
+{
+  "_readme": "Send plugin approval cards (sensitive clicks, six-type actions) to one dedicated Approval channel, and let only the owner approve. Merge into your OpenClaw config. The Desktop operator and the Controller are the agents whose approvals are routed; the approval channel is separate from the Workshop so approval buttons never get lost among chat.",
+  "approvals": {
+    "plugin": {
+      "enabled": true,
+      "mode": "targets",
+      "agentFilter": [
+        "desktop",
+        "main"
+      ],
+      "targets": [
+        {
+          "channel": "discord",
+          "to": "channel:<APPROVAL_CHANNEL_ID>"
+        }
+      ]
+    }
+  },
+  "channels": {
+    "discord": {
+      "execApprovals": {
+        "approvers": [
+          "<OWNER_USER_ID>"
+        ]
+      }
+    }
+  },
+  "_notes": [
+    "commands.ownerAllowFrom is set once, in continuation.example.json; do not set it twice."
+  ]
+}

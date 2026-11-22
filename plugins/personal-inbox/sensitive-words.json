@@ -1,0 +1,52 @@
+{
+  "说明": "桌面角色点到按钮／链接／菜单项／复选框，文字（去掉空格、不分大小写）包含下面任一词，就要审批卡。改词不用改程序。excludeWords 里的词命中则不算（用来收窄英文子串误中）。",
+  "words": [
+    "提交",
+    "发送",
+    "支付",
+    "购买",
+    "删除",
+    "安装",
+    "付款",
+    "下单",
+    "结算",
+    "确认订单",
+    "确认付款",
+    "永久删除",
+    "清空",
+    "上传",
+    "转账",
+    "汇款",
+    "订阅",
+    "授权",
+    "submit",
+    "send",
+    "pay",
+    "purchase",
+    "buy",
+    "placeorder",
+    "checkout",
+    "delete",
+    "remove",
+    "install",
+    "upload",
+    "confirmpurchase",
+    "transfer",
+    "subscribe",
+    "authorize"
+  ],
+  "excludeWords": [
+    "sender",
+    "payload"
+  ],
+  "clickableRoles": [
+    "button",
+    "link",
+    "menuitem",
+    "checkbox",
+    "pushbutton",
+    "menubutton",
+    "radiobutton",
+    "popupbutton"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "_readme": "Two settings the crew depends on: (1) bots answer other bots only when mentioned, with OpenClaw's built-in loop protection as a safety net; (2) sessions reset once a day at a fixed local hour, but a thread only resets after 24 hours without activity. Field names follow the OpenClaw documentation for Discord (`allowBots`, `botLoopProtection`) and sessions (`session.reset`, `resetByType`); check them against your OpenClaw version before applying. Delete the underscore fields before merging into your real config.",
+  "_notes": [
+    "allowBots: \"mentions\" means a bot-authored message starts a turn only if it actively mentions this bot (a plain name does nothing). The documented values are true, false and \"mentions\".",
+    "botLoopProtection limits how many bot-to-bot events one pair may produce per time window, then stays quiet for a cooldown. The numbers below are examples, not recommendations.",
+    "atHour is local time of the gateway machine. scripts/automation/reset-notice.mjs sends its before/after notices around a reset hour written in the script (constants PRE_FROM, RESET_AT, POST_UNTIL); keep the two in step.",
+    "resetByType accepts direct, group and thread. With these values the main area of a channel resets daily at atHour, and each task thread resets only after idleMinutes (1440 = 24 hours) without activity."
+  ],
+  "channels": {
+    "defaults": {
+      "botLoopProtection": {
+        "maxEventsPerWindow": 20,
+        "windowSeconds": 60,
+        "cooldownSeconds": 60
+      }
+    },
+    "discord": {
+      "allowBots": "mentions"
+    }
+  },
+  "session": {
+    "reset": { "mode": "daily", "atHour": 18 },
+    "resetByType": {
+      "thread": { "mode": "idle", "idleMinutes": 1440 }
+    }
+  }
+}

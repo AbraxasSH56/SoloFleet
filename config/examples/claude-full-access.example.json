@@ -1,0 +1,22 @@
+{
+  "_readme": "Models and command access for a single-subscription setup (every agent runs a Claude model; no fallback to another provider). `exec` runs on the gateway machine in full mode: this gives the roles real command access to your computer, and the safety comes from the audit guard, the approval cards, the desktop lock and the rules, not from a sandbox. Read docs/en/safety.md before turning it on. Replace the model placeholders (for example the newest Opus and Sonnet your OpenClaw lists).",
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/<OPUS_MODEL_ID>",
+        "fallbacks": []
+      },
+      "utilityModel": "anthropic/<SONNET_MODEL_ID>"
+    }
+  },
+  "tools": {
+    "exec": {
+      "reviewer": {
+        "model": "anthropic/<SONNET_MODEL_ID>"
+      },
+      "mode": "full",
+      "host": "gateway",
+      "strictInlineEval": false
+    }
+  }
+}

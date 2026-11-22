@@ -1,0 +1,27 @@
+{
+  "_readme": "Differences between a role's shared section and the shared-rules source. Only roles that differ get an entry; a role not listed gets the source verbatim. Keys are agentIds from config/crew.json. Operations locate by section heading or fixed text, never by paragraph number. The sync script (scripts/sync-shared-rules.py) reads this file. Start/end markers are not stored here: the script takes the first line of shared-rules*.md as the start marker and the first line of shared-tail*.md as the end marker, one pair per language. Fields: reason = why the role differs; hasTail = false means this role's AGENTS.md has no tail (the shared section runs to the end of the file and the tail fingerprint is the empty string); ops = operations applied to the shared source, in order. Operation delete_section removes the section whose heading line equals the heading of the language in use (heading.<lang>); drop_final_blank_line removes the last blank line of the shared section.",
+  "roles": {
+    "desktop": {
+      "reason": "The Desktop operator has no 'Desktop' section: it is the desktop bot itself.",
+      "hasTail": true,
+      "ops": [
+        {
+          "op": "delete_section",
+          "heading": {
+            "en": "### Desktop",
+            "zh-CN": "### 桌面"
+          }
+        }
+      ]
+    },
+    "system-auditor": {
+      "reason": "The System auditor's AGENTS.md has no tail section (no changed-files list): its shared section runs to the end of the file and ends one blank line earlier than the source. The tail fingerprint is recorded as empty (zero bytes); it is still checked.",
+      "hasTail": false,
+      "ops": [
+        {
+          "op": "drop_final_blank_line"
+        }
+      ]
+    }
+  }
+}
