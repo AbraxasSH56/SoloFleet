@@ -18,6 +18,8 @@
   --claude: #e0431a;       /* Claude word in the subhead, large text only (3.6:1 on paper) */
   --gemini: #1558b0;       /* 5.8:1 */
   --codex: #0f6b55;        /* 5.5:1 */
+  --kimi: #121212;         /* Kimi and Z.ai (GLM) sites are black-and-white, so ink */
+  --glm: #121212;
   --sans: "Inter Tight", ui-sans-serif, -apple-system, "Segoe UI", Arial, sans-serif;
   --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -30,7 +32,8 @@
 @media (max-width: 719px)  { :root { --fs-display: 48px; --fs-h2: 34px; --fs-h3: 20px; --fs-lede: 18px; --fs-body: 16px; --fs-small: 14px; --fs-mono: 11px; --pad: 20px; --gap-section: 72px; } }
 
 * { box-sizing: border-box; }
-html { scroll-padding-top: 24px; scroll-padding-bottom: 160px; }
+html { scroll-padding-top: 80px; scroll-padding-bottom: 160px; }
+.nw { white-space: nowrap; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 var(--fs-body)/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
 img, svg { display: block; max-width: 100%; }
 a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
@@ -86,6 +89,8 @@ code { font-family: var(--mono); font-size: .88em; }
 .rot-w[data-word="claude"] { color: var(--claude); }
 .rot-w[data-word="gemini"] { color: var(--gemini); }
 .rot-w[data-word="codex"] { color: var(--codex); }
+.rot-w[data-word="kimi"] { color: var(--kimi); }
+.rot-w[data-word="glm"] { color: var(--glm); }
 .rot-w .q { color: var(--ink-2); }
 .rot-note { color: var(--ink-2); margin: -6px 0 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .rot-toggle { font: inherit; letter-spacing: inherit; text-transform: inherit; background: none; border: 0; border-bottom: 1px solid var(--ink-2); color: var(--ink-2); padding: 0; min-height: 32px; cursor: pointer; }
@@ -246,8 +251,6 @@ td.status { white-space: nowrap; }
 .anim .appr.in { opacity: 1; transform: rotate(-2.5deg); }
 
 /* ---------- breakpoints: 1280 / 960 / 720 / 360 ---------- */
-@media (max-width: 1279px) {
-}
 @media (max-width: 959px) {
   .top .meta { display: none; }
   .hero-grid { grid-template-columns: 1fr; gap: 40px; }

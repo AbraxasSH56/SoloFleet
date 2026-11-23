@@ -112,7 +112,8 @@
   var rotToggle = document.getElementById('rot-toggle');
   if (rot && !reduced) {
     var words = rot.querySelectorAll('.rot-w');
-    var seq = [['claude', 3200], ['gemini', 1100], ['claude', 3200], ['codex', 1100]];
+    // Claude between every guest, so Claude is never more than ~1s away; one full loop is 15.2s.
+    var seq = [['claude', 2800], ['gemini', 1000], ['claude', 2800], ['codex', 1000], ['claude', 2800], ['kimi', 1000], ['claude', 2800], ['glm', 1000]];
     var si = 0, rotTimer = null, rotPaused = false, heroVisible = true;
     var byName = {};
     for (var w = 0; w < words.length; w++) byName[words[w].getAttribute('data-word')] = words[w];

@@ -43,10 +43,10 @@
           <div>
             <p class="subhead">
               <span class="sr-only">One Claude subscription. A whole crew to keep you focused.</span>
-              <span aria-hidden="true">One <span class="rot" id="rot"><span class="rot-w is-on" data-word="claude">Claude</span><span class="rot-w" data-word="gemini">Gemini<span class="q">?</span></span><span class="rot-w" data-word="codex">Codex<span class="q">?</span></span></span> subscription.<br><span class="serif">A whole crew</span> to keep you focused<span class="dot">.</span></span>
+              <span aria-hidden="true">One <span class="rot" id="rot"><span class="rot-w is-on" data-word="claude">Claude</span><span class="rot-w" data-word="gemini">Gemini<span class="q">?</span></span><span class="rot-w" data-word="codex">Codex<span class="q">?</span></span><span class="rot-w" data-word="kimi">Kimi<span class="q">?</span></span><span class="rot-w" data-word="glm">GLM<span class="q">?</span></span></span> subscription.<br><span class="serif">A whole crew</span> to keep you focused<span class="dot">.</span></span>
             </p>
             <p class="lede">Open-source rules, one plugin and scripts for <a href="https://github.com/openclaw/openclaw" target="_blank" rel="noopener">OpenClaw<span class="sr-only"> (opens in a new tab)</span></a>, the open-source agent gateway. The crew works in Discord.</p>
-            <p class="rot-note mono"><span>Tested on Claude only · others untried</span> <button type="button" class="rot-toggle" id="rot-toggle" hidden>Pause names</button></p>
+            <p class="rot-note mono"><span><span class="nw">Not tied to one vendor</span> · <span class="nw">tested on Claude so far</span></span> <button type="button" class="rot-toggle" id="rot-toggle" hidden>Pause names</button></p>
             <div class="ctas">
               <a class="btn" href="https://github.com/AbraxasSH56/SoloFleet" target="_blank" rel="noopener" data-cta="hero">View on GitHub<span class="sr-only"> (opens in a new tab)</span></a>
               <a class="btn btn-ghost" href="#safety">How it stays safe</a>
@@ -84,8 +84,8 @@
         <figure class="film">
           <video class="film-video" controls playsinline preload="metadata" width="1920" height="1080"
                  poster="assets/solofleet-launch-poster-v2.jpg" aria-describedby="film-desc">
-            <source src="assets/solofleet-launch-48s.mp4" type="video/mp4">
-            Your browser can't play this video. <a href="assets/solofleet-launch-48s.mp4">Open the MP4 (13 MB)</a>.
+            <source src="assets/solofleet-launch-48s-web.mp4" type="video/mp4">
+            Your browser can't play this video. <a href="assets/solofleet-launch-48s-web.mp4">Open the MP4 (3 MB)</a>.
           </video>
           <p id="film-desc" class="sr-only">A 48-second animated film with music and no voice-over, drawn in the same paper style as this page. A crowd of bot avatars gathers into one crew under the line “One Claude subscription. A whole crew.” In a redrawn Discord channel you ask for a one-page summary, the Controller asks “Start?” and you answer yes: “Say it once, in Discord.” A reply shows its usage card: model, pool, effort, files changed: “Every reply shows what it used.” A task card unlocks only after the Task auditor passes it: “Done means audited.” An approval card asks to click Submit and waits until you press Allow once: “It waits for your click.” The camera pulls back to a whole workspace of threads, and the film ends on the SoloFleet logo with “Search SoloFleet on GitHub” and the music credit.</p>
           <figcaption class="film-cap mono">48 seconds · music, no voice-over · redrawn, not the real Discord UI · click to play</figcaption>
@@ -191,7 +191,7 @@
             <tbody>
               <tr><th scope="row">Claude subscription via <code>claude -p</code></th><td class="status mono" data-label="Status">Running daily in the author's own setup</td><td data-label="Notes">Written and tested for this.</td></tr>
               <tr><th scope="row">Other providers</th><td class="status mono" data-label="Status">Not tested</td><td data-label="Notes">Not tried here; quota and login handling assume the Claude CLI. PRs welcome.</td></tr>
-              <tr><th scope="row">Gemini consumer subscription</th><td class="status mono" data-label="Status">Not recommended</td><td data-label="Notes">Google's terms forbid signing OpenClaw in with it.</td></tr>
+              <tr><th scope="row">Gemini</th><td class="status mono" data-label="Status">Not tested · API key</td><td data-label="Notes">OpenClaw takes a Google AI Studio API key. Personal-plan sign-in depends on Google's terms. <a href="https://docs.openclaw.ai/providers/google" target="_blank" rel="noopener">OpenClaw's Gemini guide<span class="sr-only"> (opens in a new tab)</span></a></td></tr>
             </tbody>
           </table>
         </div>
@@ -205,7 +205,7 @@
         <h2 id="before-title" class="reveal">Before <span class="serif">you run it</span>.</h2>
         <ul class="checklist">
           <li>An always-on Mac; desktop verified on macOS only.</li>
-          <li>A Claude subscription and the <code>claude</code> CLI, OpenClaw, Node 24.16+, Python 3, a Discord bot per duty.</li>
+          <li>A Claude subscription and the <code>claude</code> CLI, OpenClaw, Node 24.16+, Python 3, a Discord bot per duty; optional Peekaboo for the desktop.</li>
           <li>Not yet built from scratch on a fresh machine.</li>
           <li>You sign in yourself; the repo never touches your login.</li>
           <li>One person uses it.</li>
