@@ -100,9 +100,7 @@
   });
 
   /* ---------- entrance: hero lines, then the Discord exhibit, played once ---------- */
-  var exhibit = document.getElementById('exhibit');
-  function approve() { if (exhibit) exhibit.classList.add('is-approved'); }
-  var lines = document.querySelectorAll('.display .line, .brand-title .line');
+  var lines = document.querySelectorAll('.brand-title .line');
   var chan = document.querySelector('.chan');
   var appr = document.querySelector('.appr');
   var reveals = document.querySelectorAll('.reveal');
@@ -153,13 +151,13 @@
     setTimeout(tick, 2600);   // start after the hero entrance
   }
 
-  if (reduced) { approve(); return; }   // no .anim class: everything already visible, final state shown
+  if (reduced) { return; }   // no .anim class: everything already visible
 
   function show(el) { if (el) el.classList.add('in'); }
   for (var i = 0; i < lines.length; i++) (function (el, d) { setTimeout(function () { show(el); }, d); })(lines[i], 120 + i * 80);
-  setTimeout(function () { show(chan); }, 1800);
-  setTimeout(function () { show(appr); }, 2600);
-  setTimeout(approve, 4200);
+  // the hero exhibit shows almost at once (short 0.3 s entrance), never left half-built
+  setTimeout(function () { show(chan); }, 60);
+  setTimeout(function () { show(appr); }, 180);
 
   /* ---------- reveal on scroll, once ---------- */
   if (!('IntersectionObserver' in window)) {

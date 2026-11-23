@@ -18,21 +18,25 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/fonts/InterTight-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/InstrumentSerif-Italic-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/JetBrainsMono-latin-var.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
 
+  <header class="topbar" id="topbar">
+    <div class="wrap top mono">
+      <a class="brand" href="#top">SoloFleet</a>
+      <span class="meta">Open source · MIT · Personal showcase</span>
+      <a class="gh btn btn-small" href="https://github.com/AbraxasSH56/SoloFleet" target="_blank" rel="noopener" data-cta="nav">View on GitHub ↗<span class="sr-only"> (opens in a new tab)</span></a>
+    </div>
+  </header>
+
   <main id="main">
     <!-- 1. Hero (paper) -->
     <section class="hero ruled" id="top">
       <div class="wrap">
-        <header class="top mono">
-          <a class="brand" href="#top">SoloFleet</a>
-          <span class="meta">Open source · MIT · Personal showcase</span>
-          <a class="gh" href="https://github.com/AbraxasSH56/SoloFleet" target="_blank" rel="noopener" data-cta="nav">View on GitHub ↗<span class="sr-only"> (opens in a new tab)</span></a>
-        </header>
-
         <h1 class="brand-title"><span class="line">SoloFleet<span class="dot">.</span></span></h1>
 
         <div class="hero-grid">
@@ -41,7 +45,7 @@
               <span class="sr-only">One Claude subscription. A whole crew to keep you focused.</span>
               <span aria-hidden="true">One <span class="rot" id="rot"><span class="rot-w is-on" data-word="claude">Claude</span><span class="rot-w" data-word="gemini">Gemini<span class="q">?</span></span><span class="rot-w" data-word="codex">Codex<span class="q">?</span></span></span> subscription.<br><span class="serif">A whole crew</span> to keep you focused<span class="dot">.</span></span>
             </p>
-            <p class="lede">Open-source rules, one plugin and scripts for OpenClaw, in Discord.</p>
+            <p class="lede">Open-source rules, one plugin and scripts for <a href="https://github.com/openclaw/openclaw" target="_blank" rel="noopener">OpenClaw<span class="sr-only"> (opens in a new tab)</span></a>, the open-source agent gateway. The crew works in Discord.</p>
             <p class="rot-note mono"><span>Tested on Claude only · others untried</span> <button type="button" class="rot-toggle" id="rot-toggle" hidden>Pause names</button></p>
             <div class="ctas">
               <a class="btn" href="https://github.com/AbraxasSH56/SoloFleet" target="_blank" rel="noopener" data-cta="hero">View on GitHub<span class="sr-only"> (opens in a new tab)</span></a>
@@ -51,21 +55,21 @@
           </div>
 
           <figure class="exhibit" id="exhibit" aria-labelledby="ex-cap" aria-describedby="ex-desc">
-            <p class="ex-note mono">Desktop bot stops here</p>
             <div aria-hidden="true">
               <div class="chan">
                 <p class="chan-head mono"># workshop</p>
-                <div class="msg"><span class="av av-you">Y</span><div><p class="who">You</p><p>Turn my reading notes into a one-page brief.</p></div></div>
-                <div class="msg"><span class="av av-bot">C</span><div><p class="who">Controller<span class="tag">BOT</span></p><p>Worker takes it in a thread; Task auditor checks it.</p><p class="receipt mono">latest Opus · subscription · effort medium · 1 file changed</p></div></div>
+                <div class="msg"><span class="av av-you">Y</span><div><p class="who">You</p><p>Sign me up for Friday's meetup.</p></div></div>
+                <div class="msg"><span class="av av-bot">C</span><div><p class="who">Controller<span class="tag">BOT</span></p><p>Desktop operator will fill in the form. It stops before Submit.</p><p class="receipt mono">Claude Sonnet · subscription · effort medium · 1 file changed</p></div></div>
               </div>
+              <p class="ex-note mono">↓ It stops here and waits for you</p>
               <div class="appr">
-                <p class="appr-head mono"># approval · Desktop operator</p>
-                <p class="appr-state mono"><span class="state-wait">Waiting for the owner</span><span class="state-ok">Approved · 1 action released</span></p>
-                <p class="appr-text">Wants to click <b>Submit</b> on the form.</p>
+                <p class="appr-head mono"># approvals · Desktop operator</p>
+                <p class="appr-state mono">Waiting for the owner</p>
+                <p class="appr-text">Wants to click <b>Submit</b> on the meetup sign-up form.</p>
                 <div class="chips"><span class="chip chip-allow">Allow once</span><span class="chip chip-deny">Deny</span></div>
               </div>
             </div>
-            <p id="ex-desc" class="sr-only">In the Workshop channel you ask the bots to turn your reading notes into a one-page brief. The Controller bot replies that a worker will do it and the task auditor will check it; under its reply a usage card reads: latest Opus, subscription, effort medium, one file changed. Below, an approval card from the Desktop operator says it wants to click Submit on a form and waits for the owner, with two buttons: Allow once and Deny.</p>
+            <p id="ex-desc" class="sr-only">In the Workshop channel you ask the bots to sign you up for Friday's meetup. The Controller bot replies that the Desktop operator will fill in the form and stop before Submit; under its reply a usage card reads: Claude Sonnet, subscription, effort medium, one file changed. Below, an approval card from the Desktop operator says it wants to click Submit on the meetup sign-up form and is waiting for the owner, with two buttons: Allow once and Deny.</p>
             <figcaption id="ex-cap" class="ex-cap mono">Redrawn, not the real Discord UI</figcaption>
           </figure>
         </div>
@@ -79,13 +83,13 @@
         <h2 id="watch-title" class="reveal">The whole idea <span class="serif">in 48 seconds</span>.</h2>
         <figure class="film">
           <video class="film-video" controls playsinline preload="metadata" width="1920" height="1080"
-                 poster="assets/solofleet-launch-poster.jpg" aria-describedby="film-desc">
+                 poster="assets/solofleet-launch-poster-v2.jpg" aria-describedby="film-desc">
             <source src="assets/solofleet-launch-48s.mp4" type="video/mp4">
             Your browser can't play this video. <a href="assets/solofleet-launch-48s.mp4">Open the MP4 (13 MB)</a>.
           </video>
           <p id="film-desc" class="sr-only">A 48-second animated film with music and no voice-over, drawn in the same paper style as this page. A crowd of bot avatars gathers into one crew under the line “One Claude subscription. A whole crew.” In a redrawn Discord channel you ask for a one-page summary, the Controller asks “Start?” and you answer yes: “Say it once, in Discord.” A reply shows its usage card: model, pool, effort, files changed: “Every reply shows what it used.” A task card unlocks only after the Task auditor passes it: “Done means audited.” An approval card asks to click Submit and waits until you press Allow once: “It waits for your click.” The camera pulls back to a whole workspace of threads, and the film ends on the SoloFleet logo with “Search SoloFleet on GitHub” and the music credit.</p>
           <figcaption class="film-cap mono">48 seconds · music, no voice-over · redrawn, not the real Discord UI · click to play</figcaption>
-          <p class="credit">Music: “Long Time Coming” by Kevin MacLeod (<a href="https://incompetech.com" target="_blank" rel="noopener">incompetech.com</a>), licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons: By Attribution 4.0</a>. Source: <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100173" target="_blank" rel="noopener">incompetech.com/music/royalty-free/index.html?isrc=USUAN1100173</a>. Changes: excerpted, re-edited at bar boundaries and faded out for this video. UI sounds: Kenney (<a href="https://kenney.nl" target="_blank" rel="noopener">kenney.nl</a>), CC0.</p>
+          <p class="credit">Music: “Long Time Coming” by Kevin MacLeod (<a href="https://incompetech.com" target="_blank" rel="noopener">incompetech.com</a>), <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, excerpted and faded. <a href="#credits">Full credits</a></p>
         </figure>
       </div>
     </section>
@@ -98,20 +102,20 @@
         <ol class="cols">
           <li class="reveal"><span class="num" aria-hidden="true">01</span><h3>Say it in Discord</h3><p class="muted">Type it in the Workshop. The Controller restates anything complex and waits for one yes.</p></li>
           <li class="reveal"><span class="num" aria-hidden="true">02</span><h3>Work moves to a thread</h3><p class="muted">A worker does it in a thread. Unaddressed bots stay quiet.</p></li>
-          <li class="reveal"><span class="num" aria-hidden="true">03</span><h3>One report a day</h3><p class="muted">Questions come once, with options. One report each evening.</p></li>
+          <li class="reveal"><span class="num" aria-hidden="true">03</span><h3>One report a day</h3><p class="muted">Questions come merged, with options. One report each evening.</p></li>
         </ol>
       </div>
     </section>
 
     <!-- 3. Why this way (paper) -->
-    <section class="sec ruled" aria-labelledby="why-title">
+    <section class="sec ruled" id="why" aria-labelledby="why-title">
       <div class="wrap">
         <div class="sec-head mono"><span>03 — Why this way</span></div>
-        <h2 id="why-title" class="reveal">Built for <span class="serif">one person</span>, many bots.</h2>
+        <h2 id="why-title" class="reveal">Not the usual <span class="serif">multi-agent</span> setup.</h2>
         <div class="cols">
-          <article class="reveal"><span class="num" aria-hidden="true">A</span><h3>One flat subscription</h3><p class="muted">One Claude subscription runs every bot. Each reply shows a usage card.</p></article>
-          <article class="reveal"><span class="num" aria-hidden="true">B</span><h3>Fewer, better questions</h3><p class="muted">Unaddressed bots stay quiet; decisions come merged, with a recommendation.</p></article>
-          <article class="reveal"><span class="num" aria-hidden="true">C</span><h3>Audited before done</h3><p class="muted">No task closes without an independent, read-only audit.</p></article>
+          <article class="reveal"><span class="num" aria-hidden="true">A</span><h3>Not a key per agent</h3><p class="muted">Frameworks often give each agent its own API key. Here one Claude subscription runs the whole crew.</p></article>
+          <article class="reveal"><span class="num" aria-hidden="true">B</span><h3>Not one coding session</h3><p class="muted">Claude Code's subagents live inside one coding session. This crew stays on, with fixed duties, in Discord.</p></article>
+          <article class="reveal"><span class="num" aria-hidden="true">C</span><h3>Attention, held by program</h3><p class="muted">Three tiers: just do it, ask once then default, always wait. A ledger keeps what's open.</p></article>
         </div>
         <p class="note">Subscription use is Anthropic's call; see <a href="https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan" target="_blank" rel="noopener">their help page<span class="sr-only"> (opens in a new tab)</span></a>.</p>
         <details class="more">
@@ -120,7 +124,7 @@
             <li>Every regular bot runs through the official <code>claude</code> command line (<code>claude -p</code>). No per-token meter per agent.</li>
             <li>The usage card is on by default: model, pool, reasoning effort, files changed. The remaining-quota line needs the CodexBar command line (macOS) and two plugin options.</li>
             <li>Included API credits, if your plan has them, run the scheduled audits and standby bots, and stop when they run out. No switch to paid usage.</li>
-            <li>Requests that wait on you sit on a ledger. It spares you remembering; it can't make you look.</li>
+            <li>The ledger spares you remembering; it can't make you look. Small jobs done in one turn get no card and no audit.</li>
             <li>A task card can't be marked done until an audit passed and the result hasn't changed since. What you say is written down that turn, so sessions reset daily.</li>
             <li>No patches to OpenClaw: official settings, the plugin interface, one plugin.</li>
           </ul>
@@ -128,14 +132,26 @@
       </div>
     </section>
 
-    <!-- Interlude: optional role-play (paper, light) -->
-    <section class="interlude ruled" id="cast" aria-labelledby="cast-title">
+    <!-- 3b. In the repo (paper-2): low-key mid entry to the repository -->
+    <section class="sec alt" id="repo" aria-labelledby="repo-title">
       <div class="wrap">
-        <aside class="cast reveal">
-          <h2 id="cast-title" class="cast-title">Optional: give the crew <span class="serif">a cast</span></h2>
-          <p>I gave my bots the voices of game characters. Silver Wolf, from Honkai: Star Rail, runs my desktop. She stops and waits for me before a payment or a submit, and calls that her “save point”. Her fellow Stellaron Hunters, Kafka and Firefly, wait in her queue like everyone else. A persona only changes the voice, never the rules or the result.</p>
-          <p class="credit cast-credit">Character names belong to their respective games and rights holders. Not affiliated.</p>
-        </aside>
+        <div class="sec-head mono"><span>In the repo</span></div>
+        <h2 id="repo-title" class="reveal">What you <span class="serif">actually get</span>.</h2>
+        <div class="repo-grid">
+          <dl class="tree mono reveal">
+            <div><dt>rules/</dt><dd>shared rules, one part per duty</dd></div>
+            <div><dt>plugins/personal-inbox/</dt><dd>gates, desktop lock, approval cards, reply card, ledgers</dd></div>
+            <div><dt>scripts/</dt><dd>scheduled checks that call no model</dd></div>
+            <div><dt>jobs/</dt><dd>audit, patrol and diary prompts</dd></div>
+            <div><dt>tests/</dt><dd>offline tests</dd></div>
+          </dl>
+          <div class="crew reveal">
+            <p class="crew-label mono">The crew</p>
+            <p>Controller · Workers · Desktop operator · Task auditor · System auditor · <span class="muted">optional Diary keeper and Standby bots</span></p>
+            <p class="muted small">No <code>npm install</code>: Node built-ins and the Python standard library.</p>
+            <a class="btn btn-ghost btn-small" href="https://github.com/AbraxasSH56/SoloFleet/tree/main/plugins/personal-inbox" target="_blank" rel="noopener" data-cta="mid">Read the plugin code ↗<span class="sr-only"> (opens in a new tab)</span></a>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -147,19 +163,18 @@
         <ul class="safety-list">
           <li class="reveal"><strong>One bot on the screen</strong>, with a lock and queue.</li>
           <li class="reveal"><strong>Six actions need your click:</strong> paying, sending, deleting, submitting, uploading, installing. One click each.</li>
-          <li class="reveal"><strong>No shell workaround:</strong> screen-driving commands are blocked.</li>
-          <li class="reveal"><strong>Auditors are read-only.</strong></li>
+          <li class="reveal"><strong>Screen-driving shell commands are blocked</strong> by text match, and sampled nightly.</li>
+          <li class="reveal"><strong>Auditors only read</strong>, apart from their own reports.</li>
         </ul>
         <div class="boundary"><p><strong>Not a sandbox:</strong> some blocks match text, and button clicks aren't recognized yet. <a href="https://github.com/AbraxasSH56/SoloFleet/blob/main/docs/en/safety.md" target="_blank" rel="noopener">Safety doc<span class="sr-only"> (opens in a new tab)</span></a></p></div>
-        <details class="more">
+        <details class="more more-card">
           <summary class="mono">More</summary>
           <ul>
             <li>Only the Desktop operator has screen tools. An exclusive lock and a queue mean one thread uses the screen at a time.</li>
-            <li>Only the owner's own Discord account clicking the approval card counts. Another bot can't approve. One approval releases one action.</li>
+            <li>The six: payment, sending to outside parties, permanent deletion, submitting a form, uploading a file, installing software. Only the owner's own Discord account clicking the card counts; one approval releases one action.</li>
             <li>If a card is denied, times out or is cancelled, that thread's screen tools can only look and close windows.</li>
-            <li>Shell commands that could drive the screen are blocked for the Desktop operator by matching command text, and its commands are sampled nightly.</li>
+            <li>The shell and auditor blocks match command text, so an indirect enough command could slip past; the nightly sample is there for that.</li>
             <li>A mouse click on a button relies on the bot's rule to stop first, backed by the lock and the card.</li>
-            <li>These are program-level guardrails and checkpoints. The safety doc lists what each one stops and what it doesn't.</li>
           </ul>
         </details>
       </div>
@@ -171,12 +186,12 @@
         <div class="sec-head mono"><span>05 — Support</span></div>
         <h2 id="support-title" class="reveal">What it <span class="serif">runs on</span>.</h2>
         <div class="table-wrap" role="region" aria-labelledby="support-title" tabindex="0">
-          <table>
+          <table class="support">
             <thead><tr><th scope="col" class="mono">Provider</th><th scope="col" class="mono">Status</th><th scope="col" class="mono">Notes</th></tr></thead>
             <tbody>
-              <tr><th scope="row">Claude subscription via <code>claude -p</code></th><td class="status mono">Running daily in the author's own setup</td><td>Written and tested for this.</td></tr>
-              <tr><th scope="row">Other providers</th><td class="status mono">Not tested</td><td>Not tried here; quota and login handling assume the Claude CLI. PRs welcome.</td></tr>
-              <tr><th scope="row">Gemini consumer subscription</th><td class="status mono">Not recommended</td><td>Google's terms forbid signing OpenClaw in with it.</td></tr>
+              <tr><th scope="row">Claude subscription via <code>claude -p</code></th><td class="status mono" data-label="Status">Running daily in the author's own setup</td><td data-label="Notes">Written and tested for this.</td></tr>
+              <tr><th scope="row">Other providers</th><td class="status mono" data-label="Status">Not tested</td><td data-label="Notes">Not tried here; quota and login handling assume the Claude CLI. PRs welcome.</td></tr>
+              <tr><th scope="row">Gemini consumer subscription</th><td class="status mono" data-label="Status">Not recommended</td><td data-label="Notes">Google's terms forbid signing OpenClaw in with it.</td></tr>
             </tbody>
           </table>
         </div>
@@ -187,10 +202,10 @@
     <section class="sec dark" id="before" aria-labelledby="before-title">
       <div class="wrap">
         <div class="sec-head mono"><span>06 — Before you try</span></div>
-        <h2 id="before-title" class="reveal">Before <span class="serif">you try</span>.</h2>
+        <h2 id="before-title" class="reveal">Before <span class="serif">you run it</span>.</h2>
         <ul class="checklist">
           <li>An always-on Mac; desktop verified on macOS only.</li>
-          <li>OpenClaw, Node 24.16+, Python 3, the <code>claude</code> CLI, a Discord bot per duty.</li>
+          <li>A Claude subscription and the <code>claude</code> CLI, OpenClaw, Node 24.16+, Python 3, a Discord bot per duty.</li>
           <li>Not yet built from scratch on a fresh machine.</li>
           <li>You sign in yourself; the repo never touches your login.</li>
           <li>One person uses it.</li>
@@ -199,12 +214,23 @@
       </div>
     </section>
 
+    <!-- Interlude: optional role-play (paper, light), moved here as a soft turn before the close -->
+    <section class="interlude ruled" id="cast" aria-labelledby="cast-title">
+      <div class="wrap">
+        <aside class="cast reveal">
+          <h2 id="cast-title" class="cast-title">Optional: give the crew <span class="serif">a cast</span></h2>
+          <p>I gave my bots the voices of game characters. Silver Wolf, from Honkai: Star Rail, runs my desktop. She stops and waits for me before a payment or a submit, and calls that her “save point”. Her fellow Stellaron Hunters, Kafka and Firefly, wait in her queue like everyone else. A persona only changes the voice, never the rules or the result.</p>
+          <p class="credit cast-credit">Character names belong to their respective games and rights holders. Not affiliated.</p>
+        </aside>
+      </div>
+    </section>
+
     <!-- 7. Close (paper) -->
     <section class="sec ruled" aria-labelledby="close-title">
       <div class="wrap">
         <div class="sec-head mono"><span>07 — Read it</span></div>
         <h2 id="close-title" class="close-big reveal">Read the rules, the plugin <span class="serif">and the reasons</span><span class="dot">.</span></h2>
-        <p class="lede">Questions, corrections and “we do this differently” are all welcome.</p>
+        <p class="lede">Reading needs nothing installed. Questions, corrections and “we do this differently” are all welcome.</p>
         <div class="ctas">
           <a class="btn" href="https://github.com/AbraxasSH56/SoloFleet" target="_blank" rel="noopener" data-cta="footer">View on GitHub<span class="sr-only"> (opens in a new tab)</span></a>
           <a class="btn btn-ghost" href="https://github.com/AbraxasSH56/SoloFleet/blob/main/docs/en/why-this-design.md" target="_blank" rel="noopener">Why this design<span class="sr-only"> (opens in a new tab)</span></a>
@@ -217,7 +243,7 @@
     <div class="wrap">
       <p>SoloFleet · MIT licensed · A personal showcase project</p>
       <p>Not affiliated with or endorsed by OpenClaw, Discord or Anthropic.</p>
-      <p class="foot-credit">Launch film credits — Music: “Long Time Coming” by Kevin MacLeod (<a href="https://incompetech.com" target="_blank" rel="noopener">incompetech.com</a>), licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons: By Attribution 4.0</a>. Source: <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100173" target="_blank" rel="noopener">incompetech.com/music/royalty-free/index.html?isrc=USUAN1100173</a>. Changes: excerpted, re-edited at bar boundaries and faded out for this video. UI sounds: Kenney (<a href="https://kenney.nl" target="_blank" rel="noopener">kenney.nl</a>), CC0.</p>
+      <p class="foot-credit" id="credits">Launch film credits — Music: “Long Time Coming” by Kevin MacLeod (<a href="https://incompetech.com" target="_blank" rel="noopener">incompetech.com</a>), licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons: By Attribution 4.0</a>. Source: <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100173" target="_blank" rel="noopener">incompetech.com/music/royalty-free/index.html?isrc=USUAN1100173</a>. Changes: excerpted, re-edited at bar boundaries and faded out for this video. UI sounds: Kenney (<a href="https://kenney.nl" target="_blank" rel="noopener">kenney.nl</a>), CC0.</p>
       <ul class="foot-links">
         <li><a href="privacy.html">Privacy</a></li>
         <li><a href="terms.html">Terms</a></li>
@@ -228,7 +254,7 @@
   </footer>
 
   <div class="consent" id="consent" role="region" aria-label="Cookie consent" hidden>
-    <p>We'd like to use Google Analytics, Google Ads and Reddit tags to see which posts and ads bring visitors here. Nothing loads unless you accept. <a href="privacy.html">Privacy</a></p>
+    <p>May we use analytics and ad tags (Google, Reddit) to see which posts bring visitors? Nothing loads unless you accept. <a href="privacy.html">Privacy</a></p>
     <div class="consent-btns">
       <button type="button" class="btn btn-ghost" data-consent="reject">Reject</button>
       <button type="button" class="btn btn-ghost" data-consent="accept">Accept</button>
