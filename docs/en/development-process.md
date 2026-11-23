@@ -191,7 +191,7 @@ Each step has three blocks: what to do, what backs it, and its limits. Wherever 
 
 | Situation | What to do |
 |---|---|
-| A design or change plan, before starting | Send it to the everyday audit for a pre-review; start only when it stands |
+| A design or change plan, before starting | Send it to the everyday audit (a routine single-model audit) for a pre-review; start only when it stands |
 | A batch that changes the live system or the program layer, before going live | Two models audit it, one report each (at least one from another vendor); disagreements are taken up and discussed back and forth |
 | After a batch has gone live and been tested | Result audit, as above |
 | After an audit gave ① and the rework is done | Re-check |
@@ -291,7 +291,7 @@ All deployment-specific values are gathered in one configuration file. See [Conf
 
 These programs were first made in a Chinese-language setting, and several of them recognize fixed wording literally: the opening words of progress lines, section headings in task records, labels and headings on task cards, the first line of an audit report, markers the programs send, and the sensitive-word list used by the Desktop operator. Translating the documents alone is not enough; the wording the programs match has to change with them.
 
-Where the repository stands today: a `locale` setting (`en` by default, or `zh-CN`) switches the words the programs match and write (progress openers, section titles and labels of task records, labels on task cards, the first line of audit reports, markers the programs send, ledger status words, job names), the folder and file names under the data root, the template placeholders, the instruction texts the programs give the bots, the fixed notices the programs send to the owner, the text on the reply card, and which language version of the job prompts the auditor guard checks against. The rule files, templates and job instructions come in an English and a Chinese version that use the same words as the programs. The bots can still talk to you in English, through the reply-language setting. The Desktop operator's sensitive-word list keeps both its English and Chinese sets active at all times because it is a safety gate. What is not translated on purpose (machine-owned file keys and internal messages) is listed in [Localization](localization.md).
+Where the repository stands today: the `locale` setting (`en` by default, or `zh-CN`) switches all of these together: the words the programs match and write (progress openers, section titles and labels of task records, labels on task cards, the first line of audit reports, markers the programs send, ledger status words, job names), the folder and file names under the data root, the template placeholders, the instruction texts the programs give the bots, the fixed notices the programs send to the owner, the text on the reply card, and the language of the job prompts the auditor guard checks against. The rule files, templates and job instructions come in an English and a Chinese version that use the same words as the programs. The language the bots chat with you in is set separately, by `replyLanguage`. The Desktop operator's sensitive-word list keeps both its English and Chinese sets active at all times because it is a safety gate. What is deliberately left in Chinese (machine-owned file keys and internal messages) is listed in [Localization](localization.md).
 
 A few terms and how they are meant:
 

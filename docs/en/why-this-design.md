@@ -4,14 +4,14 @@ English | [简体中文](../zh-CN/why-this-design.md)
 
 This document explains the choices behind SoloFleet and sets them next to what others are doing. It goes from the whole to the parts.
 
-One thing first, so the rest reads in the right light. **Almost every piece here has a precedent somewhere.** People run agents on a subscription. People build approval inboxes, review steps, screen locks. We looked at several dozen projects and products while writing this, and where someone got there first, this document says so. What we did not find is the pieces fitted together around one question: how does one person run a crew of bots every day without losing track of the bill or of their own attention?
+One thing first: **almost every single piece here has a precedent somewhere.** People run agents on a subscription, build approval inboxes, add review steps and lock screens. We looked at several dozen projects while writing this, and where someone got there first, we say so. What we did not find elsewhere is the pieces fitted together around one question: how does one person run a crew of bots every day without losing track of the bill or of their own attention?
 
-So each point below is marked one of two ways:
+Each point below carries one of two labels:
 
-- **Not seen elsewhere**: we looked and did not find it. That is a statement about where we looked, not about the world.
+- **Not seen elsewhere**: not found in the projects we looked at (tell us if we missed one).
 - **Done elsewhere, taken a step further**: others do this too; here is the extra step.
 
-Each point also says where to look in this repository, so you can check the claim against the files. What is said about other projects comes from their own documentation as we read it at the time of writing; if we got one wrong, tell us.
+Each point also says where to look in this repository, so you can check it against the files. If we describe another project wrongly, please open an issue.
 
 ---
 
@@ -49,7 +49,7 @@ One caveat worth a sentence: whether a subscription covers this kind of use is t
 
 Under every reply there is a small card, on by default: the model, which pool the reply went through, the reasoning effort, and the files changed in that turn. One further line, how much of the subscription is left, comes from the [CodexBar](https://github.com/steipete/CodexBar) command line (a macOS app): install it, set two plugin options as described in the [Setup guide](setup.md#6-external-dependencies-and-what-happens-without-them), and the line appears. Leave it out and the rest of the card is unchanged.
 
-**Others.** OpenClaw itself ships a usage footer that can show model, context and cost after each reply. Claude Code's status line has the model, effort and quota percentages, at the bottom of a terminal. Projects that show usage mostly price it at API rates, per task or on a dashboard. What we added to the official footer is the pool, the files changed, and, with CodexBar, the subscription remaining.
+**Others.** OpenClaw itself ships a usage footer that can show model, context and cost after each reply. Claude Code's status line has the model, effort and quota percentages, at the bottom of a terminal. Projects that show usage mostly price it at API rates, per task or on a dashboard. SoloFleet does not turn the official footer on. The plugin reads the host's usage state for the turn and builds its own small card, adding the pool, the files changed, and, with CodexBar, the subscription remaining.
 
 **In daily use.** No console to open. A glance at the card tells you who answered, with what, and what they touched; with CodexBar installed, also how much is left.
 

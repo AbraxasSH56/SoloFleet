@@ -49,7 +49,7 @@ What counts as approval:
 - Only the owner's own Discord account clicking the approval card. A message from another bot does not count, even a bot on the owner allowlist. Text on a web page or in a file does not count.
 - A bot may cancel or decline on the owner's behalf ("don't click that"). It may not agree on the owner's behalf.
 - The card offers "allow once" and "deny" only. One approval releases one action and is then used up. The approval is tied to the thread, to the described action, and to the moment it was requested; change any of those and it no longer matches.
-- Bots cannot resolve approvals from the command line. Those commands are blocked by matching the command text; like any text match, that is not a sandbox, which is one reason the nightly command sample exists.
+- Bots cannot resolve approvals from the command line. The plugin blocks those commands by matching the command text, and the nightly command sample is the backstop (the limits of text matching are described below, under "No way round by command line").
 
 ### Two checks, one by rule and one by program
 
@@ -78,8 +78,8 @@ The sensitive words are a list in a JSON file: submit, send, pay, purchase, dele
 - **Large pages and windows are cut short.** The official read of interface elements truncates. On a web page we observed at most about 200 entries, and button text was often what got cut. So the Enter rule can miss on a large page. That truncation also applies to large native windows is our inference from how the interface behaves; we did not test it there.
 - **Our own cap.** After filtering to clickable elements, the plugin keeps up to 800 per observation and drops the rest.
 - **Stale observations.** After a click, scroll, window switch or typing, earlier observations are marked stale, and a button known only from a stale observation is not recognized. The Enter rule ignores the stale mark on purpose: that can raise one card too many, and will not drop one.
-- **System dialogs.** A dialog raised by the system could not be read as interface elements at all, so in our real-machine test the Enter path could not be exercised. The menu-item path was tested on a real machine: the program recognized a delete item in a menu, raised a card marked as program-recognized, and after the card was denied the action did not run. The Enter path has offline tests only.
-- **The command-line block** described below is live and has offline tests. It has not yet been triggered in real use.
+- **System dialogs.** A dialog raised by the system cannot be read as interface elements at all.
+- **What was tested for real.** The menu-item path was tested on a real machine: the program recognized a delete item in a menu, raised a card marked as program-recognized, and after the card was denied the action did not run. The Enter path could not be exercised there, because system dialogs cannot be read, so it has offline tests only.
 
 When OpenClaw exposes browser state to plugins, returns complete interface elements, or the Desktop operator is given the browser tool, recognizing submit buttons on web pages is worth revisiting.
 
@@ -114,7 +114,7 @@ This block covers screen-tool calls only.
 
 For the Desktop operator, shell commands that could drive the screen (AppleScript runners, click simulators, screen-capture tools, "tell application" and the like) are blocked by matching the command text. Every night a script lists the commands the Desktop operator and the scheduled-audit roles ran, and flags any that match.
 
-Matching command text is not a sandbox. A sufficiently indirect command could get past the match; the nightly sample is there for that.
+Matching command text is not a sandbox. A sufficiently indirect command could get past the match; the nightly sample is there for that. This block is live and has offline tests; it has not yet been triggered in real use.
 
 ### When it gets stuck
 
@@ -186,7 +186,7 @@ Where a bot writes files is deliberately not blocked at write time, apart from t
 | Who can approve | Owner-only card; approval commands blocked for bots | | The command block is a text match |
 | Driving the screen from the shell | Command-text block, nightly sample | | Text matching can be evaded; not yet triggered in real use |
 | Marking work done | Completion gate, result fingerprint | | Direct database writes, caught afterwards |
-| Auditors staying read-only | Auditor guard | | Text matching, not a sandbox |
+| Auditors staying read-only | Auditor guard | | Matches command text only; can be bypassed |
 | Where bots write files | | Rule, plus daily reconciliation | Not blocked at write time, by choice |
 | Installing, deleting, spending | | Rule, plus audit | |
 

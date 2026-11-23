@@ -47,7 +47,7 @@ OpenClaw 用非交互模式（`claude -p`）把对话交给 Claude 命令行，�
 
 - bot 之间**只靠明确点名**说话（写 `<@BOT_USER_ID>`，只写名字没用）。除了项目频道的主责 bot 和日记频道，bot 只在被点名时回话。
 - 项目频道的**主责 bot** 在本频道不点名也能回；建项目时 `scripts/automation/lead-free.mjs` 给它开，别的 bot 都不开。
-- 防循环：每个线程里 bot 点名 bot 的条数由 `daily-format-check.mjs` 每天数一遍；数多了只是给审计的线索，不会自动停。
+- 防循环：实时防循环靠 OpenClaw 自带的防循环保护（见 `config/examples/bot-mentions-and-session-reset.example.json`）。另外，`daily-format-check.mjs` 每天会统计每个线程里 bot 互相点名的次数；次数偏多只作为审计线索，不会自动叫停。
 
 创建应用后，把 bot 令牌放进环境变量（`DISCORD_BOT_TOKEN_<角色>`）。不要把令牌写进任何文件。
 
@@ -65,17 +65,18 @@ OpenClaw 用非交互模式（`claude -p`）把对话交给 Claude 命令行，�
 
    （要英文规则就改传 `--lang en`。）
 
-   它给 `bots` 里每个还没有 `AGENTS.md` 的角色（位置 `<workspaceRoot>/<agentId>/`）拼出"头部＋共用段（套差异表）＋尾部"，并按你的配置填占位（`{{OWNER_TITLE}}`、编号、路径）。`--dry-run` 只显示会写什么。以后改 `rules/`，先 `--check` 再 `--apply`：共用规则改一处推到全部角色，谁手改了自己那份也会被报出来。
-6. **回复附卡（默认开）。** 每条 bot 回复下面会带一张小卡：模型、通路、思考档位和改了哪些文件。什么都不用配，而且它**不需要** OpenClaw 的用量页脚设置（`messages.responseUsage`、`messages.usageTemplate`）：插件直接读宿主给的这一轮用量状态里的模型和档位。`messages.responseUsage` 保持默认（`off`）即可。`config/examples/inbox-integration.example.json` 把默认值写明了（`executionRecord.enabled: true`、`quotaSource: "off"`），要关附卡就把 `enabled` 改成 `false`。剩余额度那一行是另一回事，**不装** CodexBar 命令行就不显示（见第 6 节）。
+   它会为 `bots` 里还没有 `AGENTS.md` 的角色生成规则文件（放到 `<workspaceRoot>/<agentId>/`），由"角色头部 ＋ 共用规则（按差异表裁剪）＋ 尾部"拼成，并自动填好配置里的占位符（`{{OWNER_TITLE}}`、ID、路径等）。先跑 `--dry-run` 可以预览。以后改了 `rules/`，先跑 `--check` 再跑 `--apply`：改一处就能同步到所有角色，如果有人手改过某个角色的副本，也会报出来。
+6. **回复附卡（默认开启）。** 每条 bot 回复下面会自动附一张小卡，显示模型、通路、思考档位和本轮改过的文件。它直接读宿主的每轮用量状态，**不需要**打开 OpenClaw 的用量页脚（`messages.responseUsage` 保持默认 `off` 即可，`messages.usageTemplate` 也不用配）。默认值写在 `config/examples/inbox-integration.example.json` 里（`executionRecord.enabled: true`、`quotaSource: "off"`），要关闭附卡就把 `enabled` 改成 `false`。想多显示一行"剩余额度"，需要另装 CodexBar 命令行，不装就不显示这一行（见第 6 节）。
 7. 重启网关，在工坊点名总控发一句话。
 
 人设是可选的，见 [roles.md](roles.md)；不配人设 bot 也完全能用。
 
 ## 5. 定时任务
 
-`jobs/` 放着各定时任务的指令全文（日审、周审、异常深审、巡查、日记）和 `followups-daily-job.example.json`。把每一份建成 OpenClaw 的定时任务，挂在对应的角色上、选你要的钟点（配置里的 `jobs.<名字>.time` 只是记录，真正的时间在 OpenClaw 的定时任务里设）。指令里有几处部署时要填的占位（`<TIMEZONE>`、`<DATA_ROOT>`、`<OPENCLAW_INSTALL_DIR>`）；审计守门在算片段指纹前会按 `config/crew.json` 把它们填上，所以任务正文和配置要保持一致。`scripts/automation/` 里的命令型脚本（额度闸、提醒、白天看护、重置通知等）是给 OpenClaw 命令型定时任务用的，每个脚本开头的注释写了多久跑一次。
+- **调模型的定时任务。** `jobs/` 里放着日审、周审、异常深审、巡查、日记的指令全文，以及 `followups-daily-job.example.json`。把它们逐个建成 OpenClaw 的定时任务，挂到对应角色上并设好时间（`config/crew.json` 里的 `jobs.<名字>.time` 只是记录，真正的触发时间在 OpenClaw 里设）。指令里有 `<TIMEZONE>`、`<DATA_ROOT>`、`<OPENCLAW_INSTALL_DIR>` 这几个要在部署时填的占位符，审计守门算指纹之前会按 `config/crew.json` 替换，所以任务正文和配置要保持一致。
+- **不调模型的定时脚本。** `scripts/automation/` 里的脚本（额度闸、提醒、白天看护、重置通知等）按 OpenClaw 的命令型定时任务来配，每个脚本开头的注释写了建议多久跑一次。
 
-每日摘要的自发（`scripts/automation/publish-self.py`）要在配置里给每个任务设好 `jobs.publishSelf.effectiveFrom` 才会发（见 [configuration.md](configuration.md)）；各摘要的截止点就是该任务的 `jobs.<名字>.time`。
+每日摘要的自动发布（`scripts/automation/publish-self.py`）默认关闭：要在配置里给每个任务设好 `jobs.publishSelf.effectiveFrom` 才会发（见 [configuration.md](configuration.md)）；各摘要的截止时间就是该任务的 `jobs.<名字>.time`。
 
 ## 6. 外部依赖，缺了会怎样
 

@@ -19,7 +19,7 @@
 | `bots.<agentId>.userId` | 各 bot 的 Discord 用户编号：`main`、`desktop`、`task-auditor`、`system-auditor`、`diary`、`standby-a`、`standby-b`、`worker-a`、`worker-b`… | – |
 | `roles` | 可选，覆盖角色表（见第 3 节）。**目前只有 `scripts/sync-shared-rules.py` 会读它。** | 内置 |
 | `timezone` | IANA 时区名。所有"今天""业务日期""本地钟点"都按它算。 | `UTC` |
-| `locale` | `en` 或 `zh-CN`：程序认、写、发的协议词（进度句开头、任务记录和任务卡标签、报告首行、台账状态词、作业名等）、数据根里的文件夹和文件名、模板占位符、程序对 bot 说的指令句、回复附卡上的文字、英文过程话清理（只在 zh-CN 开）、审计守门用哪个语言的任务指令片段。建数据根之前先定好，以后不要改；见 [localization.md](localization.md)。 | `en` |
+| `locale` | `en` 或 `zh-CN`。决定程序读写和匹配的固定词（进度句开头、任务记录和任务卡标签、报告首行、台账状态词、作业名等）、数据根里的文件夹和文件名、模板占位符、程序给 bot 的指令句、回复附卡文字、审计守门用的任务指令语言，以及是否开启英文过程话清理（仅 `zh-CN`）。建数据根前定好，之后不要改；完整清单见 [localization.md](localization.md)。 | `en` |
 | `replyLanguage` | 填规则里的 `{{REPLY_LANGUAGE}}`：bot 回话用的语言。 | `English` |
 | `paths.dataRoot` | 数据根：项目文件夹、`INDEX.md`、决定账本、台账和运行记录。 | – |
 | `paths.workspaceRoot` | 各角色工作区的上一级：`<workspaceRoot>/<agentId>/`。 | – |
@@ -29,9 +29,9 @@
 | `paths.openclawHome` | OpenClaw 的状态文件夹。 | `~/.openclaw` |
 | `paths.openclawInstallDir` | OpenClaw 的安装目录（周审的程序核对要拿它跟校验清单比）。 | 空 |
 | `paths.claudeBin` | `claude` 命令行的路径（登录到期提醒用）。 | `~/.local/bin/claude` |
-| `auditAreas.review` / `.roster` / `.backup` | 可选：每日盲区抽查要看有没有新增改动的文件夹，以及（`backup`，里面有 `consistent-checkpoints` 文件夹时）备份状态。空着或目录不在就跳过，写"未启用"，不算不完整。 | 空 |
+| `auditAreas.review` / `.roster` / `.backup` | 可选。每日盲区抽查会看这些文件夹有没有新增或改动；如果 `backup` 里有 `consistent-checkpoints` 文件夹，还会顺带查备份状态。留空或目录不存在就跳过，标成"未启用"，不算不完整。 | 空 |
 | `paths.codexbarBin` | [CodexBar](https://github.com/steipete/CodexBar) 命令行路径（可选；只有打开额度那一行才用）。 | 该应用的默认位置 |
-| `jobs.publishSelf.effectiveFrom` | 按任务（用你这个 `locale` 的任务名：zh-CN 是 `巡查`、`异常深审`、`周审`，en 是 `patrol`、`deep-review`、`weekly-audit`）：`publish-self.py` 从哪个业务日期起才可以发这个任务的摘要。**某个任务这里没写日期，脚本就拒发它。** 填你打开自发的那一天。 | 示例文件里是 `2030-01-01` |
+| `jobs.publishSelf.effectiveFrom` | 按任务设置 `publish-self.py` 从哪个业务日期起可以自动发布摘要（任务名随 `locale` 走：zh-CN 用 `巡查`、`异常深审`、`周审`，en 用 `patrol`、`deep-review`、`weekly-audit`）。**没写日期的任务，脚本会拒绝发布。** 填你打算启用自动发布的那一天即可。 | 示例文件里是 `2030-01-01` |
 | `jobs.<名字>.time` | 你给各任务排的钟点（`patrol`、`deepReview`、`weeklyAudit`、`dailyAudit`…）。真正的时间在 OpenClaw 的定时任务里设；`publish-self.py` 还会读 `patrol`、`deepReview`、`weeklyAudit` 当作各摘要的截止点。脚本里其余写死的钟点见第 5 节。 | – |
 | `models` | 规则里模型别名的对照（"最新的 Opus"）。仅说明用。 | – |
 | `attachCard.modelFamilies` | 回复附卡从型号引用（`claude-<族名>-…`）里认的模型族名；出现新族名时在这里加。 | `sonnet, opus, haiku, fable` |
@@ -85,7 +85,12 @@ OpenClaw 在脚本沙箱里跑的触发脚本没法 import 配置文件，所以
 | `scripts/automation/deep-review-trigger.js` | `DATA_ROOT`、`TIMEZONE`、`LOCALE`（和 `locale` 填一样）、`CUT_HOUR` |
 | `scripts/followups-trigger.js` | `TIMEZONE`、`LOCALE`（和 `locale` 填一样） |
 
-普通脚本里的钟点（都是 `timezone` 的本地时间）：`scripts/automation/daily-format-check.mjs`（`CUT_H`、`CUT_M`）、`reset-notice.mjs`（`PRE_FROM`、`RESET_AT`、`POST_UNTIL`）、`timed-reminders.mjs`（`提醒小时`、提前天数、可选的复议日期 `复议日期`，写在 `<DATA_ROOT>/运行记录/提醒/配置.json`；这是 `locale: zh-CN` 时的路径，`locale: en` 时是 `<DATA_ROOT>/run-logs/reminders/配置.json`，文件名 `配置.json` 和这几个键名在两种语言下都是中文，因为只有程序读它）、`api-quota-gate.mjs`（`EXPIRY_HOUR`，默认 7：API 额度周期按本地时间几点结束）。
+普通脚本里的钟点常量（均按 `timezone` 本地时间算）：
+
+- `scripts/automation/daily-format-check.mjs`：`CUT_H`、`CUT_M`
+- `scripts/automation/reset-notice.mjs`：`PRE_FROM`、`RESET_AT`、`POST_UNTIL`
+- `scripts/automation/api-quota-gate.mjs`：`EXPIRY_HOUR`（默认 `7`，API 额度周期结束的本地整点）
+- `scripts/automation/timed-reminders.mjs`：在 `<DATA_ROOT>/运行记录/提醒/配置.json`（`locale: en` 时为 `<DATA_ROOT>/run-logs/reminders/配置.json`）里设 `提醒小时`、提前天数和可选的 `复议日期`。文件名 `配置.json` 和这几个键名在两种语言下都固定用中文，因为只有程序读它。
 
 环境变量：`SOLOFLEET_CONFIG`（配置文件）、`OPENCLAW_BIN`（覆盖 `paths.openclawBin`）、`OPENCLAW_DATA_ROOT`／`OPENCLAW_RUNTIME_ROOT`／`OPENCLAW_PROJECT_ROOT`（对账命令用，命令抽查触发脚本会设）、`OPENCLAW_SDK_TEXT_CHUNKING`（只有测试用）。
 

@@ -4,23 +4,23 @@ English | [简体中文](../zh-CN/credits.md)
 
 SoloFleet is mostly arrangement. The foundations and many of the ideas belong to other people. This page lists what was actually borrowed and from whom.
 
-Projects that we only compared ourselves against are discussed in [Why this design](why-this-design.md). They are not listed here, because comparing is not borrowing.
+Projects we only compared ourselves against are in [Why this design](why-this-design.md), not here.
 
 ## Where the idea came from
 
 Two pieces of other people's work set this project going.
 
-**"Exploring Super-agent Design: Towards a More Autonomous Agent System"**, by the DeepSeek Harness team, with its open-source prototype [dsh-superagent-prototype](https://github.com/deepseek-ai/dsh-superagent-prototype) (MIT). Its argument is that one task is limited by the model, but many tasks at once are limited by the attention of the person following them. That framing is where the second problem this project sets out to solve comes from, and "treat the owner's attention as the scarcest thing" is the same thought turned into rules. The title is given as it appears in the prototype's README; we could not find a public address for the article itself, so the link goes to the repository.
+**"Exploring Super-agent Design: Towards a More Autonomous Agent System"**, by the DeepSeek Harness team, with its open-source prototype [dsh-superagent-prototype](https://github.com/deepseek-ai/dsh-superagent-prototype) (MIT). Its argument is that one task is limited by the model, but many tasks at once are limited by the attention of the person following them. That framing is where the second problem this project sets out to solve comes from, and "treat the owner's attention as the scarcest thing" is the same thought turned into rules. (The title is as in the prototype's README; no public link to the article itself was found, so the link goes to the repository.)
 
-**[agent-autoloop](https://github.com/KKKKhazix/agent-autoloop)** (MIT), the agent automation system published under the name 数字生命卡兹克 (Khazix), together with the author's writing about it. Its idea is an agent that takes work on in the background, stays out of your way, and comes to you with a card only when it is unsure. The task record used here, with its "current state" and "waiting on the owner" sections so that work can be picked up without asking again, follows that line of thinking. We could not locate the specific follow-up article this was taken from, so only the project is linked.
+**[agent-autoloop](https://github.com/KKKKhazix/agent-autoloop)** (MIT), the agent automation system published under the name 数字生命卡兹克 (Khazix), together with the author's writing about it. Its idea is an agent that takes work on in the background, stays out of your way, and comes to you with a card only when it is unsure. The task record used here, with its "current state" and "waiting on the owner" sections so that work can be picked up without asking again, follows that line of thinking. (We could not find the specific follow-up article, so only the project is linked.)
 
-What was taken from both is a way of looking at the problem. The rules, the plugin and the scripts in this repository were written separately, and any mistakes in them are ours.
+Both gave us a way of looking at the problem; the rules, the plugin and the scripts here were written afterwards.
 
 ## What it stands on
 
 | What | How SoloFleet uses it | Link |
 |---|---|---|
-| **OpenClaw** | The base for everything: multiple agents and Discord accounts, mention-only bot messages and loop protection, the Workboard, sub-agent sessions, scheduled jobs, session reset, plugin hooks and approval cards, the `computer` tool, the usage footer, memory. This repository adds rules, one plugin and some scripts on top, and carries no patches to the OpenClaw program. | https://github.com/openclaw/openclaw · https://docs.openclaw.ai |
+| **OpenClaw** | The base for everything: multiple agents and Discord accounts, mention-only bot messages and loop protection, the Workboard, sub-agent sessions, scheduled jobs, session reset, plugin hooks and approval cards, the `computer` tool, the per-turn usage state, memory. This repository adds rules, one plugin and some scripts on top, and carries no patches to the OpenClaw program. | https://github.com/openclaw/openclaw · https://docs.openclaw.ai |
 | **Discord** | The whole interface: channels, threads, mentions and buttons are what the Workshop, project channels, task threads, Lounge and Approval channel are made of. | https://discord.com |
 | **Claude Code's command line** | How the subscription is connected. OpenClaw hands each turn to the signed-in `claude` command line; `claude -p` is its non-interactive mode. | https://code.claude.com/docs/en/headless |
 | **CodexBar** | Its command line supplies the "remaining quota" line on the reply card. It is a macOS app installed separately; without it the card shows everything except that line. | https://github.com/steipete/CodexBar |
@@ -36,7 +36,7 @@ The rules and records aim to be short, direct and consistent in their terms, and
 
 ## How the bots are organized
 
-The way duties, authority and checking are divided draws on a handful of management books. Only the relevant chapters were read, and what was taken is a method carried over to agents. Whether it works for agents is something to verify in use, not something the books promise.
+The way duties, authority and checking are divided draws on the relevant chapters of a handful of management books, carried over to agents.
 
 | Source | What was taken |
 |---|---|
@@ -48,7 +48,7 @@ The way duties, authority and checking are divided draws on a handful of managem
 | Donella H. Meadows, *Thinking in Systems* and "Leverage Points" · [excerpt](https://donellameadows.org/wp-content/userfiles/bathtubs101.pdf) | Look at backlog, flow and delay. Detection has to be connected to correction. |
 | OpenStax, *Principles of Management* · [book page](https://openstax.org/details/books/principles-management) | Treat repeatable, decidable matters differently from new and ambiguous ones. |
 
-The same notes also drew on a few open-source projects for specific, local design ideas. Naming them here is thanks for those ideas and no comment on the projects as a whole.
+The same notes also borrowed a few local design ideas from these open-source projects:
 
 | Project | The idea taken |
 |---|---|

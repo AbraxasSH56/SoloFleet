@@ -47,7 +47,7 @@ Rules the programs and the shared rules rely on:
 
 - Bots talk to each other **only by explicit mention** (`<@BOT_USER_ID>`; plain names do nothing). A bot answers only when mentioned, except the lead bot of a project channel (see below) and the diary channel.
 - The **lead bot** of a project channel may answer without being mentioned there. `scripts/automation/lead-free.mjs` sets this when a project is created; no other bot gets it.
-- Loop guard: threads count bot-to-bot mentions (`daily-format-check.mjs`); a high count is a clue for the audit, not an automatic stop.
+- Loop guard: real-time protection is OpenClaw's own bot-loop protection (see `config/examples/bot-mentions-and-session-reset.example.json`). In addition, `daily-format-check.mjs` counts bot-to-bot mentions per thread once a day; a high count is only a clue for the audit and does not stop anything.
 
 Create the applications and put the bot tokens in environment variables (`DISCORD_BOT_TOKEN_<ROLE>`). Never write tokens into files.
 
@@ -65,15 +65,16 @@ Create the applications and put the bot tokens in environment variables (`DISCOR
 
    (Pass `--lang zh-CN` instead if you want the Chinese rule files.)
 
-   It builds head + shared section (with the overrides table applied) + tail for every bot in `bots` that has no `AGENTS.md` yet under `<workspaceRoot>/<agentId>/`, and fills the placeholders (`{{OWNER_TITLE}}`, IDs, paths) from your config. `--dry-run` shows what would be written. Later, edit `rules/` and run `--check`, then `--apply`: one change to the shared rules reaches every role, and a hand-edit to a role's copy is reported.
-6. **Reply card (on by default).** Every bot reply gets a small card under it: model, route, reasoning effort and the files changed. You do not have to configure anything for it, and it needs **none** of OpenClaw's usage-footer settings (`messages.responseUsage`, `messages.usageTemplate`): the plugin reads the model and effort from the host's per-turn usage state. Leave `messages.responseUsage` at its default (`off`). `config/examples/inbox-integration.example.json` spells the defaults out (`executionRecord.enabled: true`, `quotaSource: "off"`); set `enabled` to `false` there to turn the card off. The remaining-quota line is separate and is **not shown** unless you install the CodexBar command line (section 6).
+   It writes a rules file for every bot in `bots` that has no `AGENTS.md` yet under `<workspaceRoot>/<agentId>/`: role head + shared rules (trimmed by the overrides table) + tail, with the placeholders (`{{OWNER_TITLE}}`, IDs, paths) filled from your config. Run `--dry-run` first to preview. Later, after editing `rules/`, run `--check` and then `--apply`: one change to the shared rules reaches every role, and a hand-edit to a role's copy is reported.
+6. **Reply card (on by default).** Every bot reply gets a small card under it showing the model, route, reasoning effort and the files changed this turn. It reads the host's per-turn usage state, so it needs **none** of OpenClaw's usage-footer settings: leave `messages.responseUsage` at its default (`off`) and do not set `messages.usageTemplate`. The defaults are spelled out in `config/examples/inbox-integration.example.json` (`executionRecord.enabled: true`, `quotaSource: "off"`); set `enabled` to `false` to turn the card off. For an extra "remaining quota" line, install the CodexBar command line; without it that line is simply not shown (section 6).
 7. Restart the gateway and send a message that mentions the Controller in the workshop.
 
 Optional personas: see [roles.md](roles.md). A bot works without any persona.
 
 ## 5. Scheduled jobs
 
-`jobs/` holds the instruction texts of the scheduled tasks (daily audit, weekly audit, anomaly deep review, patrol, diary) and `followups-daily-job.example.json`. Create each as an OpenClaw automation on the right agent at the time you want (`jobs.<name>.time` in the config documents it; the time itself is set in OpenClaw's automation). The instruction files contain a few deploy-time placeholders (`<TIMEZONE>`, `<DATA_ROOT>`, `<OPENCLAW_INSTALL_DIR>`); the audit guard fills them from `config/crew.json` before it fingerprints a snippet, so keep the job text and the config in step. The command-style scripts under `scripts/automation/` (quota gate, reminders, day watch, reset notice, and so on) are meant to be scheduled as OpenClaw command jobs; the header comment of each says how often.
+- **Jobs that call a model.** `jobs/` holds the instruction texts of the daily audit, weekly audit, anomaly deep review, patrol and diary, plus `followups-daily-job.example.json`. Create each as an OpenClaw automation on the right agent at the time you want (`jobs.<name>.time` in the config only documents it; the time itself is set in OpenClaw). The instruction files contain deploy-time placeholders (`<TIMEZONE>`, `<DATA_ROOT>`, `<OPENCLAW_INSTALL_DIR>`); the audit guard fills them from `config/crew.json` before it fingerprints a snippet, so keep the job text and the config in step.
+- **Scripts that do not call a model.** The scripts under `scripts/automation/` (quota gate, reminders, day watch, reset notice, and so on) are meant to be scheduled as OpenClaw command jobs; the header comment of each says how often.
 
 Self-publishing of the daily summaries (`scripts/automation/publish-self.py`) is off until you set `jobs.publishSelf.effectiveFrom` for each task (see [configuration.md](configuration.md)); the cut-off time of each summary is the job's `jobs.<name>.time`.
 

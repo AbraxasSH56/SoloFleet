@@ -20,7 +20,7 @@ The programs work with the agent IDs in the table above, and the keys of `bots` 
 
 ## What is generated
 
-`AGENTS.md` of each role = role head (`rules/roles/<dir>/AGENTS.head.md`) + shared rules (`rules/shared-rules.md`, with the differences in `rules/shared-rules-overrides.json` applied: the Desktop operator has no "Desktop" section; the System auditor has no tail) + tail (`rules/shared-tail.md`, the changed-files list marker the reply card reads). Chinese versions are the `*.zh-CN.md` files. See [setup.md](setup.md) for the command.
+The `AGENTS.md` of each role is put together from three parts: the role head (`rules/roles/<dir>/AGENTS.head.md`), the shared rules (`rules/shared-rules.md`, trimmed by `rules/shared-rules-overrides.json`; for example the Desktop operator gets no "Desktop" section and the System auditor gets no tail), and the tail (`rules/shared-tail.md`, which holds the changed-files list marker the reply card reads). The Chinese versions are the `*.zh-CN.md` files; see [setup.md](setup.md) for the command.
 
 ## Optional personas
 
@@ -33,7 +33,7 @@ A persona gives a bot a voice: how it speaks, what it calls the owner, small hab
 
 ### Reference deployment: which characters it used (optional table)
 
-The reference deployment gave its roles voices from video games. They are listed only so you can see how a duty can map to a character; none of their text, art or lines is included here.
+The reference deployment gave its roles voices from video games. They are listed only so you can see how a duty can map to a character.
 
 | Duty | Character used there | Work |
 |---|---|---|
@@ -44,4 +44,4 @@ The reference deployment gave its roles voices from video games. They are listed
 | Standby | Kafka, Firefly | Honkai: Star Rail |
 | Workers | a mix of characters from the same three games | – |
 
-(The character names are spelled as in the games' English versions; the table is informational and carries no endorsement from the rights holders.)
+(Character names are spelled as in the games' English versions. The repository contains no lines or art from the originals; the table is only an example and carries no endorsement from the rights holders.)

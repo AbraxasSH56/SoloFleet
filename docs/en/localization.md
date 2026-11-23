@@ -15,7 +15,7 @@ The reference deployment was built in Chinese. Today the **words the programs ma
 - The **English-process-paragraph cleanup** runs only for `zh-CN` (it was written for deployments whose rules say "always reply in Chinese").
 - Which **language of the job snippets** the audit guard compares against.
 
-`locale` does not change: the desktop sensitive-word list (Chinese and English words are always both active, because the list guards payments, sends and deletions), the English error sentence of `claude -p` when the quota is used up (`quota-recovery.mjs` matches it as it is), command-line parameter names, and the list under "Remaining boundary" below.
+`locale` does not change: the desktop sensitive-word list (Chinese and English words are always both active, because the list guards payments, outgoing sends, deletions, installs and similar sensitive actions), the English error sentence of `claude -p` when the quota is used up (`quota-recovery.mjs` matches it as it is), command-line parameter names, and the list under "Remaining boundary" below.
 
 **Choose `locale` before you create the data root, and do not change it later.** The ledgers and state files keep the words of the locale they were written in (for example the status `no-reply` or `没回`). Switching an existing data root from one locale to the other does not migrate anything; start a new data root for the other language. Existing zh-CN deployments keep working exactly as before.
 
@@ -187,7 +187,7 @@ The fixed Discord messages and approval-card texts that the programs send or sho
 
 The master index `INDEX.md` and the project entry `PROJECT.md` keep their names. The project table in `INDEX.md` starts with the column `Project` (zh-CN: `项目`); the channel cell is written `<channel name> (ID <digits>)` (zh-CN: `（编号 <数字>）`) and the entry cell `[Project entry](projects/<name>/PROJECT.md)` (zh-CN: `[项目入口](项目/<名>/PROJECT.md)`).
 
-In an English deployment, copy `templates/task-record.md` and `templates/project-entry.md` into `<DATA_ROOT>/templates/`, and create `INDEX.md` and `decision-ledger.md` from the `*-header` templates. In a zh-CN deployment, copy `templates/任务记录.md` and `templates/项目入口.md` into `<DATA_ROOT>/模板/`.
+In an English deployment, copy `templates/task-record.md` and `templates/project-entry.md` into `<DATA_ROOT>/templates/`, and create `INDEX.md` and `decision-ledger.md` from `templates/index-header.md` and `templates/decision-ledger-header.md`. In a zh-CN deployment, copy `templates/任务记录.md` and `templates/项目入口.md` into `<DATA_ROOT>/模板/`, and create `INDEX.md` and `决定账本.md` from `templates/index-header.zh-CN.md` and `templates/decision-ledger-header.zh-CN.md`.
 
 ## 3. Command-line parameters
 
@@ -203,10 +203,16 @@ Personas are optional (see [roles.md](roles.md)). The rule files only say "follo
 
 ## 6. Remaining boundary (not translated on purpose)
 
-These places still hold Chinese in an English deployment. None of them is a word that a program writes and a bot, a rule or a program of the other language is expected to match by its letters. The few words that two of our own programs write and match between themselves (the states of the catch-up ledger `待核`, `补跑结果待核`, `未送达`, and the state `叫起待核` of the wake record) stay Chinese in both locales on purpose, so that the two ends can never drift apart; where a wake sentence or a job has to show one of them to a bot, it quotes the word in backticks.
+These places still hold Chinese in an English deployment. Most of them are only for the programs themselves or for a human reader, and nothing else matches them by their letters. Only a few internal state words are written by one script and read by another: `待核`, `补跑结果待核` and `未送达` in the catch-up ledger, and `叫起待核` in the wake record. They stay Chinese in both locales so that the two ends can never drift apart. Where a wake sentence or a job has to show one of them to a bot, it quotes the word in backticks.
 
 - **Machine-owned JSON keys and file names.** Files that only the programs read and write keep their Chinese names and keys: the state and ledger files inside the run-log folders (for example the quota-resume ledger, the catch-up ledger, `待补.json` of the ledger backlog, `状态.json` of the API-credit gate, `卡标签快照.json`, `基线.json`, the lock and log files), the keys of the roster file `bot-roster.json` (`人设bot`, `角色`, `显示名`, `Discord编号`, ...), and the internal states of the ledger notices. The rules and jobs quote such a name in backticks where a bot has to read it.
-- **Internal messages and logs.** Error messages, log lines, diagnostics and the reasons the audit guard gives when it refuses a command; the detail sentences inside the blind-spot check report (the rework definition, the backup lines, the rule-file lines) and the file reconcile report; the `ledger-verify.mjs` messages and the error messages of `project-files.mjs` tools (the headings, labels, verdicts and fixed lines of the format check, the command check and the blind-spot check, and the `Business date:` and `Status: complete` marks, are translated); the output lines of `publish-self.py` (its exit code is what counts). The daytime-watch alerts quote the machine-owned file names as they are (for example the Chinese log file name of a stale lock) inside backticks.
+- **Internal messages and logs.** These are not translated:
+  - error messages, log lines, diagnostics, and the reasons the audit guard gives when it refuses a command;
+  - the detail sentences of the blind-spot check report (the rework definition, the backup lines, the rule-file lines) and the file reconcile report;
+  - the `ledger-verify.mjs` messages, the error messages of `project-files.mjs`, and the output lines of `publish-self.py` (its exit code is what counts);
+  - the machine-owned file names that daytime-watch alerts quote as they are (for example the Chinese log file name of a stale lock), inside backticks.
+
+  Note: the headings, labels, verdicts and fixed lines of the format check, the command check and the blind-spot check, and marks such as `Business date:` and `Status: complete`, **are** translated with `locale`.
 - `builder-tools/` and `personas/` are not part of a deployment and are not translated.
 
 ## 7. Suggested way to run it

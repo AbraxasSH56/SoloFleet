@@ -2,25 +2,23 @@
 
 [English](../en/credits.md) | 简体中文
 
-SoloFleet 做的主要是"摆放"。地基和很多想法是别人的。这一页列的是真正借来的东西，和它们各自的来处。
-
-只是拿来对照过的项目，放在[为什么这样搭](why-this-design.md)里讲，不列在这里——对照过不等于借鉴了。
+SoloFleet 做的主要是把现成的东西配成一套，地基和不少想法都来自别人。这一页列的是实际借鉴过的工具、文章和书；只是拿来对比过的项目，放在[为什么这样搭](why-this-design.md)里。
 
 ## 想法从哪来
 
 这个项目是被两份别人的工作带起来的。
 
-**《Exploring Super-agent Design: Towards a More Autonomous Agent System》**，DeepSeek Harness 团队的文章，配套的开源原型是 [dsh-superagent-prototype](https://github.com/deepseek-ai/dsh-superagent-prototype)（MIT）。它的主张是：单个任务的上限在模型，同时做很多任务的上限在跟进它们的那个人的注意力。这个项目要解决的第二个问题就是从这个说法来的，"把主人的注意力当成最稀缺的东西"是同一个想法落成了规则。标题照原型仓库 README 里的写法；文章本身我们没找到公开的网址，所以链接给的是仓库。
+**《Exploring Super-agent Design: Towards a More Autonomous Agent System》**，DeepSeek Harness 团队的文章，配套的开源原型是 [dsh-superagent-prototype](https://github.com/deepseek-ai/dsh-superagent-prototype)（MIT）。它的主张是：单个任务的上限在模型，同时做很多任务的上限在跟进它们的那个人的注意力。这个项目要解决的第二个问题就是从这个说法来的，"把主人的注意力当成最稀缺的东西"是同一个想法落成了规则。（标题照原型仓库 README 的写法；没找到文章本身的公开链接，所以链到仓库。）
 
-**[agent-autoloop](https://github.com/KKKKhazix/agent-autoloop)**（MIT），"数字生命卡兹克"公开的 Agent 自动化系统，以及作者围绕这套系统写的文章。它的想法是：让 agent 在后台自己接活、平时不来烦你，拿不准的时候才发一张卡片找你拍板。这里的任务记录带"当前状态"和"等主人拍板"两节、让活能不重问就接上，走的就是这条思路。具体是作者后续的哪一篇文章，我们没能查到，所以只链了项目。
+**[agent-autoloop](https://github.com/KKKKhazix/agent-autoloop)**（MIT），"数字生命卡兹克"公开的 Agent 自动化系统，以及作者围绕这套系统写的文章。它的想法是：让 agent 在后台自己接活、平时不来烦你，拿不准的时候才发一张卡片找你拍板。这里的任务记录带"当前状态"和"等主人拍板"两节、让活能不重问就接上，走的就是这条思路。（具体是作者后续的哪一篇文章没查到，所以只链了项目。）
 
-从这两处拿来的是看问题的角度。这个仓库里的规则、插件和脚本是另外写的，其中的错处算我们的。
+这两处给了我们看问题的角度；仓库里的规则、插件和脚本都是后来自己写的。
 
 ## 站在什么上面
 
 | 什么 | SoloFleet 拿它做什么 | 链接 |
 |---|---|---|
-| **OpenClaw** | 一切的底座：多 agent 和多个 Discord 账号、只接受点名和防循环、任务板、子任务会话、定时任务、会话重置、插件钩子和审批卡、`computer` 工具、用量页脚、记忆。这个仓库在上面加了规则、一个插件和一些脚本，不带任何修改 OpenClaw 程序本体的补丁。 | https://github.com/openclaw/openclaw · https://docs.openclaw.ai |
+| **OpenClaw** | 整套系统的底座：多 agent 和多个 Discord 账号、只接受点名和防循环、任务板、子任务会话、定时任务、会话重置、插件钩子和审批卡、`computer` 工具、每轮用量状态、记忆。这个仓库只在上面加规则、一个插件和一批脚本，不改 OpenClaw 程序本体。 | https://github.com/openclaw/openclaw · https://docs.openclaw.ai |
 | **Discord** | 整个界面：工坊、项目频道、任务线程、闲聊频道、审批频道，都是用频道、线程、点名和按钮搭出来的。 | https://discord.com |
 | **Claude Code 的命令行** | 订阅是这样接上的：OpenClaw 把每一轮交给登录好的 `claude` 命令行；`claude -p` 是它的非交互模式。 | https://code.claude.com/docs/en/headless |
 | **CodexBar** | 回复附卡上"剩余额度"那一行由它的命令行提供。它是一个要另外装的 macOS 应用；没装的话，卡上除了这一行都照常显示。 | https://github.com/steipete/CodexBar |
@@ -36,7 +34,7 @@ SoloFleet 做的主要是"摆放"。地基和很多想法是别人的。这一�
 
 ## bot 怎么分工
 
-职责、授权和检查怎么分，参考了几本管理学的书。读的只是相关章节，拿来的是一种方法，再转用到 agent 上。它对 agent 管不管用，要在使用里验证，书并没有这样许诺。
+职责、授权和检查怎么分，参考了几本管理学书里的相关章节，把其中的思路用到了 agent 身上。
 
 | 来源 | 拿来了什么 |
 |---|---|
@@ -48,7 +46,7 @@ SoloFleet 做的主要是"摆放"。地基和很多想法是别人的。这一�
 | Donella H. Meadows《Thinking in Systems》和《Leverage Points》· [节选](https://donellameadows.org/wp-content/userfiles/bathtubs101.pdf) | 看积压、流量和延迟。发现问题要和纠正问题连起来。 |
 | OpenStax《Principles of Management》· [图书页面](https://openstax.org/details/books/principles-management) | 能重复、能判定的事，和新的、模糊的事，分开对待。 |
 
-同一份笔记还从几个开源项目里借了具体的、局部的设计想法。在这里点名，是感谢这些想法，不是对这些项目整体的评价。
+另外还从下面几个开源项目里借了局部的设计点子：
 
 | 项目 | 借来的想法 |
 |---|---|

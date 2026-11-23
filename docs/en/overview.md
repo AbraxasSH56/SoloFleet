@@ -92,7 +92,7 @@ The full list, step by step, is in [Development process](development-process.md)
 
 ### What OpenClaw already provides
 
-Nothing in this repository modifies the OpenClaw program. It uses what is there: multiple agents and Discord accounts, mention-only bot messages and loop protection, the Workboard, sub-agent sessions, scheduled jobs, session reset, plugin hooks and approval cards, the `computer` tool, the usage footer, and memory. The plugin and scripts add the parts described above on top.
+Nothing in this repository modifies the OpenClaw program. It uses what is there: multiple agents and Discord accounts, mention-only bot messages and loop protection, the Workboard, sub-agent sessions, scheduled jobs, session reset, plugin hooks and approval cards, the `computer` tool, the per-turn usage state, and memory. The plugin and scripts add the parts described above on top.
 
 ## What gets written down
 

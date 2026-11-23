@@ -15,7 +15,7 @@ This repository holds everything needed to set the same thing up: the rules the 
 | **What it is** | Open-source rules, one OpenClaw plugin and a set of scheduled scripts for a multi-agent crew that works in Discord |
 | **Built on** | [OpenClaw](https://github.com/openclaw/openclaw) (gateway and plugin interface), Discord, and the Claude Code command line (`claude -p`) |
 | **What you need** | A Mac that stays on (desktop operation is verified on macOS only), OpenClaw, Node.js 24.16 or later, Python 3, a Discord application and bot account for each bot, a Claude subscription, and the `claude` command line signed in |
-| **Main features** | A usage card under every reply; requests to the owner in three tiers with a pending-decisions ledger; task completion gated by an independent audit; write-through records with a daily session reset; one desktop operator with a lock, a queue and owner-only approval cards |
+| **Main features** | A reply card under every reply; requests to the owner in three tiers with a pending-decisions ledger; task completion gated by an independent audit; write-through records with a daily session reset; one desktop operator with a lock, a queue and owner-only approval cards |
 | **License** | MIT |
 | **Status** | A personal showcase. The author uses it day to day |
 
@@ -62,12 +62,10 @@ flowchart LR
   PL -. gates, daily checks, back-fills .- OC
 ```
 
-The diagram in words: the owner talks to the bots in Discord; the bots all run inside one OpenClaw gateway; the gateway puts the whole of one Claude subscription to work: everyday turns run on the subscription itself, through the `claude` command line, and the API credits that come with the plan, if yours has them, carry the scheduled audits and the standby bots. A program layer, one plugin plus scheduled scripts, sits beside the gateway and checks, blocks and back-fills.
-
-- The owner talks to the crew in Discord, the way you would talk to a team in a group chat.
-- Each bot has one duty. The Controller takes requests, records them, hands work out and reports back. Workers do the work in task threads. One Desktop operator is the only bot allowed to touch the screen. A Task auditor checks finished work; a System auditor checks the system itself.
-- One Claude subscription is used to the full. Everyday conversation runs on the subscription itself, through the official `claude` command line (`claude -p` is the non-interactive form of the same path). If your plan also comes with API credits, they are not left idle: the scheduled audits and the standby bots run on them, each with its own key, and stop when the credits run out, with no switch to paid usage.
-- Beside all this sits a program layer: one OpenClaw plugin and a handful of scheduled scripts that check, block and back-fill the things that must happen.
+- **How you talk to it**: the owner talks to the crew in Discord, the way you would lead a small team in a group chat; all the bots run inside one OpenClaw gateway.
+- **Who does what**: each bot has one duty. The Controller takes requests, records decisions, hands work out and reports back; workers do the work in task threads; one Desktop operator is the only bot allowed to touch the screen; a Task auditor checks finished work and a System auditor checks the system itself.
+- **How the subscription is used**: one Claude subscription, used to the full. Everyday conversation runs on the subscription itself, through the official `claude` command line (`claude -p` is its non-interactive form). If your plan also comes with API credits, they carry the scheduled audits and the standby bots, each with its own key, and stop when the credits run out, with no switch to paid usage.
+- **What backs it up**: beside the gateway sits a program layer, one OpenClaw plugin plus scheduled scripts, that gates, checks every day and back-fills what must happen.
 
 More in [Overview](docs/en/overview.md).
 
@@ -75,7 +73,7 @@ More in [Overview](docs/en/overview.md).
 
 Most of the individual ideas here have been done by someone else, and [Why this design](docs/en/why-this-design.md) names them. What we have not found elsewhere is the set, fitted around one person running many bots.
 
-- **One subscription for the whole crew, and every reply shows what it used.** The subscription runs the crew's everyday work, and the API credits that come with it (if your plan has them) run the scheduled audits and the standby bots, so nothing in the plan goes to waste. Under each reply there is a small card, on by default: which model, which pool, the reasoning effort, and which files changed this turn. Want the remaining-quota line too? Install the [CodexBar](https://github.com/steipete/CodexBar) command line (a macOS app) and set two plugin options; the steps are in the [Setup guide](docs/en/setup.md#6-external-dependencies-and-what-happens-without-them).
+- **One subscription for the whole crew, and every reply states what it cost.** Everyday work runs on the subscription; the API credits that come with it run the audits and the standby bots. Every reply carries a small reply card by default: which model, which pool, the reasoning effort and the files changed. To see how much of the subscription is left, install the macOS tool [CodexBar](https://github.com/steipete/CodexBar) and set two options (see the [Setup guide](docs/en/setup.md#6-external-dependencies-and-what-happens-without-them)).
 - **Designed around one person's attention.** Bots that were not addressed stay quiet. Anything that needs a decision arrives merged, with a recommendation and numbered options, and is kept on a ledger so it cannot be lost. One report a day.
 - **The program layer keeps the basics, without relying on the model to remember.** A task card cannot be marked done until an independent audit has passed and the result has not changed since. Auditors are held read-only. Judgement calls stay in the rules.
 - **Write-through, then reset every day.** What the owner says is written into the records in the same turn, so sessions can be cleared daily and nothing needs explaining twice.
@@ -92,7 +90,7 @@ You say what you want in the Workshop. The Controller restates anything complica
 
 Follow the [Setup guide](docs/en/setup.md). In short you need a Mac that stays on, OpenClaw, a Discord server with one bot account per duty, a Claude subscription, and the `claude` command line signed in on that machine. You sign in yourself, on your own machine; nothing in this repository handles or forwards your login.
 
-Then see [Configuration](docs/en/configuration.md) for what to change to fit your own setup, and [Localization](docs/en/localization.md) for the language the crew works in: `locale` decides the fixed words the programs match and write, the folder names under the data root, and the fixed reminders sent to the owner.
+Once it is running, see [Configuration](docs/en/configuration.md) to adapt it to your setup. To change the language the crew works in, see [Localization](docs/en/localization.md); the `locale` setting controls the fixed words the programs read and write, the folder names and the fixed reminders sent to the owner.
 
 ## What is in the repository
 
@@ -117,7 +115,7 @@ In the reference deployment each bot speaks as a character, which makes a workin
 
 ### Can one Claude subscription run several AI agents?
 
-In this setup, yes, and the aim is to make full use of that one subscription. The everyday bots run on the subscription itself: OpenClaw hands each of their turns to the `claude` command line signed in on the same machine, in non-interactive mode (`claude -p`). The API credits that come with the same subscription, if your plan has them, are put to work too: they run the scheduled audits and the standby bots, each with its own key, and stop when they run out, with no switch to paid usage. The subscription's own usage limits still apply: when one is reached the work pauses, and a script picks it up again after the reset. See [Setup, step 2](docs/en/setup.md#2-connect-the-subscription) and [Why this design](docs/en/why-this-design.md).
+Yes. The everyday bots share one subscription through the `claude` command line signed in on the same machine (non-interactive mode, `claude -p`). If your plan comes with API credits, the scheduled audits and the standby bots run on them with separate keys and stop when the credits run out, with no switch to paid usage. The subscription's own usage limits still apply: when one is reached the work pauses, and a script wakes it up again after the reset. See [Setup, step 2](docs/en/setup.md#2-connect-the-subscription) and [Why this design](docs/en/why-this-design.md).
 
 ### Can I use models from other providers?
 
@@ -133,7 +131,7 @@ There is no code to write and nothing to `npm install`. Setup is still hands-on:
 
 ### How is this different from Claude Code's built-in multi-agent features, or from agent frameworks?
 
-Claude Code's subagents and teams also share one subscription, inside a coding session. General frameworks are libraries in which each agent usually brings its own API key. SoloFleet is a standing crew with fixed duties that one person talks to in Discord every day, and what it adds is around that: a usage card on every reply, rules built to spare the owner's attention, a program that will not let a task close without an audit, and approval cards for the desktop. Most of the pieces have precedents, and [Why this design](docs/en/why-this-design.md) names them.
+Claude Code's subagents and teams also share one subscription, inside a coding session. General frameworks are libraries in which each agent usually brings its own API key. SoloFleet is a standing crew with fixed duties that one person talks to in Discord every day, and what it adds is around that: the reply card on every reply, rules built to spare the owner's attention, a program that will not let a task close without an audit, and approval cards for the desktop. Most of the pieces have precedents, and [Why this design](docs/en/why-this-design.md) names them.
 
 ### Is role-play required?
 
@@ -151,7 +149,7 @@ What this setup has and has not been tried on.
 6. **Renaming the agents only reaches the rules for now.** A changed role table takes effect in the generated rule files; the plugin and the scripts still recognize the default agent IDs. See [Configuration](docs/en/configuration.md) and [Roles](docs/en/roles.md).
 7. **One person uses it.** The author runs it alone, day to day. Use by several people or a team has not been tried.
 
-This is a hobbyist's project. The author is a light user with no experience of tuning systems for heavy development work, and sharing it is an experiment. Feedback is very welcome, and the setup will keep improving with it.
+This is the author's own personal project. The author is only a light user and has not tuned it for heavy development work, so sharing it is an experiment. Feedback is welcome and will be acted on.
 
 ## Credits
 

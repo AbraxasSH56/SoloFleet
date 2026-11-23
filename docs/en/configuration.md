@@ -19,7 +19,7 @@ Copy `config/crew.example.json` to `config/crew.json` (git-ignored) and edit. Lo
 | `bots.<agentId>.userId` | Discord user ID of each bot: `main`, `desktop`, `task-auditor`, `system-auditor`, `diary`, `standby-a`, `standby-b`, `worker-a`, `worker-b`, … | – |
 | `roles` | Optional override of the role table (see section 3). **Today only `scripts/sync-shared-rules.py` reads it.** | built-in |
 | `timezone` | IANA time zone. Every "today", business date and local clock time is computed in it. | `UTC` |
-| `locale` | `en` or `zh-CN`: the protocol words the programs match, write and send (progress openers, task-record and card labels, report first lines, ledger status words, job names ...), the folder and file names under the data root, the template placeholders, the instruction texts for the bots, the reply-card text, the English-process-paragraph cleanup (zh-CN only) and which language of the job snippets the audit guard uses. Choose it before you create the data root and do not change it later; see [localization.md](localization.md). | `en` |
+| `locale` | `en` or `zh-CN`. Sets the fixed words the programs match, write and send (progress openers, task-record and card labels, report first lines, ledger status words, job names ...), the folder and file names under the data root, the template placeholders, the instruction texts for the bots, the reply-card text, the language of the job snippets the audit guard uses, and whether the English-process-paragraph cleanup runs (zh-CN only). Choose it before you create the data root and do not change it later; the full list is in [localization.md](localization.md). | `en` |
 | `replyLanguage` | Fills `{{REPLY_LANGUAGE}}` in the rules: the language bots reply in. | `English` |
 | `paths.dataRoot` | Data root: project folders, `INDEX.md`, the decision ledger, ledgers and run records. | – |
 | `paths.workspaceRoot` | Parent folder of the role workspaces: `<workspaceRoot>/<agentId>/`. | – |
@@ -29,7 +29,7 @@ Copy `config/crew.example.json` to `config/crew.json` (git-ignored) and edit. Lo
 | `paths.openclawHome` | OpenClaw's state folder. | `~/.openclaw` |
 | `paths.openclawInstallDir` | OpenClaw's installation folder (the weekly program check compares it with a checksum list). | empty |
 | `paths.claudeBin` | Path of the `claude` command line (used by the login-expiry reminder). | `~/.local/bin/claude` |
-| `auditAreas.review` / `.roster` / `.backup` | Optional folders the daily blind-spot check watches for new or changed files and (for `backup`, if it holds a `consistent-checkpoints` folder) backup status. Empty or missing = skipped and reported as "not enabled", never as incomplete. | empty |
+| `auditAreas.review` / `.roster` / `.backup` | Optional. The daily blind-spot check watches these folders for new or changed files, and also checks backup status if `backup` holds a `consistent-checkpoints` folder. Empty or missing means skipped and reported as "not enabled", never as incomplete. | empty |
 | `paths.codexbarBin` | Path of the [CodexBar](https://github.com/steipete/CodexBar) command line (optional; only used when the quota line is switched on). | the app's default location |
 | `jobs.publishSelf.effectiveFrom` | Per task (the task names of your `locale`: `patrol`, `deep-review`, `weekly-audit` in en; `巡查`, `异常深审`, `周审` in zh-CN): the first business date `publish-self.py` may post that task's summary. **If a task has no date here, the script refuses to publish it.** Set it to the day you switch self-publishing on. | example file: `2030-01-01` |
 | `jobs.<name>.time` | The time you scheduled each job (`patrol`, `deepReview`, `weeklyAudit`, `dailyAudit`…). The real schedule is set in OpenClaw automations; `publish-self.py` also reads `patrol`, `deepReview` and `weeklyAudit` as the cut-off time of each summary. The other clock times inside scripts are listed in section 5. | – |
@@ -85,7 +85,12 @@ Trigger scripts that OpenClaw runs in its script sandbox cannot import the confi
 | `scripts/automation/deep-review-trigger.js` | `DATA_ROOT`, `TIMEZONE`, `LOCALE` (same value as `locale`), `CUT_HOUR` |
 | `scripts/followups-trigger.js` | `TIMEZONE`, `LOCALE` (same value as `locale`) |
 
-Clock times in regular scripts (all in local time of `timezone`): `scripts/automation/daily-format-check.mjs` (`CUT_H`, `CUT_M`), `reset-notice.mjs` (`PRE_FROM`, `RESET_AT`, `POST_UNTIL`), `timed-reminders.mjs` (`提醒小时` = reminder hour, reminder lead days, optional review date `复议日期`, set in `<DATA_ROOT>/run-logs/reminders/配置.json`; the file name `配置.json` and these three key names are Chinese on purpose: only the program reads them, so they are not translated), `api-quota-gate.mjs` (`EXPIRY_HOUR`, default 7: the local hour at which an API credit period ends).
+Clock times in regular scripts (all in local time of `timezone`):
+
+- `scripts/automation/daily-format-check.mjs`: `CUT_H`, `CUT_M`
+- `scripts/automation/reset-notice.mjs`: `PRE_FROM`, `RESET_AT`, `POST_UNTIL`
+- `scripts/automation/api-quota-gate.mjs`: `EXPIRY_HOUR` (default `7`, the local hour at which an API credit period ends)
+- `scripts/automation/timed-reminders.mjs`: set `提醒小时` (reminder hour), the lead days and the optional review date `复议日期` in `<DATA_ROOT>/run-logs/reminders/配置.json` (`<DATA_ROOT>/运行记录/提醒/配置.json` with `locale: zh-CN`). The file name `配置.json` and these key names are Chinese in both languages on purpose: only the program reads them.
 
 Environment variables: `SOLOFLEET_CONFIG` (config file), `OPENCLAW_BIN` (override of `paths.openclawBin`), `OPENCLAW_DATA_ROOT` / `OPENCLAW_RUNTIME_ROOT` / `OPENCLAW_PROJECT_ROOT` (used by the reconciliation command; the spot-check trigger sets them), `OPENCLAW_SDK_TEXT_CHUNKING` (tests only).
 
