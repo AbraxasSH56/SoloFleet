@@ -126,7 +126,7 @@
 
 ### 1.7 发给主人看的固定句子
 
-程序往 Discord 发给主人、或显示在审批卡上的固定文字，都在 `lexicon.mjs` 的 `notices` 组里：一句一个函数，中英两套同名同键。用到它们的程序有 `approval-card.mjs`、`audit-gate.mjs`（结案确认卡）、`desktop-lock.mjs`（六类操作确认卡、"卡住了"和"过号"通知）、`pending-ledger.mjs`（总表、提醒、审批过期的几句）、`reset-notice.mjs`、`timed-reminders.mjs`、`api-quota-gate.mjs`、`day-watch.mjs`（异常句子和它登记进台账的条目标题）、`quota-catchup.mjs`、`quota-resume.mjs`、`ledger-watch.mjs`。句子里的日期写法也跟着语言走（en 是 `Nov 22 09:30`，zh-CN 是 `11 月 22 日 09:30`）。要改某一句，两套都要改；`tests/en/notices.en.test.mjs` 钉住每一句英文，`tests/lexicon-zh-snapshot.test.mjs` 钉住每一句中文。
+程序往 Discord 发给主人、或显示在审批卡上的固定文字，都在 `lexicon.mjs` 的 `notices` 组里：一句一个函数，中英两套同名同键。用到它们的程序有 `approval-card.mjs`、`audit-gate.mjs`（结案确认卡）、`sensitive-click.mjs`（程序自己认出的几种事由）、`desktop-lock.mjs`（六类操作确认卡、"卡住了"和"过号"通知）、`pending-ledger.mjs`（总表、提醒、审批过期的几句）、`reset-notice.mjs`、`timed-reminders.mjs`、`api-quota-gate.mjs`、`day-watch.mjs`（异常句子和它登记进台账的条目标题）、`quota-catchup.mjs`、`quota-resume.mjs`、`ledger-watch.mjs`、`audit-guard.mjs`（P4 测试卡）。句子里的日期写法也跟着语言走（en 是 `Nov 22 09:30`，zh-CN 是 `11 月 22 日 09:30`）。要改某一句，两套都要改；`tests/en/notices.en.test.mjs` 钉住每一句英文，`tests/en/notices-assembled.en.test.mjs` 检查真实入口拼出来的消息和卡片，`tests/lexicon-zh-snapshot.test.mjs` 钉住每一句中文。
 
 ## 2. 数据根里的文件夹和文件名
 

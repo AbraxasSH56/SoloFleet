@@ -47,9 +47,9 @@ const SENTENCES = [
   ["desktopApproval.programNote", null, "Recognized by the program, not reported by the Desktop operator. "],
   ["desktopApproval.approved", ["<programNote>"], ". Approves only this one screen call (void once used; the next one needs a new confirmation). <programNote>Requested by: Desktop operator. Task card: "],
   ["desktopApproval.linkTail", ["L-1"], "; thread: L-1."],
-  ["desktopApproval.tail", ["<tid>"], "The Desktop operator wants to keep using the screen in thread <tid>; each further action of the six kinds needs a new confirmation."],
+  ["desktopApproval.tail", ["<tid>"], " The Desktop operator wants to keep using the screen in thread <tid>; each further action of the six kinds needs a new confirmation."],
   ["desktopApproval.ambiguous", ["<list>", "<tid>"], "Several unfinished cards match this thread (<list>); unclear which (thread <tid>)"],
-  ["desktopApproval.ambiguousMore", [3], "... 3 cards in all"],
+  ["desktopApproval.ambiguousMore", [3], " ... 3 cards in all"],
   ["desktopApproval.noCard", ["<tid>"], "No related task card found (thread <tid>)"],
   ["desktopApproval.selfCheckMarker", ["<t>"], "(self-check S<t>)"],
   ["desktopApproval.recognized.upload", null, "(auto) choose a file to upload"],
@@ -111,7 +111,7 @@ const SENTENCES = [
   ["reminders.loginBody", ["<when>", 3, "<caveat>"], "The Claude login on this machine ends on **<when>** (3 day(s) left)<caveat>. After that **every bot that runs on the Claude subscription will be unable to reply at the same time** (Standby A, Standby B and the four audit jobs, which use API credit, are not affected). Signing in again takes about 2 minutes:\n1. Open Terminal on the Mac.\n2. Type `~/.local/bin/claude auth login` and press Return. (Typing just `claude` says the command is not found.)\n3. The browser opens the Claude sign-in page; sign in the way you usually do and click approve when it asks.\n4. Go back to Terminal; once it says the login succeeded you are done.\nNothing else is needed afterwards: this reminder will notice the new end date and stop by itself."],
   ["reminders.loginSoon", ["<@100000000000000001>", "<body>"], "[Claude login expiring soon] <@100000000000000001>: <body>"],
   ["reminders.loginExpired", ["<@100000000000000001>", "<when>", "<caveat>"], "[Claude login expired] <@100000000000000001> The Claude login on this machine has expired (<when>)<caveat>. Every bot that runs on the Claude subscription should be unable to reply now. Please sign in again soon: open Terminal → type `~/.local/bin/claude auth login` and press Return → sign in and approve in the browser."],
-  ["quotaGate.pauseWhyExpired", ["<when>"], "this credit period has ended (<when>)"],
+  ["quotaGate.pauseWhyExpired", ["<when>"], "This credit period has ended (<when>)"],
   ["quotaGate.pauseWhyExpiredFallback", null, "end date"],
   ["quotaGate.pauseWhyManual", null, "API credit was paused by hand"],
   ["quotaGate.pauseWhyUsed", null, "API credit is used up (the provider answered \"not enough money\")"],
@@ -130,7 +130,7 @@ const SENTENCES = [
   ["dayWatch.discordResume", [3], "In the last hour Discord reconnected 3 time(s) without resuming the old connection (resume=false); a few seconds of messages may have been lost"],
   ["dayWatch.discordHeartbeat", [3], "In the last hour Discord heartbeats went unanswered 3 time(s) (normally about once a day)"],
   ["dayWatch.catchupState", ["<name>", "<st>"], "Catch-up ledger \"<name>\" is in state \"<st>\" (left by the first catch-up step; needs a look)"],
-  ["dayWatch.catchupNotice", ["<name>", "<ns>"], "The notice for catch-up ledger \"<name>\" is <ns> (the Workshop may not have received it)"],
+  ["dayWatch.catchupNotice", ["<name>", "<ns>"], "The notice for catch-up ledger \"<name>\": <ns> (the Workshop may not have received it)"],
   ["dayWatch.catchupStuck", ["<day>"], "The catch-up check got stuck (<day>; the lock was older than twice the time limit and was not taken over)"],
   ["dayWatch.quotaHit", ["<role>", "<job>", "<snippet>", "<resumeAt>"], "Stopped because the quota ran out: <role><job>, <snippet>resume time <resumeAt>; not one of the four jobs the catch-up looks after, please judge whether to carry on"],
   ["dayWatch.quotaRoleUnknown", null, "unknown role"],
@@ -210,7 +210,8 @@ test('approval card notice, closing confirmation card and the desktop card texts
 test('closing gate: the card the owner sees is in English', () => {
   const ledger = { latestSubmission: () => ({ n: 2, threadId: 't', duplicate: true, unverifiableFlag: true }), reportFor: () => null, opusFor: () => [], approvalFor: () => null };
   const d = decideClosing({ ledger, cardId: 'C-1', card: { labels: ['audit:single-task'], notes: '' } });
-  if (d.approval) {
+  assert.ok(d.approval, 'a card is required');
+  {
     assert.equal(d.title, 'Closing confirmation');
     assert.equal(d.description, 'Card C-1, review round 2: duplicate submission, needs checking, the result cannot be verified; only the owner can approve completing it. The approval is valid for this one card and this one closing only.');
   }

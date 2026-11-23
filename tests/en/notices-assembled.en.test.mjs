@@ -235,7 +235,7 @@ test('credit gate: the pause and resume notices that go to the Workshop are Engl
     await gateTick(deps);
     assert.equal(st.sent.length, 1, st.sent.join('\n'));
     noHan(st.sent[0], 'pause notice');
-    assert.ok(st.sent[0].startsWith('[API credit] this credit period has ended (Mar 6 07:00).'), st.sent[0]);
+    assert.ok(st.sent[0].startsWith('[API credit] This credit period has ended (Mar 6 07:00).'), st.sent[0]);
     st.clock = T('2031-03-06T18:00:00+05:30');
     await gateTick(deps); await gateTick(deps);
     for (const s of st.sent) noHan(s, 'gate notice');

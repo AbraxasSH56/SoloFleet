@@ -7,7 +7,7 @@ This guide takes you from an empty Mac to a crew that answers in Discord. It is 
 Two things to know first:
 
 - The programs read one central file, `config/crew.json` (copy of `config/crew.example.json`). Every ID, path, time zone and language is set there. Nothing about your own deployment is written into the code.
-- `locale` (default `en`, or `zh-CN`) decides the words the programs match and write (progress openers, card labels, report headers), the folder names under the data root the texts the programs give the bots and the fixed reminders they send to the owner; the rule files, templates and job instructions come in a matching English and Chinese version. Choose it before you create the data root and do not change it later. See [localization.md](localization.md).
+- `locale` (default `en`, or `zh-CN`) decides the words the programs match and write (progress openers, card labels, report headers), the folder names under the data root, the texts the programs give the bots and the fixed reminders they send to the owner; the rule files, templates and job instructions come in a matching English and Chinese version. Choose it before you create the data root and do not change it later. See [localization.md](localization.md).
 
 ## 1. What you need
 
