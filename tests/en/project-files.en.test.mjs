@@ -178,7 +178,7 @@ test('check-project and the completion reminder (entryHintFor) are in English', 
     const hint2 = entryHintFor({ dataRoot: root, indexPath: idx(root), channelId: '100000000000000173' });
     assert.ok(hint2.includes('the "Current status" date is behind the task records'), hint2);
     assert.ok(!HAN.test(hint2));
-    assert.equal(entryHintFor({ dataRoot: root, indexPath: idx(root), channelId: '999999999999999999' }), null);
+    assert.equal(entryHintFor({ dataRoot: root, indexPath: idx(root), channelId: '100000000000000998' }), null);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
