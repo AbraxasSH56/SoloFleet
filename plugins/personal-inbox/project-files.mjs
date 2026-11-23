@@ -7,15 +7,19 @@
 //     官方会把插件复制到临时目录里加载，按自己位置推路径线上必找不到（index.mjs 里有同样的注释）。
 //   · 写文件一律"先写临时文件再换名"，写完读回核对；任何一步不对就整条停下，不留半截，也不删除任何已有文件。
 import { tzName } from './tz.mjs';
+import { lexicon, locale, labelRe, labelText, escapeRe, colon } from './lexicon.mjs';
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync, writeSync, chmodSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 
-export const PLACEHOLDER = '暂无（待写）';
-const PLACEHOLDER_CELLS = new Set(['暂无（待写）', '（待写）', '暂无', '<名称>']);
-export const SUBDIRS = ['任务', '成果', '历史'];
-export const NOTE_START = '<!-- 模板说明开始 -->';
-export const NOTE_END = '<!-- 模板说明结束 -->';
+// Words and folder names follow config "locale" (lexicon.mjs); zh-CN gives exactly the literals this file always used.
+const W = lexicon();
+const LY = W.layout;
+export const PLACEHOLDER = W.placeholderCell;
+const PLACEHOLDER_CELLS = new Set(W.placeholderCells);
+export const SUBDIRS = [LY.tasks, LY.outputs, LY.history];
+export const NOTE_START = W.noteStart;
+export const NOTE_END = W.noteEnd;
 const FORBIDDEN_CHARS = /[\/\\:*?"<>|\s]/u; // 空白（含全角空格）也不许
 const FORBIDDEN_REPLACE = /[\/\\:*?"<>|\s]+/gu;
 const SHA = (t) => createHash('sha256').update(t, 'utf8').digest('hex');
@@ -117,9 +121,9 @@ export function parseIndex(text) {
   const lines = String(text).split('\n');
   let head = -1;
   for (let i = 0; i < lines.length; i += 1) {
-    if (lines[i].trim().startsWith('|') && splitCells(lines[i])[0] === '项目') { head = i; break; }
+    if (lines[i].trim().startsWith('|') && splitCells(lines[i])[0] === W.indexProjectHeader) { head = i; break; }
   }
-  if (head < 0) return { ok: false, message: '总索引里找不到项目表（第一格写"项目"的表）', rows: [], lines };
+  if (head < 0) return { ok: false, message: `总索引里找不到项目表（第一格写"${W.indexProjectHeader}"的表）`, rows: [], lines };
   const sepIdx = head + 1;
   if (!lines[sepIdx] || !/^\s*\|[\s:|-]+\|?\s*$/.test(lines[sepIdx])) return { ok: false, message: '项目表表头下面不是分隔行', rows: [], lines };
   const rows = [];
@@ -128,12 +132,12 @@ export function parseIndex(text) {
     if (!lines[i].trim().startsWith('|')) break;
     last = i;
     const c = splitCells(lines[i]);
-    const idm = /编号\s*(\d{15,})/.exec(c[1] ?? '');
+    const idm = new RegExp(`${locale() === 'en' ? '(?<![A-Za-z])' : ''}${escapeRe(W.idLabel)}\\s*(\\d{15,})`).exec(c[1] ?? '');
     const lm = /\]\(([^)\s]+)\)/.exec(c[3] ?? '');
     let entryPath = null;
     if (lm) { try { entryPath = decodeURIComponent(lm[1]); } catch { entryPath = lm[1]; } }
     // 总索引里的项目名是给人看的（可能有空格），文件夹以入口链接里的为准
-    const fm = entryPath ? /^项目\/([^/]+)\//.exec(entryPath) : null;
+    const fm = entryPath ? new RegExp(`^${escapeRe(LY.projects)}\\/([^/]+)\\/`).exec(entryPath) : null;
     rows.push({ lineNo: i, name: c[0] ?? '', folder: fm ? fm[1] : (c[0] ?? ''), channelId: idm ? idm[1] : null, entryPath, cells: c });
   }
   return { ok: true, rows, lines, headIdx: head, lastRowIdx: last };
@@ -192,7 +196,7 @@ export function newProject({ dataRoot, indexPath, name, channelId, channelName, 
   const idx = readIndex(indexPath);
   if (!idx.ok) return fail(idx.message);
   const nm = v.name;
-  const dir = join(dataRoot, '项目', nm);
+  const dir = join(dataRoot, LY.projects, nm);
   const entry = join(dir, 'PROJECT.md');
   const sameChannel = idx.rows.filter((r) => r.channelId === String(channelId));
   const sameName = idx.rows.filter((r) => r.name === nm || r.folder === nm);
@@ -207,18 +211,19 @@ export function newProject({ dataRoot, indexPath, name, channelId, channelName, 
   if (folderExists && !entryExists) return fail(`文件夹 ${dir} 已存在但里面没有 PROJECT.md，不覆盖；请换个项目名或手工处理`, { code: 'folder-no-entry' });
   const created = [];
   if (!folderExists || !entryExists) {
-    const tplPath = join(dataRoot, '模板', '项目入口.md');
+    const tplPath = join(dataRoot, LY.templates, LY.projectEntryTemplate);
     if (!isFile(tplPath)) return fail(`模板读不到：${tplPath}`);
     let tpl = readText(tplPath);
     if ((tpl.includes(NOTE_START) ? 1 : 0) !== (tpl.includes(NOTE_END) ? 1 : 0)) return fail('项目入口模板里的"模板说明"标记不成对');
     tpl = stripTemplateNotes(tpl);
-    if (!tpl.includes('{{项目名}}')) return fail('项目入口模板还是旧格式（没有 {{项目名}} 占位符），请先更新模板');
+    const PE = W.placeholders.projectEntry;
+    if (!tpl.includes(`{{${PE.projectName}}}`)) return fail(`项目入口模板还是旧格式（没有 {{${PE.projectName}}} 占位符），请先更新模板`);
     const filled = fillTokens(tpl, {
-      项目名: nm,
-      一句话目标: cellSafe(goal),
-      频道: `${cellSafe(channelName)}（编号 ${channelId}）`,
-      主责bot: cellSafe(lead),
-      日期: localDay(now),
+      [PE.projectName]: nm,
+      [PE.goal]: cellSafe(goal),
+      [PE.channel]: W.channelCell(cellSafe(channelName), channelId),
+      [PE.leadBot]: cellSafe(lead),
+      [PE.date]: localDay(now),
     });
     const left = leftoverTokens(filled);
     if (left.length) return fail(`模板里有没填的占位符：${left.join('、')}`);
@@ -229,7 +234,7 @@ export function newProject({ dataRoot, indexPath, name, channelId, channelName, 
   } else {
     for (const s of SUBDIRS) if (!isDir(join(dir, s))) { mkdirSync(join(dir, s), { recursive: true }); created.push(`${s}/`); }
   }
-  const row = `| ${cellSafe(nm)} | ${cellSafe(channelName)}（编号 ${channelId}） | ${cellSafe(lead)} | [项目入口](项目/${nm}/PROJECT.md) | 任务记录在 项目/${nm}/任务/，成果在 项目/${nm}/成果/，历史在 项目/${nm}/历史/ |`;
+  const row = `| ${cellSafe(nm)} | ${W.channelCell(cellSafe(channelName), channelId)} | ${cellSafe(lead)} | [${W.projectEntryLinkText}](${LY.projects}/${nm}/PROJECT.md) | ${W.indexLocationsCell(nm)} |`;
   const r = appendIndexRow(indexPath, row);
   if (!r.ok) return fail(`文件夹和入口已建好，但总索引没登记成功：${r.message}。重跑同一条命令会补登（不会重建）`, { code: 'index-failed', created, path: dir });
   return { ok: true, existed: false, message: `已建项目《${nm}》：文件夹、入口、总索引一行都好了`, project: nm, path: dir, entry, created, indexLine: r.lineNo + 1, indexAttempts: r.attempts };
@@ -240,35 +245,36 @@ export function newTask({ dataRoot, project, title, threadLink, executor, quote,
   if (!dataRoot) return fail('没有给资料根');
   const v = validateName(project);
   if (!v.ok) return fail(`项目名不合规：${v.reason}`);
-  const dir = join(dataRoot, '项目', v.name);
+  const dir = join(dataRoot, LY.projects, v.name);
   if (!isFile(join(dir, 'PROJECT.md'))) return fail(`项目《${v.name}》还不存在（没有 ${join(dir, 'PROJECT.md')}）。新项目请总控先用 new-project 建；这里不凭空造项目文件夹`, { code: 'no-project' });
   for (const [k, val] of [['任务标题', title], ['线程链接', threadLink], ['执行者', executor], ['主人原话', quote]]) if (!String(val ?? '').trim()) return fail(`缺少${k}`, { code: 'missing-arg' });
   const s = sanitizeTitle(title);
   if (!s.name) return fail('任务标题处理后是空的，请换个标题');
-  const tplPath = join(dataRoot, '模板', '任务记录.md');
+  const tplPath = join(dataRoot, LY.templates, LY.taskRecordTemplate);
   if (!isFile(tplPath)) return fail(`模板读不到：${tplPath}`);
   let tpl = readText(tplPath);
   const a = tpl.split(NOTE_START).length - 1; const b = tpl.split(NOTE_END).length - 1;
   if (a !== b) return fail('任务记录模板里的"模板说明"标记不成对');
   tpl = stripTemplateNotes(tpl);
-  if (!tpl.includes('{{任务标题}}')) return fail('任务记录模板还是旧格式（没有 {{任务标题}} 占位符），请先更新模板');
+  const PT = W.placeholders.taskRecord;
+  if (!tpl.includes(`{{${PT.taskTitle}}}`)) return fail(`任务记录模板还是旧格式（没有 {{${PT.taskTitle}}} 占位符），请先更新模板`);
   const when = localDayTime(now);
   const day = String(quoteDate ?? '').trim() || localDay(now);
   const q = String(quote).trim();
   const quoteBlock = q.split('\n').map((l) => `> ${l}`).join('\n');
   const filled = fillTokens(tpl, {
-    任务标题: String(title).trim(),
-    项目名: v.name,
-    目标: String(goal ?? '').trim() || '<一句话，用大白话写这个任务要达成什么。>',
-    原话: `${day}：\n${quoteBlock}`,
-    日期时间: when,
-    执行者: cellSafe(executor),
-    任务卡号: String(cardId ?? '').trim() || '暂无',
-    线程链接: String(threadLink).trim(),
+    [PT.taskTitle]: String(title).trim(),
+    [PT.projectName]: v.name,
+    [PT.goal]: String(goal ?? '').trim() || W.defaultGoalHint,
+    [PT.quote]: `${day}${colon()}\n${quoteBlock}`,
+    [PT.datetime]: when,
+    [PT.executor]: cellSafe(executor),
+    [PT.cardId]: String(cardId ?? '').trim() || W.placeholderNone,
+    [PT.threadLink]: String(threadLink).trim(),
   });
   const left = leftoverTokens(filled);
   if (left.length) return fail(`模板里有没填的占位符：${left.join('、')}`);
-  const file = join(dir, '任务', `${s.name}.md`);
+  const file = join(dir, LY.tasks, `${s.name}.md`);
   if (isFile(file)) return { ok: true, existed: true, message: `任务记录已经存在，没有覆盖，请继续用它：${file}`, path: file, file: `${s.name}.md`, renamed: s.changed };
   try { writeNew(file, filled); } catch (e) { return fail(`任务记录没写成：${e.message}`); }
   return { ok: true, existed: false, message: `已建任务记录：${file}${s.changed ? `（标题里的特殊符号已换成短横线，实际文件名是 ${s.name}.md）` : ''}`, path: file, file: `${s.name}.md`, renamed: s.changed };
@@ -304,7 +310,7 @@ export function addResult({ dataRoot, project, name, path, outside, note, now = 
   if (!dataRoot) return fail('没有给资料根');
   const v = validateName(project);
   if (!v.ok) return fail(`项目名不合规：${v.reason}`);
-  const dir = join(dataRoot, '项目', v.name);
+  const dir = join(dataRoot, LY.projects, v.name);
   const entry = join(dir, 'PROJECT.md');
   if (!isFile(entry)) return fail(`项目《${v.name}》的入口不存在：${entry}`, { code: 'no-project' });
   if (!String(name ?? '').trim()) return fail('缺少成果名');
@@ -313,7 +319,7 @@ export function addResult({ dataRoot, project, name, path, outside, note, now = 
   let position;
   if (path) {
     const rel = String(path).trim();
-    if (rel.startsWith('/') || rel.split('/').includes('..')) return fail('--path 要写相对项目文件夹的路径（如 成果/xxx.md），不能以 / 开头，也不能含 ..', { code: 'bad-path' });
+    if (rel.startsWith('/') || rel.split('/').includes('..')) return fail('--path 要写相对项目文件夹的路径（如 ${LY.outputs}/xxx.md），不能以 / 开头，也不能含 ..', { code: 'bad-path' });
     const abs = resolve(dir, rel);
     if (!abs.startsWith(dir + sep)) return fail('--path 指到了项目文件夹外面', { code: 'bad-path' });
     if (!isFile(abs)) return fail(`成果文件不存在：${abs}。先把文件放进项目文件夹再登记；成果不在项目里就改用 --outside`, { code: 'no-file' });
@@ -325,10 +331,10 @@ export function addResult({ dataRoot, project, name, path, outside, note, now = 
   const text0 = readText(entry);
   const sha0 = SHA(text0);
   const lines = text0.split('\n');
-  const resSec = sectionRange(lines, '当前成果');
-  if (!resSec) return fail('入口里找不到"## 当前成果"一节，没有改动；请手工登记', { code: 'no-section' });
+  const resSec = sectionRange(lines, W.sectionResults);
+  if (!resSec) return fail(`入口里找不到"## ${W.sectionResults}"一节，没有改动；请手工登记`, { code: 'no-section' });
   const tbl = tableIn(lines, resSec);
-  if (!tbl) return fail('"当前成果"一节里找不到表格，没有改动；请手工登记', { code: 'no-table' });
+  if (!tbl) return fail(`"${W.sectionResults}"一节里找不到表格，没有改动；请手工登记`, { code: 'no-table' });
   const nm = cellSafe(name);
   const newRow = `| ${nm} | ${position} | ${cellSafe(note)} |`;
   // 先找同名成果行（再次登记同一成果就更新它），再找整格是占位写法的行，都没有就追加
@@ -337,8 +343,8 @@ export function addResult({ dataRoot, project, name, path, outside, note, now = 
   let replaced = null;
   if (target) { replaced = lines[target.idx]; lines[target.idx] = newRow; } else lines.splice(tbl.last + 1, 0, newRow);
   // 当前状态：只有一行就换掉；有多行就在最前面插一行日期句，别的不动
-  const stSec = sectionRange(lines, '当前状态');
-  const statusLine = `${localDay(now)}：${nm} 已完成，见下表`;
+  const stSec = sectionRange(lines, W.sectionCurrentStatus);
+  const statusLine = W.resultStatusLine(localDay(now), nm);
   let statusMode = 'none';
   if (stSec) {
     const idxs = [];
@@ -355,17 +361,17 @@ export function addResult({ dataRoot, project, name, path, outside, note, now = 
   if (SHA(readText(entry)) !== sha0) return fail('入口刚被别人改动，没有写入，请重试', { code: 'changed' });
   atomicWrite(entry, next);
   if (readText(entry) !== next) return fail('写完读回和预期不一致，请手工核对入口（命令没有删除任何东西）');
-  return { ok: true, message: `已登记成果《${nm}》到项目《${v.name}》的入口${stSec ? '，并更新了"当前状态"' : '（入口里没有"当前状态"一节，状态未改）'}`, project: v.name, entry, replacedPlaceholder: replaced, statusMode };
+  return { ok: true, message: `已登记成果《${nm}》到项目《${v.name}》的入口${stSec ? `，并更新了"${W.sectionCurrentStatus}"` : `（入口里没有"${W.sectionCurrentStatus}"一节，状态未改）`}`, project: v.name, entry, replacedPlaceholder: replaced, statusMode };
 }
 
 // ---------- check-project ----------
 const taskDoneDates = (dir) => {
   const out = [];
-  for (const f of listDir(join(dir, '任务'))) {
+  for (const f of listDir(join(dir, LY.tasks))) {
     if (!f.endsWith('.md')) continue;
     let t = '';
-    try { t = readText(join(dir, '任务', f)); } catch { continue; }
-    const m = /状态[：:]\s*完成[^\n]*/.exec(t);
+    try { t = readText(join(dir, LY.tasks, f)); } catch { continue; }
+    const m = new RegExp(`${labelRe(W.statusLabel)}${escapeRe(W.statusHeads[0])}[^\\n]*`).exec(t);
     if (m) { const d = dayOf(m[0]); if (d) out.push({ file: f, day: d }); }
   }
   return out;
@@ -373,47 +379,47 @@ const taskDoneDates = (dir) => {
 // 返回 { skipped } 或 { problems:[{code, where, message, suggest}] }
 export function checkProject({ dataRoot, indexPath, name }) {
   if (!dataRoot || !indexPath) return { skipped: true, reason: '没给资料根或总索引路径，不检查' };
-  const dir = join(dataRoot, '项目', name);
+  const dir = join(dataRoot, LY.projects, name);
   const problems = [];
   const P = (code, where, message, suggest) => problems.push({ code, where, message, suggest });
-  if (!isDir(dir)) { P('no-folder', `项目/${name}`, '总索引里有这个项目，但项目文件夹不存在', '用 new-project 补建，或手工建好文件夹'); return { problems }; }
+  if (!isDir(dir)) { P('no-folder', `${LY.projects}/${name}`, '总索引里有这个项目，但项目文件夹不存在', '用 new-project 补建，或手工建好文件夹'); return { problems }; }
   const entry = join(dir, 'PROJECT.md');
-  for (const s of SUBDIRS) if (!isDir(join(dir, s))) P('missing-subdir', `项目/${name}/${s}/`, `缺少子文件夹 ${s}/`, `建一个空的 ${s}/ 文件夹`);
-  if (!isFile(entry)) { P('no-entry', `项目/${name}/PROJECT.md`, '没有项目入口 PROJECT.md', '按模板补一份入口'); return { problems }; }
+  for (const s of SUBDIRS) if (!isDir(join(dir, s))) P('missing-subdir', `${LY.projects}/${name}/${s}/`, `缺少子文件夹 ${s}/`, `建一个空的 ${s}/ 文件夹`);
+  if (!isFile(entry)) { P('no-entry', `${LY.projects}/${name}/PROJECT.md`, '没有项目入口 PROJECT.md', '按模板补一份入口'); return { problems }; }
   const text = readText(entry);
   const lines = text.split('\n');
-  const resSec = sectionRange(lines, '当前成果');
+  const resSec = sectionRange(lines, W.sectionResults);
   // ① 成果表还有"待写"
   if (resSec) {
     const seg = lines.slice(resSec.start, resSec.end).join('\n');
-    if (seg.includes('待写')) P('entry-placeholder', `项目/${name}/PROJECT.md`, '"当前成果"表里还写着"待写"', '成果做完后用 add-result 登记；任务根本没有成果就把这一行改成实际情况');
+    if (seg.includes(W.placeholderFragment)) P('entry-placeholder', `${LY.projects}/${name}/PROJECT.md`, `"${W.sectionResults}"表里还写着"${W.placeholderFragment}"`, '成果做完后用 add-result 登记；任务根本没有成果就把这一行改成实际情况');
   }
   // ② 成果/ 顶层文件没出现在入口里
-  for (const f of listDir(join(dir, '成果'))) {
+  for (const f of listDir(join(dir, LY.outputs))) {
     if (f.startsWith('.')) continue;
-    if (!isFile(join(dir, '成果', f))) continue;
+    if (!isFile(join(dir, LY.outputs, f))) continue;
     if (DIARY_OK.test(f)) continue; // 每日日记（日记_YYYYMMDD.md 及其补跑副本）入口里只写样式，不逐个登记
-    if (!text.includes(f)) P('result-unlisted', `项目/${name}/成果/${f}`, `成果文件 ${f} 没有登记进项目入口`, '用 add-result 登记');
+    if (!text.includes(f)) P('result-unlisted', `${LY.projects}/${name}/${LY.outputs}/${f}`, `成果文件 ${f} 没有登记进项目入口`, '用 add-result 登记');
   }
   // ③ 状态日期落后于任务记录里"完成"的日期
-  const stSec = sectionRange(lines, '当前状态');
+  const stSec = sectionRange(lines, W.sectionCurrentStatus);
   if (stSec) {
     const sd = dayOf(lines.slice(stSec.start, stSec.end).join('\n'));
     const done = taskDoneDates(dir).sort((a, b) => (a.day < b.day ? 1 : -1));
-    if (sd && done.length && done[0].day > sd) P('status-behind', `项目/${name}/PROJECT.md`, `入口"当前状态"日期 ${sd} 早于任务记录《${done[0].file}》的完成日期 ${done[0].day}`, '更新入口的"当前状态"（add-result 会一并更新）');
+    if (sd && done.length && done[0].day > sd) P('status-behind', `${LY.projects}/${name}/PROJECT.md`, `入口"${W.sectionCurrentStatus}"日期 ${sd} 早于任务记录《${done[0].file}》的完成日期 ${done[0].day}`, `更新入口的"${W.sectionCurrentStatus}"（add-result 会一并更新）`);
   }
   // ⑤ 项目根上散放的文件
   for (const f of listDir(dir)) {
     if (f.startsWith('.') || f === 'PROJECT.md') continue;
-    if (isFile(join(dir, f))) P('loose-file', `项目/${name}/${f}`, `项目根上散放了文件 ${f}`, '成果放 成果/，旧版和证据放 历史/，任务记录放 任务/');
+    if (isFile(join(dir, f))) P('loose-file', `${LY.projects}/${name}/${f}`, `项目根上散放了文件 ${f}`, '成果放 成果/，旧版和证据放 历史/，任务记录放 任务/');
   }
   // ⑥ 像任务记录却不在 任务/ 里的
-  for (const sub of ['成果', '历史']) {
+  for (const sub of [LY.outputs, LY.history]) {
     for (const f of listDir(join(dir, sub))) {
       if (!f.endsWith('.md')) continue;
       let head = '';
       try { head = readText(join(dir, sub, f)).split('\n').find((l) => l.trim() !== '') ?? ''; } catch { continue; }
-      if (/^#\s*任务记录[：:]/.test(head)) P('taskrecord-misplaced', `项目/${name}/${sub}/${f}`, '看着是任务记录，却不在 任务/ 里', '移到 任务/');
+      if (new RegExp(`^#\\s*${labelRe(W.taskRecordTitle, '')}`).test(head)) P('taskrecord-misplaced', `${LY.projects}/${name}/${sub}/${f}`, '看着是任务记录，却不在 任务/ 里', '移到 任务/');
     }
   }
   return { problems };
@@ -427,25 +433,26 @@ export function entryHintFor({ dataRoot, indexPath, channelId }) {
   if (r.skipped) return null;
   const codes = new Set(r.problems.map((p) => p.code));
   const parts = [];
-  if (codes.has('entry-placeholder') || codes.has('result-unlisted')) parts.push('"当前成果"还没登记');
-  if (codes.has('status-behind')) parts.push('"当前状态"日期落后于任务记录');
+  if (codes.has('entry-placeholder') || codes.has('result-unlisted')) parts.push(W.entryHintParts.results);
+  if (codes.has('status-behind')) parts.push(W.entryHintParts.status);
   if (!parts.length) return null;
-  return `项目入口还没跟上（${parts.join('、')}），请更新（执行者可用 add-result，其余由项目主责维护）`;
+  return W.entryHint(parts.join(W.listSep));
 }
 
 // ---------- scan ----------
-const ROOT_OK = new Set(['INDEX.md', '决定账本.md', '主人现况.md', '项目', '审计', '模板', '垃圾桶', '运行记录', '.git', '.gitignore', '.ignore']);
-const RUNLOG_OK = new Set(['卡线程', '守门', '看护', '结案', '英文清理原文', '补跑', '额度', '发布', '文件对账', 'API额度', '提醒', '账本待补', '格式抽查', '请示待核', '盲区抽查']);
-const WS_FIXED = new Set(['AGENTS.md', 'SOUL.md', 'IDENTITY.md', 'USER.md', 'DREAMS.md', 'MEMORY.md', 'memory', 'skills', '临时']);
+const ROOT_OK = new Set(['INDEX.md', LY.ledgerFile, LY.ownerStatusFile, LY.projects, LY.audit, LY.templates, LY.trash, LY.runLogs, '.git', '.gitignore', '.ignore']);
+const RLD = LY.runLogDirs;
+const RUNLOG_OK = new Set([RLD.cardThreads, RLD.gate, RLD.watch, RLD.closing, RLD.englishCleanupRaw, RLD.catchup, RLD.quota, RLD.publish, RLD.fileReconcile, RLD.apiQuota, RLD.reminders, RLD.ledgerBacklog, RLD.formatCheck, RLD.requestWatch, RLD.blindspot]);
+const WS_FIXED = new Set(['AGENTS.md', 'SOUL.md', 'IDENTITY.md', 'USER.md', 'DREAMS.md', 'MEMORY.md', 'memory', 'skills', LY.scratch]);
 const WS_EXTRA = {
   desktop: ['screen.lock', 'screen.lock.guard', 'screen-lock.log', 'screen-queue.json', 'screen-queue-history.jsonl', 'screen-queue-settings.json', 'stuck-count.json', 'approval-notice-dedup.json', 'refused-threads.json', 'ui-elements.json'],
   main: ['docs', 'persona-roster', '.inbox', 'FOLLOWUPS.md'],
 };
 const SYSTEM_DIRS = new Set(['_shared', 'auth-recovery', 'power-observer', 'session-rotation']);
-const VERSION_SUFFIX = /[_-](当前|最新|新版|旧版|草案|副本|临时|定稿|终稿)$/;
+const VERSION_SUFFIX = new RegExp(`[_-](${W.fileNameLint.versionWords.map(escapeRe).join('|')})$`);
 const VERSION_MARK = /[_-]v\d+(\.\d+)*(?=$|[_-])/i;
-const VERSION_N = /[_-]第[一二三四五六七八九十\d]+版$/;
-const DIARY_OK = /^日记_\d{8}(-(重跑前副本|待合并)-.+?)?(-\d+)?\.md$/;
+const VERSION_N = new RegExp(`[_-]${W.fileNameLint.versionNumberRe}$`);
+const DIARY_OK = new RegExp(`^${escapeRe(LY.diaryFilePrefix)}\\d{8}(-(${LY.diaryRerunSuffixes.map(escapeRe).join('|')})-.+?)?(-\\d+)?\\.md$`);
 export function nameProblems(fileName) {
   const out = [];
   if (/[:*?"<>|]/.test(fileName) || /\s/u.test(fileName)) out.push('名字里有空格或 : * ? " < > |');
@@ -471,7 +478,7 @@ const loadJson = (p, fb) => { try { return JSON.parse(readText(p)); } catch { re
 export function scan({ dataRoot, indexPath, runtimeRoot = null, workspaces = null, stateDir = null, date = null, write = true }) {
   if (!dataRoot || !indexPath) return fail('没给资料根或总索引路径');
   const today = date || localDay();
-  const sdir = stateDir || join(dataRoot, '运行记录', '文件对账');
+  const sdir = stateDir || join(dataRoot, LY.runLogs, RLD.fileReconcile);
   const statePath = join(sdir, '状态.json');
   const basePath = join(sdir, '基线.json');
   const findings = [];
@@ -481,39 +488,39 @@ export function scan({ dataRoot, indexPath, runtimeRoot = null, workspaces = nul
   for (const n of listDir(dataRoot)) {
     if (ROOT_OK.has(n)) continue;
     if (n.startsWith('.')) continue; // 其他隐藏文件（.DS_Store 已在 listDir 里去掉）
-    const testLike = /测试|test|tmp|selftest/i.test(n);
-    F('S1', n, '资料根下出现了不在规定清单里的东西', testLike ? '看名字像测试遗留：请主人批准后进垃圾桶并登记' : '若是某项目的成果→移到 项目/<项目名>/成果/；不知道该放哪就问总控，不要留在资料根');
+    const testLike = new RegExp(W.fileNameLint.testLike.map(escapeRe).join('|'), 'i').test(n);
+    F('S1', n, '资料根下出现了不在规定清单里的东西', testLike ? `看名字像测试遗留：请主人批准后进${LY.trash}并登记` : `若是某项目的成果→移到 ${LY.projects}/<项目名>/${LY.outputs}/；不知道该放哪就问总控，不要留在资料根`);
   }
   // S5 运行记录
-  for (const n of listDir(join(dataRoot, '运行记录'))) {
+  for (const n of listDir(join(dataRoot, LY.runLogs))) {
     if (RUNLOG_OK.has(n) || n.startsWith('.')) continue;
-    if (!isDir(join(dataRoot, '运行记录', n))) { F('S5', `运行记录/${n}`, '运行记录顶层出现了零散文件', '运行记录是程序自己写日志的位置；若不是程序写的，请移走'); continue; }
-    F('S5', `运行记录/${n}`, '运行记录下出现了不认识的子文件夹', '若是新程序的日志位置，请登记进对账脚本的清单；否则移走');
+    if (!isDir(join(dataRoot, LY.runLogs, n))) { F('S5', `${LY.runLogs}/${n}`, '运行记录顶层出现了零散文件', '运行记录是程序自己写日志的位置；若不是程序写的，请移走'); continue; }
+    F('S5', `${LY.runLogs}/${n}`, '运行记录下出现了不认识的子文件夹', '若是新程序的日志位置，请登记进对账脚本的清单；否则移走');
   }
   // S2 项目对账
   const idx = readIndex(indexPath);
-  const projDir = join(dataRoot, '项目');
+  const projDir = join(dataRoot, LY.projects);
   const folders = listDir(projDir).filter((n) => isDir(join(projDir, n)) && !n.startsWith('.'));
   if (!idx.ok) F('S2', 'INDEX.md', idx.message, '修好总索引项目表');
   else {
     const seen = new Map();
     for (const r of idx.rows) {
-      if (!r.channelId) F('S2', `INDEX.md:${r.name}`, '总索引这一行读不出频道编号（解析不了）', '频道栏写成"…（编号 数字）"的样子');
+      if (!r.channelId) F('S2', `INDEX.md:${r.name}`, '总索引这一行读不出频道编号（解析不了）', `频道栏写成"${W.channelCell('…', '数字')}"的样子`);
       else { if (seen.has(r.channelId)) F('S2', `INDEX.md:${r.name}`, `频道编号 ${r.channelId} 和《${seen.get(r.channelId)}》重复`, '一个频道只对应一个项目'); seen.set(r.channelId, r.name); }
-      if (!r.entryPath) F('S2', `INDEX.md:${r.name}`, '总索引这一行没有项目入口链接（解析不了）', '入口栏写成 [项目入口](项目/…/PROJECT.md)');
+      if (!r.entryPath) F('S2', `INDEX.md:${r.name}`, '总索引这一行没有项目入口链接（解析不了）', `入口栏写成 [${W.projectEntryLinkText}](${LY.projects}/…/PROJECT.md)`);
       else if (!isFile(resolve(dataRoot, r.entryPath))) F('S2', `INDEX.md:${r.name}`, `入口文件不存在：${r.entryPath}`, '补入口，或改正链接');
       if (isDir(join(projDir, r.folder))) {
         for (const p of checkProject({ dataRoot, indexPath, name: r.folder }).problems) F('S2', p.where, p.message, p.suggest, `|${p.code}`);
-      } else F('S2', `项目/${r.folder}`, '总索引有这个项目，但项目文件夹不存在', '补建文件夹，或改正索引');
+      } else F('S2', `${LY.projects}/${r.folder}`, '总索引有这个项目，但项目文件夹不存在', '补建文件夹，或改正索引');
     }
     const indexed = new Set(idx.rows.map((r) => r.folder));
-    for (const f of folders) if (!indexed.has(f)) F('S2', `项目/${f}`, '项目文件夹在，但总索引里没有它的一行', '总控用 new-project 补登，或把这个文件夹移走');
+    for (const f of folders) if (!indexed.has(f)) F('S2', `${LY.projects}/${f}`, '项目文件夹在，但总索引里没有它的一行', '总控用 new-project 补登，或把这个文件夹移走');
   }
   // S3 命名（只查 项目/** ）
-  const frozen = (rel) => rel.split('/')[1] === '历史'; // 项目/<名>/历史/ 下是冻结的旧版和证据（含 Discord 旧线程导出），不查名字
+  const frozen = (rel) => rel.split('/')[1] === LY.history; // 项目/<名>/历史/ 下是冻结的旧版和证据（含 Discord 旧线程导出），不查名字
   walk(projDir, 4, (p, rel, n) => {
     if (DIARY_OK.test(n) || frozen(rel)) return;
-    for (const pr of nameProblems(n)) F('S3', `项目/${rel}`, pr, '改成合规的名字（提示级，不算异常）');
+    for (const pr of nameProblems(n)) F('S3', `${LY.projects}/${rel}`, pr, '改成合规的名字（提示级，不算异常）');
   });
   // S4 bot 工作区新增
   const baseExisted = existsSync(basePath);
@@ -538,7 +545,7 @@ export function scan({ dataRoot, indexPath, runtimeRoot = null, workspaces = nul
     if (!baseExisted) continue; // 第一次运行只建基线
     for (const n of names) {
       if (fixed.has(n) || known.has(n)) continue;
-      F('S4', `${basename(dirname(w.dir)) === 'runtime' ? 'runtime/' : ''}${basename(w.dir)}/${n}`, `${w.id} 的工作区顶层新出现了 ${n}`, '若是某项目的成果→移到 项目/<名>/成果/；若是临时材料→放进 临时/<任务标题>/；没人用→进垃圾桶并登记');
+      F('S4', `${basename(dirname(w.dir)) === 'runtime' ? 'runtime/' : ''}${basename(w.dir)}/${n}`, `${w.id} 的工作区顶层新出现了 ${n}`, `若是某项目的成果→移到 ${LY.projects}/<名>/${LY.outputs}/；若是临时材料→放进 ${LY.scratch}/<任务标题>/；没人用→进${LY.trash}并登记`);
     }
   }
   // 状态：新增 / 满 3 天 / 存量
@@ -554,15 +561,17 @@ export function scan({ dataRoot, indexPath, runtimeRoot = null, workspaces = nul
     else rec = { firstSeen: today, legacy: false };
     items[f.key] = rec;
     const days = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${rec.firstSeen}T00:00:00Z`)) / 86400000) + 1;
-    let kind = '存量';
-    if (!rec.legacy && days === 1) kind = '新增';
-    else if (!rec.legacy && days === 3) kind = '满3天';
+    const FR = W.fileReconcile;
+    let kind = FR.kinds.existing;
+    if (!rec.legacy && days === 1) kind = FR.kinds.new;
+    else if (!rec.legacy && days === 3) kind = FR.kinds.day3;
     rows.push({ ...f, kind, days, firstSeen: rec.firstSeen });
   }
   const count = (k) => rows.filter((r) => r.kind === k).length;
-  const header = `文件对账：新增 ${count('新增')}、满 3 天 ${count('满3天')}、存量 ${count('存量')}`;
+  const FR = W.fileReconcile;
+  const header = FR.header(count(FR.kinds.new), count(FR.kinds.day3), count(FR.kinds.existing));
   const out = [];
-  out.push('# 文件对账', `业务日期：${today}`, header, '');
+  out.push(`# ${FR.title}`, `${labelText(W.businessDateLabel)}${today}`, header, '');
   if (!stateExisted) out.push('（这是对账脚本第一次运行：当时已经存在的发现都记成"存量"，不算新增；之后才出现的才算新增。）', '');
   if (!baseExisted && wsList.length) out.push('（bot 工作区基线也是这次建的：现有文件都记为已知，之后新出现的才报。）', '');
   for (const n of notes) out.push(`（${n}）`, '');
@@ -572,9 +581,9 @@ export function scan({ dataRoot, indexPath, runtimeRoot = null, workspaces = nul
     for (const r of list) out.push(`- [${r.area}] ${r.where}：${r.problem}。建议：${r.suggest}。（首次发现 ${r.firstSeen}，第 ${r.days} 天）`);
     out.push('');
   };
-  section('新增', rows.filter((r) => r.kind === '新增'));
-  section('满 3 天', rows.filter((r) => r.kind === '满3天'));
-  section('存量', rows.filter((r) => r.kind === '存量'));
+  section(FR.sections.new, rows.filter((r) => r.kind === FR.kinds.new));
+  section(FR.sections.day3, rows.filter((r) => r.kind === FR.kinds.day3));
+  section(FR.sections.existing, rows.filter((r) => r.kind === FR.kinds.existing));
   if (!rows.length) out.push('没有发现。');
   const report = `${out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
   if (write) {
@@ -582,5 +591,5 @@ export function scan({ dataRoot, indexPath, runtimeRoot = null, workspaces = nul
     atomicWrite(statePath, `${JSON.stringify({ version: 1, items }, null, 1)}\n`, 0o644);
     atomicWrite(basePath, `${JSON.stringify(newBase, null, 1)}\n`, 0o644);
   }
-  return { ok: true, header, counts: { 新增: count('新增'), 满3天: count('满3天'), 存量: count('存量') }, rows, report, firstRun: !stateExisted, notes };
+  return { ok: true, header, counts: { 新增: count(FR.kinds.new), 满3天: count(FR.kinds.day3), 存量: count(FR.kinds.existing) }, rows, report, firstRun: !stateExisted, notes };
 }

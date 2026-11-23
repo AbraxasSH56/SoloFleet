@@ -12,10 +12,13 @@ import { dirname, join } from 'node:path';
 import { composeApprovalDescription, cutCodePoints, notifyApprovalCard, APPROVAL_TITLE_MAX } from './approval-card.mjs';
 
 import { crew, botId } from './crew-config.mjs';
+import { lexicon, locale, labelRe, escapeRe, tagCloseRe } from './lexicon.mjs';
+const W = lexicon(); // words follow config "locale" (zh-CN: the literals this file always matched)
+const EN = locale() === 'en';
 // ---------- 常量 ----------
 export const DONE_STATES = ['done']; // 官方状态里只有 done 算完成（第 0 步：dist/src-uqZESs4H.mjs）
-export const AUDIT_LABEL_PREFIX = '审计:';
-export const AUDIT_LABEL_VALUES = ['单审任务审计', '单审独立', '串联']; // 认得的几种（《任务记录》模板：审计:单审任务审计、审计:单审独立、审计:串联）；其余算“不认识”
+export const AUDIT_LABEL_PREFIX = W.auditLabelPrefix;
+export const AUDIT_LABEL_VALUES = W.auditLabelValues; // 认得的几种（《任务记录》模板：审计:单审任务审计、审计:单审独立、审计:串联）；其余算“不认识”
 export const REVIEWER_AGENT = 'task-auditor'; // 任务审计
 export const CLOSING_TOOLS = ['workboard_complete', 'workboard_release', 'workboard_move', 'workboard_reassign', 'workboard_reclaim'];
 const NOT_ALLOWED_MSG = '改卡为完成请用 workboard_complete，它会做结案检查；不能直接建出已完成的卡';
@@ -191,17 +194,19 @@ export function parseSubmission(content) {
   const lines = String(content ?? '').replace(/\r\n/g, '\n').split('\n');
   const l1 = lines[0] ?? '';
   const l2 = lines[1] ?? '';
-  const m1 = new RegExp('^任务审计 ' + REVIEWER_MENTION.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' 请审：.*（第 (\\d+) 次）\\s*$').exec(l1);
-  const m2 = /^任务卡：(\S+)/.exec(l2);
+  // zh-CN keeps the exact old pattern; en allows spaces after the colon
+  const SH = W.submissionHead;
+  const m1 = new RegExp(`^${escapeRe(SH.pre)}${escapeRe(REVIEWER_MENTION)}${escapeRe(SH.mid.trimEnd())}\\s*.*${escapeRe(SH.roundOpen)}(\\d+)${escapeRe(SH.roundClose)}\\s*$`).exec(l1);
+  const m2 = new RegExp(`^${escapeRe(W.submissionCard)}${EN ? ':\\s*' : '：'}(\\S+)`).exec(l2);
   if (!m1 || !m2) return null;
   // 成果位置：“成果位置：”之后到下一个“xxx：”标题行之前，一行一个绝对路径
   const paths = [];
   let inPaths = false;
   const unverifiable = [];
   for (const line of lines.slice(2)) {
-    const h = /^([^\s：:][^：:]{0,12})[：:](.*)$/.exec(line);
+    const h = new RegExp(`^([^\\s：:][^：:]{0,${EN ? 24 : 12}})[：:](.*)$`).exec(line);
     if (h && !line.startsWith('/') && !h[2].startsWith('//')) {
-      inPaths = h[1] === '成果位置';
+      inPaths = h[1] === W.submissionPaths;
       if (inPaths && h[2].trim()) { const t = h[2].trim(); (t.startsWith('/') ? paths : unverifiable).push(t); }
       continue;
     }
@@ -213,7 +218,8 @@ export function parseSubmission(content) {
 // 报告第一行：我得：通过／不通过／审不了
 export function parseVerdict(text) {
   const first = String(text ?? '').replace(/\r\n/g, '\n').split('\n').find((l) => l.trim() !== '') ?? '';
-  const m = /^我得：(通过|不通过|审不了)/.exec(first.trim());
+  const V = W.reportVerdictWord;
+  const m = new RegExp(`^${escapeRe(W.reportLead)}${EN ? ':\\s*' : '：'}(${[V.pass, V.fail, V.cannot].map(escapeRe).join('|')})`).exec(first.trim());
   return m ? m[1] : null;
 }
 
@@ -290,6 +296,8 @@ export class ClosingLedger {
   approvalFor(cardId) { return this.data.approvals[cardId] ?? null; }
 }
 
+// 正文里的审计级别：zh-CN 认 【审计级别】／审计级别：／审计级别: 后面的几种写法，en 认 [Audit level]／Audit level: 后面的几种写法
+const BODY_LEVEL_RE = new RegExp(`${escapeRe(W.auditLevelWord)}${tagCloseRe()}\\s*(${Object.keys(W.auditBodyToLabel).sort((a, b) => b.length - a.length).map(escapeRe).join('|')})`);
 // 取卡上的审计标签：返回 { ok, value, reason }
 export function readAuditLabel(card) {
   const labels = Array.isArray(card?.labels) ? card.labels : [];
@@ -300,10 +308,9 @@ export function readAuditLabel(card) {
   if (!AUDIT_LABEL_VALUES.includes(value)) return { ok: false, reason: `审计标签“${value}”不认识` };
   // 和卡正文写的审计级别不矛盾：正文里若有“审计级别：…”一行，值要对得上标签的大类
   const notes = String(card?.notes ?? card?.description ?? '');
-  const m = /审计级别[】：:]\s*(单审（?任务审计）?|单审（?独立审计）?|串联)/.exec(notes);
+  const m = BODY_LEVEL_RE.exec(notes);
   if (m) {
-    const body = m[1].replace(/[（）]/g, '');
-    const norm = ({ 单审任务审计: '单审任务审计', 单审独立审计: '单审独立', 串联: '串联' })[body] ?? null;
+    const norm = W.auditBodyToLabel[m[1]] ?? null; // explicit map (no bracket stripping)
     if (norm && norm !== value) return { ok: false, reason: `审计标签“${value}”和卡正文写的审计级别“${norm}”矛盾` };
   }
   return { ok: true, value };
@@ -326,10 +333,10 @@ export function decideClosing({ ledger, cardId, card, fingerprintFn = fingerprin
   const boundOpus = opus.filter((o) => o.bound);
   if (opus.some((o) => !o.bound)) approvalCase.push('补审绑定核不了');
   // ③ 已送达的“不通过”（任务审计的，或绑定成立的 Opus 补审）→ 挡，不给本人批准
-  if (report?.delivered && report.verdict === '不通过') return need('这次送审的审计报告是“不通过”，要返工后重新送审；本人批准也不能覆盖');
-  if (boundOpus.some((o) => o.verdict === '不通过')) return need('这次送审的 Opus 补审是“不通过”，要返工后重新送审；本人批准也不能覆盖');
+  if (report?.delivered && report.verdict === W.reportVerdictWord.fail) return need('这次送审的审计报告是“不通过”，要返工后重新送审；本人批准也不能覆盖');
+  if (boundOpus.some((o) => o.verdict === W.reportVerdictWord.fail)) return need('这次送审的 Opus 补审是“不通过”，要返工后重新送审；本人批准也不能覆盖');
   // ④ 有效通过
-  const passed = (report?.delivered && report.verdict === '通过') || boundOpus.some((o) => o.verdict === '通过');
+  const passed = (report?.delivered && report.verdict === W.reportVerdictWord.pass) || boundOpus.some((o) => o.verdict === W.reportVerdictWord.pass);
   if (passed && !sub.unverifiableFlag) {
     // ⑤ 成果指纹：重算和送审时记的一致才放行；不一致挡（不给本人批准）
     const fp = fingerprintFn(sub.paths);
@@ -338,12 +345,12 @@ export function decideClosing({ ledger, cardId, card, fingerprintFn = fingerprin
     const same = sub.paths.length > 0 && sub.paths.every((p) => base[p] !== undefined && base[p] === fp.map[p]);
     if (!same) return need('成果在送审后改过，要重新送审');
     if (approvalCase.length === 0) {
-      return { allow: true, via: `${report?.delivered && report.verdict === '通过' ? '任务审计单审通过' : 'Opus 补审通过'}（十一.7 临时安排；审计标签 ${lab.value}）`, submissionKey: `${cardId}#${sub.n}` };
+      return { allow: true, via: `${report?.delivered && report.verdict === W.reportVerdictWord.pass ? '任务审计单审通过' : 'Opus 补审通过'}（十一.7 临时安排；审计标签 ${lab.value}）`, submissionKey: `${cardId}#${sub.n}` };
     }
   }
   // ⑥ 只有属于“成果无法核对／送审重复待核／补审绑定核不了”之一，才走本人批准；其余没有有效通过的一律挡
   if (approvalCase.length > 0) return approveCase(ledger, sub, cardId, approvalCase);
-  if (report?.delivered && report.verdict === '审不了') return need('任务审计写了“审不了”：要核实是模型拒审后，由总控派绑定本次送审的 Opus 补审');
+  if (report?.delivered && report.verdict === W.reportVerdictWord.cannot) return need('任务审计写了“审不了”：要核实是模型拒审后，由总控派绑定本次送审的 Opus 补审');
   return need('还没有通过的审计报告');
 }
 
@@ -421,7 +428,7 @@ export function registerAuditGate(api, opts = {}) {
         { kind: 'keep', text: `；原线程：${threadLinkOf(ctx?.sessionKey)}。批准只放行这一张卡这一次结案。` },
       ]);
 // 同一张任务卡又出了新的审批卡（重新申请）→ 把还没处理的“审批过期”条目改已定。失败不影响卡。
-      try { Promise.resolve(opts.approvalLedger?.reissued?.({ kind: '结案确认', cardId })).catch(() => {}); } catch { /* 只是记录 */ }
+      try { Promise.resolve(opts.approvalLedger?.reissued?.({ kind: W.ledgerKinds.closing, cardId })).catch(() => {}); } catch { /* 只是记录 */ }
       // 每出一张卡，异步用总控账号往“审批”频道另发一条点名主人的短消息；发失败只记日志，不影响卡。
       try { notifyApprovalCard({ dedupKey: `closing:${cardId}:${d.submissionKey ?? ''}`, what: d.description, cardId, source: '结案确认', send: opts.sendApprovalNotice, dedupPath: opts.dedupPath ?? null, log: (row) => log({ 结果: '审批卡另发提醒', 事件: row.event, 卡: cardId, 详情: row.detail ?? row.error ?? row.why ?? null }) }); } catch { /* 另发提醒失败不影响卡 */ }
       return { requireApproval: { title: cutCodePoints(String(d.title ?? ''), APPROVAL_TITLE_MAX), description: approvalDescription, severity: 'warning', allowedDecisions: ['allow-once', 'deny'], timeoutMs: 600000, timeoutReason: '没有批准，结案没有进行', pluginId: 'personal-inbox', onResolution: (decision) => { if (decision === 'allow-once' || decision?.decision === 'allow-once') { ledger.grantApproval(cardId, d.submissionKey); ledger.addRelease({ cardId, via: '本人批准（审批卡点了允许一次）', at: new Date().toISOString(), tool, agent: ctx?.agentId }); log({ 结果: '本人批准放行', 工具: tool, 卡: cardId, 角色: ctx?.agentId }); return; }
@@ -429,7 +436,7 @@ export function registerAuditGate(api, opts = {}) {
         const dec = typeof decision === 'string' ? decision : decision?.decision;
         if (dec === 'deny') { log({ 结果: '审批卡被拒绝', 工具: tool, 卡: cardId, 角色: ctx?.agentId }); return; }
         try {
-          Promise.resolve(opts.approvalLedger?.expired?.({ kind: '结案确认', what: d.description ?? null, cardId, threadId: (/(\d{5,})$/.exec(String(ctx?.sessionKey ?? '')) ?? [])[1] ?? null, link: threadLinkOf(ctx?.sessionKey) ?? null, expiredAt: Date.now() }))
+          Promise.resolve(opts.approvalLedger?.expired?.({ kind: W.ledgerKinds.closing, what: d.description ?? null, cardId, threadId: (/(\d{5,})$/.exec(String(ctx?.sessionKey ?? '')) ?? [])[1] ?? null, link: threadLinkOf(ctx?.sessionKey) ?? null, expiredAt: Date.now() }))
             .then(() => log({ 结果: '审批卡过期转等你定', 工具: tool, 卡: cardId, 原因: dec ?? '无决定', 角色: ctx?.agentId }), (e) => log({ 结果: '审批过期登记失败', 卡: cardId, 原因: String(e?.message ?? e).slice(0, 200) }));
         } catch (e) { log({ 结果: '审批过期登记失败', 卡: cardId, 原因: String(e?.message ?? e).slice(0, 200) }); }
       } } };

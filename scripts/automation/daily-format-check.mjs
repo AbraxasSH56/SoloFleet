@@ -18,6 +18,8 @@ import { join, relative, dirname } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, renameSync, rmSync, statSync, openSync, closeSync, appendFileSync } from 'node:fs';
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
+import { lexicon, labelText, labelRe, tagText, escapeRe } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // words follow config "locale" (zh-CN: the literals this script always matched)
 const execFileAsync = promisify(execFile);
 
 export const DATA_ROOT = process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot; // env var first (offline tests), then config
@@ -26,7 +28,7 @@ export const CHAT_CHANNEL = crew.channels.lounge; // 闲聊茶会：主频道和
 export const CUT_H = 18, CUT_M = 5; // 日审原定时间 18:05（本地时间，按配置时区）
 export const OLD_RECORD_BEFORE_MS = 0; // optional cut-off (epoch ms): task records created before it are only counted, not checked; 0 = check every record
 export const LIMITS = { cmdMs: 15000, discordMs: 45000, totalMs: 90000, maxPages: 6, maxThreads: 60, handoffAt: 8, lockStaleMs: 10 * 60 * 1000 };
-export const STATUS_HEADS = ['完成', '进行中', '没跑成', '等主人', '卡住'];
+export const STATUS_HEADS = W.statusHeads;
 const pad = (n) => String(n).padStart(2, '0');
 export const localStamp = (ms) => localDateTime(ms);
 export const bizDateOf = (ms) => localDate(ms);
@@ -41,7 +43,7 @@ export function windowOf(nowMs, dataRoot) {
 function pickStart(nowMs, dataRoot, cutMs) {
   const rounds = [];
   try {
-    const dir = join(dataRoot, '审计', '日审');
+    const dir = join(dataRoot, W.layout.audit, W.layout.auditDaily);
     for (const f of readdirSync(dir)) {
       if (!/^\d{4}-\d{2}-\d{2}\.json$/.test(f)) continue;
       try {
@@ -66,35 +68,35 @@ const sectionOf = (text, headRe) => {
 export function checkTaskRecord(text) {
   const issues = [];
   let waiting = false;
-  const st = sectionOf(text, /^##\s*当前状态/);
-  if (st === null) issues.push('没有“当前状态”一节');
+  const st = sectionOf(text, new RegExp(`^##\\s*${escapeRe(W.sectionCurrentStatus)}`));
+  if (st === null) issues.push(`没有“${W.sectionCurrentStatus}”一节`);
   else {
-    const m = /^状态[：:]\s*(.*)$/m.exec(st);
-    if (!m) issues.push('没有“状态：”一行');
+    const m = new RegExp(`^${labelRe(W.statusLabel)}(.*)$`, 'm').exec(st);
+    if (!m) issues.push(`没有“${labelText(W.statusLabel)}”一行`);
     else {
       const rest = m[1].trim();
-      if (rest.startsWith('<')) issues.push('“状态：”还是模板原样');
-      else if (!STATUS_HEADS.some((h) => rest.startsWith(h))) issues.push(`“状态：”开头不是 完成／进行中／没跑成／等主人／卡住 之一（写的是“${rest.slice(0, 12)}”）`);
-      else waiting = rest.startsWith('等主人');
+      if (rest.startsWith('<')) issues.push(`“${labelText(W.statusLabel)}”还是模板原样`);
+      else if (!STATUS_HEADS.some((h) => rest.startsWith(h))) issues.push(`“${labelText(W.statusLabel)}”开头不是 ${STATUS_HEADS.join('／')} 之一（写的是“${rest.slice(0, 12)}”）`);
+      else waiting = rest.startsWith(W.statusHeads[3]);
     }
   }
   if (waiting) {
-    const dec = sectionOf(text, /^##\s*等主人拍板/);
-    if (dec === null) issues.push('状态是“等主人”，但没有“等主人拍板”一节（请示没写进记录）');
+    const dec = sectionOf(text, new RegExp(`^##\\s*${escapeRe(W.sectionWaitingForOwner)}`));
+    if (dec === null) issues.push(`状态是“${W.statusHeads[3]}”，但没有“${W.sectionWaitingForOwner}”一节（请示没写进记录）`);
     else {
       const body = dec.replace(/<[^>]*>/g, '').trim();
-      if (body === '' || /^无[。.]?$/.test(body)) issues.push('状态是“等主人”，“等主人拍板”一节却是空的或只写“无”（请示没写进记录）');
+      if (body === '' || new RegExp(`^${escapeRe(W.noneWord)}[。.]?$`, 'i').test(body)) issues.push(`状态是“${W.statusHeads[3]}”，“${W.sectionWaitingForOwner}”一节却是空的或只写“${W.noneWord}”（请示没写进记录）`);
     }
   }
   return issues;
 }
 export function scanTaskRecords(dataRoot, startMs, endMs, notes, oldBefore = OLD_RECORD_BEFORE_MS) {
   const out = { checked: [], oldCount: 0, bad: [] };
-  const projDir = join(dataRoot, '项目');
+  const projDir = join(dataRoot, W.layout.projects);
   let projects = [];
-  try { projects = readdirSync(projDir, { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith('.')); } catch (e) { notes.push(`未能检查：任务记录（读不了 项目/：${e.code ?? e.message}）`); return out; }
+  try { projects = readdirSync(projDir, { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith('.')); } catch (e) { notes.push(`未能检查：任务记录（读不了 ${W.layout.projects}/：${e.code ?? e.message}）`); return out; }
   for (const p of projects) {
-    const tdir = join(projDir, p.name, '任务');
+    const tdir = join(projDir, p.name, W.layout.tasks);
     let files = [];
     try { files = readdirSync(tdir).filter((f) => f.endsWith('.md') && !f.startsWith('.')); } catch { continue; }
     for (const f of files) {
@@ -107,7 +109,7 @@ export function scanTaskRecords(dataRoot, startMs, endMs, notes, oldBefore = OLD
         const issues = checkTaskRecord(readFileSync(full, 'utf8'));
         out.checked.push({ file: rel, result: issues.length ? issues.join('；') : '合格' });
         if (issues.length) out.bad.push({ file: rel, issues });
-      } catch (e) { notes.push(`未能检查：${join(p.name, '任务', f)}（${e.code ?? e.message}）`); }
+      } catch (e) { notes.push(`未能检查：${join(p.name, W.layout.tasks, f)}（${e.code ?? e.message}）`); }
     }
   }
   return out;
@@ -120,15 +122,15 @@ export function checkLedgerText(text) {
   for (const b of blocks) {
     const id = /^###\s*([DS]-\d+)/.exec(b)[1];
     const miss = [];
-    if (!/日期[：:][ \t]*\S/.test(b)) miss.push('日期');
-    const m = /原话[：:][ \t]*(\S[^\n]*)?/.exec(b);
-    if (!m || !m[1] || !m[1].trim()) miss.push('原话：');
+    if (!new RegExp(`${labelRe(W.ledgerDateLabel, '[ \\t]*')}\\S`).test(b)) miss.push(W.ledgerDateLabel);
+    const m = new RegExp(`${labelRe(W.ledgerQuoteLabel, '[ \\t]*')}(\\S[^\\n]*)?`).exec(b);
+    if (!m || !m[1] || !m[1].trim()) miss.push(labelText(W.ledgerQuoteLabel));
     if (miss.length) bad.push({ id, miss });
   }
   return { total: blocks.length, bad };
 }
 export function scanLedger(dataRoot, startMs, notes) {
-  const p = join(dataRoot, '决定账本.md');
+  const p = join(dataRoot, W.layout.ledgerFile);
   try {
     const s = statSync(p);
     if (s.mtimeMs < startMs) return { skipped: true };
@@ -137,32 +139,35 @@ export function scanLedger(dataRoot, startMs, notes) {
 }
 
 // ---------- F3 任务卡 ----------
-const ROLE_LINES = [['目标', /(^|\n)\s*[-*]?\s*目标[：:]/], ['允许做的', /(^|\n)\s*[-*]?\s*允许做的[：:]/], ['要主人确认的', /(^|\n)\s*[-*]?\s*要主人确认的[：:]/], ['停止条件', /(^|\n)\s*[-*]?\s*停止条件[：:]/]];
-const CONFIRM_RE = /主人[^\n]{0,24}(确认|批准)/;
-const CHANGE_RE = /审计级别[：:][^\n]*→/;
-export function auditLabelOf(card) { return (card.labels ?? []).find((l) => /^审计[:：]/.test(l)) ?? ''; }
-export function levelLineOf(card) { const first = String(card.notes ?? '').split('\n').find((l) => l.trim()) ?? ''; return first.startsWith('【审计级别】') ? first.trim() : ''; }
+const ROLE_LINES = W.authorizationLines.map((n) => [n, new RegExp(`(^|\\n)\\s*[-*]?\\s*${labelRe(n, '')}`)]);
+const CONFIRM_RE = new RegExp(`${escapeRe(W.ownerWord)}[^\\n]{0,24}(${W.confirmWords.map(escapeRe).join('|')})`, 'i');
+const CHANGE_RE = new RegExp(`${labelRe(W.auditLevelWord, '')}[^\\n]*→`);
+const AUDIT_LABEL_RE = new RegExp(`^${labelRe(W.auditLabelPrefix.slice(0, -1), '')}`); // zh-CN: ^审计[:：]
+const LEVEL_TAG = tagText(W.auditLevelWord);
+const AUTH_TAG = tagText(W.authorizationWord);
+export function auditLabelOf(card) { return (card.labels ?? []).find((l) => AUDIT_LABEL_RE.test(l)) ?? ''; }
+export function levelLineOf(card) { const first = String(card.notes ?? '').split('\n').find((l) => l.trim()) ?? ''; return first.startsWith(LEVEL_TAG) ? first.trim() : ''; }
 export function checkCard(card, { startMs, snapshotAt, snapshot }) {
   const miss = [];
   const notes = String(card.notes ?? '');
-  if (!auditLabelOf(card)) miss.push('没有 审计:… 标签');
-  if (!levelLineOf(card)) miss.push('正文最前面没有【审计级别】一行');
-  if (!notes.includes('【授权范围】')) miss.push('没有【授权范围】块');
+  if (!auditLabelOf(card)) miss.push(`没有 ${W.auditLabelPrefix}… 标签`);
+  if (!levelLineOf(card)) miss.push(`正文最前面没有${LEVEL_TAG}一行`);
+  if (!notes.includes(AUTH_TAG)) miss.push(`没有${AUTH_TAG}块`);
   else {
     const lacking = ROLE_LINES.filter(([, re]) => !re.test(notes)).map(([n]) => n);
-    if (lacking.length) miss.push(`【授权范围】缺：${lacking.join('、')}`);
+    if (lacking.length) miss.push(`${AUTH_TAG}缺：${lacking.join('、')}`);
   }
   // 升降级：评论里的改动记录要有确认；标签和快照对不上却没留记录
   const cs = [...(card.comments ?? [])].sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0));
   cs.forEach((c, i) => {
     if (!CHANGE_RE.test(c.body ?? '') || (c.created_at ?? 0) < startMs) return;
     const near = [cs[i - 1], c, cs[i + 1]].filter(Boolean).map((x) => x.body ?? '').join('\n');
-    if (!CONFIRM_RE.test(near)) miss.push('升降级缺确认（评论里有 审计级别：A → B，同一条或相邻评论里没有“主人／主人 …确认／批准”）');
+    if (!CONFIRM_RE.test(near)) miss.push(`升降级缺确认（评论里有 ${labelText(W.auditLevelWord)}A → B，同一条或相邻评论里没有“${W.ownerWord}／${W.ownerWord} …${W.confirmWords.join('／')}”）`);
   });
   const old = snapshot?.[card.id];
   if (old && (old.audit !== auditLabelOf(card) || old.level !== levelLineOf(card))) {
     const recorded = cs.some((c) => CHANGE_RE.test(c.body ?? '') && (c.created_at ?? 0) >= (snapshotAt ?? 0));
-    if (!recorded) { const parts = []; if (old.audit !== auditLabelOf(card)) parts.push(`标签 ${old.audit || '无'} → ${auditLabelOf(card) || '无'}`); if (old.level !== levelLineOf(card)) parts.push(`【审计级别】行 “${(old.level || '无').slice(0, 30)}” → “${(levelLineOf(card) || '无').slice(0, 30)}”`); miss.push(`审计标签或级别行变了（${parts.join('；')}），评论里没留改动记录`); }
+    if (!recorded) { const parts = []; if (old.audit !== auditLabelOf(card)) parts.push(`标签 ${old.audit || '无'} → ${auditLabelOf(card) || '无'}`); if (old.level !== levelLineOf(card)) parts.push(`${LEVEL_TAG}行 “${(old.level || '无').slice(0, 30)}” → “${(levelLineOf(card) || '无').slice(0, 30)}”`); miss.push(`审计标签或级别行变了（${parts.join('；')}），评论里没留改动记录`); }
   }
   return miss;
 }
@@ -219,7 +224,7 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), limits = LI
   const t0 = deps.now();
   const now = nowMs ?? t0;
   const { bizDate, cutMs, startMs, endMs } = windowOf(now, dataRoot);
-  const out = join(dataRoot, '审计', '日审', `${bizDate}-格式抽查.md`);
+  const out = join(dataRoot, W.layout.audit, W.layout.auditDaily, `${bizDate}-${W.layout.dailyFiles.formatCheck}`);
   const stateDir = join(dataRoot, '运行记录', '格式抽查');
   const notes = []; // 未能检查
   let complete = true;
@@ -245,9 +250,9 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), limits = LI
   // H1
   const rows = []; let threadsTotal = 0; let threadsRead = 0; const unknownBots = new Set();
   try {
-    const table = jread(join(dataRoot, '审计', '日审', 'bot编号表.json'), null);
+    const table = jread(join(dataRoot, W.layout.audit, W.layout.auditDaily, W.layout.dailyFiles.botRoster), null);
     const bots = (table?.人设bot ?? []).map((b) => b?.['Discord编号']).filter((x) => x != null && String(x).trim()).map(String);
-    if (!bots.length) { notes.push('未能检查：转手条数（读不到 bot编号表.json）'); complete = false; }
+    if (!bots.length) { notes.push(`未能检查：转手条数（读不到 ${W.layout.dailyFiles.botRoster}）`); complete = false; }
     else {
       const botIds = new Set(bots);
       if (table?.状态 && table.状态 !== '有效') notes.push(`编号表状态是“${table.状态}”，仍按表里现有名单数`);
@@ -290,7 +295,7 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), limits = LI
   const badRec = rec.bad.length;
   const badCards = cardRows.filter((c) => c.miss.length).length;
   const flagged = rows.filter((r) => r.n >= limits.handoffAt);
-  L.push(`# 格式抽查 · ${bizDate}`, '', `业务日期：${bizDate}`, `状态：${complete ? '完整' : '未完成（有没读成的，18:05 前下一遍会再试）'}`,
+  L.push(`# 格式抽查 · ${bizDate}`, '', `${labelText(W.businessDateLabel)}${bizDate}`, `${labelText(W.statusLabel)}${complete ? W.reportComplete : `${W.reportUnfinished}（有没读成的，18:05 前下一遍会再试）`}`,
     `窗口：${localStamp(startMs)} → ${stopAt}（本地时区；起点是上一份“执行: 完成”的日审的截止点，没有就取本轮截止点前 24 小时；统计到 ${stopAt.slice(11, 16)}，之后的新消息这份文件没统计）`,
     `本轮截止点：${bizDate} ${pad(CUT_H)}:${pad(CUT_M)}`, `生成时间：${localStamp(deps.now())}（用时 ${Math.round((deps.now() - t0) / 1000)} 秒）`,
     '说明：本文件由固定脚本生成，不调模型；日审只读本文件，不自己再数、再查。脚本只列事实：不判违规，不判“原地打转”，不写异常标记。', '',

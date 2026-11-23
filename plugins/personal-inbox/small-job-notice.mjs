@@ -12,9 +12,11 @@
 // 边界：只认写类工具（write／edit 等）的成功调用；用命令行（exec）写文件的轮次看不见，不补。
 import { classifyTool } from './execution-record.mjs';
 import { isCompletionExcluded } from './channel-exclusions.mjs';
+import { lexicon } from './lexicon.mjs';
 import { GUILD_ID, threadIdOfSession, toolSucceeded, roleNameFromTable } from './completion-notice.mjs';
 import { OWNER_ID } from './pending-ledger.mjs';
 
+const W = lexicon(); // words follow config "locale"
 const MAX_FILES_SHOWN = 6;
 const SEND_ACTION = /^(send|reply|thread[-_]?reply|broadcast)/i;
 const SKIP_AGENTS = new Set(['system-auditor', 'task-auditor']);
@@ -22,9 +24,9 @@ const idOfTarget = (t) => (/(\d{5,})$/.exec(String(t ?? '')) ?? [])[1] ?? null;
 
 export function smallJobText({ executor, threadLink, files }) {
   const names = [...new Set(files.map((f) => String(f).split('/').filter(Boolean).at(-1)).filter(Boolean))];
-  const shown = names.slice(0, MAX_FILES_SHOWN).join('、');
-  const more = names.length > MAX_FILES_SHOWN ? `等 ${names.length} 个` : '';
-  return `完成记录（小活）：${executor ?? '未知'}在线程 ${threadLink} 做完一件，改了：${shown}${more}`;
+  const shown = names.slice(0, MAX_FILES_SHOWN).join(W.listSep);
+  const more = names.length > MAX_FILES_SHOWN ? W.smallJobMore(names.length) : '';
+  return W.smallJobRecord(executor ?? W.unknownWord, threadLink, shown, more);
 }
 
 export function createSmallJobNotice({ syncRoot = null, dataRoot = null, parentChannelOf, send = null, roleName = (a) => roleNameFromTable(dataRoot, a), log = () => {}, read, now = Date.now, getWrites = null, getToolSummary = null } = {}) {

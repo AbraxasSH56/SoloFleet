@@ -92,3 +92,23 @@ test('labelRe in zh-CN keeps the old full-width/half-width tolerance', () => {
   assert.equal(labelRe('状态', '\\s*', 'zh-CN'), '状态[：:]\\s*');
   assert.equal(labelRe('日期', '[ \\t]*', 'zh-CN'), '日期[：:][ \\t]*');
 });
+
+test('sentences written into files or sent (zh-CN text is the old text)', () => {
+  assert.equal(Z.placeholderNone, '暂无');
+  assert.equal(Z.defaultGoalHint, '<一句话，用大白话写这个任务要达成什么。>');
+  assert.equal(Z.channelCell('频道A', '100'), '频道A（编号 100）');
+  assert.equal(Z.indexLocationsCell('P'), '任务记录在 项目/P/任务/，成果在 项目/P/成果/，历史在 项目/P/历史/');
+  assert.equal(Z.resultStatusLine('2026-11-22', 'N'), '2026-11-22：N 已完成，见下表');
+  assert.deepEqual(Z.entryHintParts, { results: '"当前成果"还没登记', status: '"当前状态"日期落后于任务记录' });
+  assert.equal(Z.entryHint('甲、乙'), '项目入口还没跟上（甲、乙），请更新（执行者可用 add-result，其余由项目主责维护）');
+  assert.equal(Z.listSep, '、');
+  assert.equal(Z.completionRecord('T', 'E', 'L'), '完成记录：《T》，执行：E，线程：L');
+  assert.equal(Z.noCardName, '（没有卡名）');
+  assert.equal(Z.reminderSep, '；提醒：');
+  assert.equal(Z.smallJobRecord('E', 'L', 'a、b', '等 9 个'), '完成记录（小活）：E在线程 L 做完一件，改了：a、b等 9 个');
+  assert.equal(Z.smallJobMore(9), '等 9 个');
+  assert.equal(Z.fileReconcile.header(1, 2, 3), '文件对账：新增 1、满 3 天 2、存量 3');
+  assert.deepEqual(Z.fileReconcile.kinds, { new: '新增', day3: '满3天', existing: '存量' });
+  assert.deepEqual(Z.fileReconcile.sections, { new: '新增', day3: '满 3 天', existing: '存量' });
+  assert.equal(Z.fileReconcile.title, '文件对账');
+});

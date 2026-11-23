@@ -11,17 +11,19 @@ import { homedir } from 'node:os';
 import { isCompletionExcluded } from './channel-exclusions.mjs';
 
 import { crew } from './crew-config.mjs';
+import { lexicon } from './lexicon.mjs';
 const THREAD_ID_RE = /:(?:channel|thread):(\d{5,})\b/;
 export const GUILD_ID = crew.guildId;
-const BOT_TABLE_REL = ['审计', '日审', 'bot编号表.json'];
+const W = lexicon(); // words follow config "locale"
+const BOT_TABLE_REL = [W.layout.audit, W.layout.auditDaily, W.layout.dailyFiles.botRoster];
 
 export function threadIdOfSession(sessionKey) { return THREAD_ID_RE.exec(String(sessionKey ?? ''))?.[1] ?? null; }
 const failedShape = (r) => r && typeof r === 'object' && (r.isError === true || r.ok === false || (r.details && typeof r.details === 'object' && (r.details.isError === true || r.details.ok === false)));
 export function toolSucceeded(event) { return !event?.error && !failedShape(event?.result); }
 
 export function completionText({ title, executor, threadLink }) {
-  const t = String(title ?? '（没有卡名）').replace(/\s+/g, ' ').trim().slice(0, 80);
-  return `完成记录：《${t}》，执行：${executor ?? '未知'}，线程：${threadLink}`;
+  const t = String(title ?? W.noCardName).replace(/\s+/g, ' ').trim().slice(0, 80);
+  return W.completionRecord(t, executor ?? W.unknownWord, threadLink);
 }
 
 // 角色编号 → 显示名：读 日审生成的 bot编号表.json（非口令），读不到就原样写角色编号
@@ -31,7 +33,7 @@ export function roleNameFromTable(dataRoot, agentId, read = (p) => readFileSync(
     const hit = (d?.人设bot ?? []).find((x) => x.角色 === agentId);
     if (hit?.显示名) return String(hit.显示名);
   } catch { /* 读不到 */ }
-  return agentId ?? '未知';
+  return agentId ?? W.unknownWord;
 }
 
 const binPath = () => process.env.OPENCLAW_BIN || crew.paths.openclawBin;
@@ -88,7 +90,7 @@ export function createCompletionNotice({ syncRoot = null, dataRoot = null, getCa
           try {
             let timer = null;
             const hint = await Promise.race([Promise.resolve(entryHint(channelId)), new Promise((resolve) => { timer = setTimeout(() => resolve(null), 5000); })]).finally(() => clearTimeout(timer));
-            if (typeof hint === 'string' && hint.trim()) text += `；提醒：${hint.trim().replace(/\s+/g, ' ').slice(0, 160)}`;
+            if (typeof hint === 'string' && hint.trim()) text += `${W.reminderSep}${hint.trim().replace(/\s+/g, ' ').slice(0, 160)}`;
           } catch (e) { log({ 结果: '入口提醒没取到', 卡: info.cardId, 原因: String(e?.message ?? e).slice(0, 200) }); }
         }
         await Promise.resolve(send({ target: channelId, message: text }));

@@ -16,7 +16,7 @@ export const locale = () => (LOCALES.includes(crew.locale) ? crew.locale : 'en')
 
 const OWNER = () => crew.owner?.title ? crew.owner.title : 'the owner';
 
-const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** Text to write for a label word: zh-CN "状态：", en "Status: ". */
 export const labelText = (word, loc = locale()) => (loc === 'en' ? `${word}: ` : `${word}：`);
 /** Pattern source to match a label word followed by its colon and the given whitespace pattern (default \s*). */
@@ -58,7 +58,8 @@ const ZH = {
   ownerWord: '主人',
   confirmWords: ['确认', '批准'],
   auditBodyValues: { task: '单审（任务审计）', independent: '单审（独立审计）', chained: '串联' },
-  auditBodyToLabel: { '单审任务审计': '单审任务审计', '单审（任务审计）': '单审任务审计', '单审独立审计': '单审独立', '单审（独立审计）': '单审独立', '串联': '串联' },
+  // every form the old pattern 单审（?任务审计）? / 单审（?独立审计）? accepted, including the half-bracketed ones
+  auditBodyToLabel: { '单审任务审计': '单审任务审计', '单审（任务审计）': '单审任务审计', '单审（任务审计': '单审任务审计', '单审任务审计）': '单审任务审计', '单审独立审计': '单审独立', '单审（独立审计）': '单审独立', '单审（独立审计': '单审独立', '单审独立审计）': '单审独立', '串联': '串联' },
   submissionHead: { pre: '任务审计 ', mid: ' 请审：', roundOpen: '（第 ', roundClose: ' 次）' },
   submissionCard: '任务卡',
   submissionPaths: '成果位置',
@@ -100,6 +101,24 @@ const ZH = {
   dataAlias: '资料',
   jobNames: { daily: '日审', patrol: '巡查', deepReview: '异常深审', weekly: '周审', quotaCatchup: '额度补跑', deskQueue: '桌面排队推进' },
   fileNameLint: { versionWords: ['当前', '最新', '新版', '旧版', '草案', '副本', '临时', '定稿', '终稿'], versionNumberRe: '第[一二三四五六七八九十\\d]+版', testLike: ['测试', 'test', 'tmp', 'selftest'] },
+  // ---- sentences the programs write into files or send ----
+  placeholderNone: '暂无',
+  defaultGoalHint: '<一句话，用大白话写这个任务要达成什么。>',
+  channelCell: (name, id) => `${name}（编号 ${id}）`,
+  indexLocationsCell: (nm) => `任务记录在 项目/${nm}/任务/，成果在 项目/${nm}/成果/，历史在 项目/${nm}/历史/`,
+  resultStatusLine: (day, name) => `${day}：${name} 已完成，见下表`,
+  noCardName: '（没有卡名）',
+  completionRecord: (title, executor, link) => `完成记录：《${title}》，执行：${executor}，线程：${link}`,
+  reminderSep: '；提醒：',
+  smallJobRecord: (executor, link, shown, more) => `完成记录（小活）：${executor}在线程 ${link} 做完一件，改了：${shown}${more}`,
+  smallJobMore: (n) => `等 ${n} 个`,
+  listSep: '、',
+  entryHintParts: { results: '"当前成果"还没登记', status: '"当前状态"日期落后于任务记录' },
+  entryHint: (parts) => `项目入口还没跟上（${parts}），请更新（执行者可用 add-result，其余由项目主责维护）`,
+  fileReconcile: {
+    title: '文件对账', kinds: { new: '新增', day3: '满3天', existing: '存量' }, sections: { new: '新增', day3: '满 3 天', existing: '存量' },
+    header: (n, d, e) => `文件对账：新增 ${n}、满 3 天 ${d}、存量 ${e}`,
+  },
   // ---- data-root folder and file names ----
   layout: {
     projects: '项目', tasks: '任务', outputs: '成果', history: '历史', templates: '模板', trash: '垃圾桶',
@@ -186,6 +205,23 @@ const EN = {
   dataAlias: 'dataroot',
   jobNames: { daily: 'daily-audit', patrol: 'patrol', deepReview: 'deep-review', weekly: 'weekly-audit', quotaCatchup: 'quota-catchup', deskQueue: 'desktop-queue-advance' },
   fileNameLint: { versionWords: ['current', 'latest', 'new', 'old', 'draft', 'copy', 'temp', 'final', 'revised'], versionNumberRe: 'v\\d+', testLike: ['test', 'tmp', 'selftest', 'dummy'] },
+  placeholderNone: 'None yet',
+  defaultGoalHint: '<One sentence in plain words: what this task is meant to achieve.>',
+  channelCell: (name, id) => `${name} (ID ${id})`,
+  indexLocationsCell: (nm) => `Task records in projects/${nm}/tasks/, results in projects/${nm}/outputs/, history in projects/${nm}/history/`,
+  resultStatusLine: (day, name) => `${day}: ${name} done, see the table below`,
+  noCardName: '(no card name)',
+  completionRecord: (title, executor, link) => `Completion record: "${title}", executor: ${executor}, thread: ${link}`,
+  reminderSep: '; Reminder: ',
+  smallJobRecord: (executor, link, shown, more) => `Completion record (small job): ${executor} finished one item in thread ${link}, changed: ${shown}${more}`,
+  smallJobMore: (n) => ` and ${n} more`,
+  listSep: ', ',
+  entryHintParts: { results: '"Current results" is not registered yet', status: 'the "Current status" date is behind the task records' },
+  entryHint: (parts) => `The project entry has not caught up (${parts}); please update it (the executor can use add-result; otherwise the project's lead bot keeps it)`,
+  fileReconcile: {
+    title: 'File reconcile', kinds: { new: 'new', day3: 'day-3', existing: 'existing' }, sections: { new: 'New', day3: 'Day 3', existing: 'Existing' },
+    header: (n, d, e) => `File reconcile: new ${n}, day 3 ${d}, existing ${e}`,
+  },
   layout: {
     projects: 'projects', tasks: 'tasks', outputs: 'outputs', history: 'history', templates: 'templates', trash: 'trash',
     audit: 'audit', auditDaily: 'daily', auditWeekly: 'weekly', auditPatrol: 'patrol', auditDeep: 'deep-review', auditFlags: 'anomaly-flags',
@@ -203,6 +239,8 @@ const EN = {
   },
 };
 
+/** The colon a program writes straight after a bare value: zh-CN "：", en ":". */
+export const colon = (loc = locale()) => (loc === 'en' ? ':' : '：');
 export const lexicon = (loc = locale()) => (loc === 'en' ? EN : ZH);
 export const ownerTitle = OWNER;
 
