@@ -6,6 +6,8 @@ import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { isApprovalExpiry, readLedgerFile, OWNER_ID, WORKSHOP_CHANNEL } from './pending-ledger.mjs';
 import { isReminderExcluded } from './channel-exclusions.mjs';
+import { lexicon } from './lexicon.mjs';
+const W = lexicon(); // words and the instruction text follow config "locale"
 
 export const REMIND_INTERVAL_MS = 6 * 3600 * 1000; // can be changed
 
@@ -19,14 +21,9 @@ function writeState(path, state) {
 }
 
 export function reminderText(items) {
-  const lines = items.map((it, k) => `${k + 1}. ${it.title}${it.cardId ? `（任务卡 ${it.cardId}）` : ''}${it.link ? `，原线程 ${it.link}` : ''}`);
-  return [
-    `【待批提醒——程序加的，不是主人说的话】有 ${items.length} 件审批过期没批，那几件事还停着：`,
-    ...lines,
-    '回答完他这一轮问的事之后，在末尾加一句话提醒他这几件还没批；不要单独发消息。',
-    '他要是说“知道了”或“先放着”，这一轮之后就不用再单独提了（程序 6 小时内也不会再让你提）。',
-    '他要是说“批”或“重新申请”，到原线程点名那个 bot 让它重新申请，新的审批卡会弹出来，他再点“允许”；你不要替他批。',
-  ].join('\n');
+  const R = W.approvalReminder;
+  const lines = items.map((it, k) => R.item(k + 1, it.title, it.cardId, it.link));
+  return [...R.lines(W.approvalReminderMarker, items.length), ...lines, ...R.tail].join('\n');
 }
 
 export function createApprovalReminder({ ledgerPath, syncRoot = null, now = Date.now, readLedger = readLedgerFile, statePath = remindStatePathOf(ledgerPath), intervalMs = REMIND_INTERVAL_MS, log = () => {} } = {}) {
@@ -41,7 +38,7 @@ export function createApprovalReminder({ ledgerPath, syncRoot = null, now = Date
       const t = now();
       const ledger = readLedger(ledgerPath);
       const state = readState(statePath);
-      const due = (ledger?.items ?? []).filter((it) => isApprovalExpiry(it) && it.status === '没回' && Number.isFinite(it.deadlineAt) && it.deadlineAt > t
+      const due = (ledger?.items ?? []).filter((it) => isApprovalExpiry(it) && it.status === W.ledgerStatus.noReply && Number.isFinite(it.deadlineAt) && it.deadlineAt > t
         && !(Number.isFinite(state[it.id]) && t - state[it.id] < intervalMs));
       if (!due.length) return undefined;
       for (const it of due) state[it.id] = t;

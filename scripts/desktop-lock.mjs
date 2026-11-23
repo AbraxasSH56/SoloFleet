@@ -6,7 +6,7 @@
 import { dirname, join } from 'node:path';
 import {
   describeLock, describeQueue, describeQueueLine, holdForConfirmation, lockPathsFromConfig, noteQueued, releaseLock,
-  runSelftest, runTick, selectNextCommand, skipQueued, updateSettings,
+  runSelftest, runTick, selectNextCommand, skipQueued, updateSettings, SKIP_WHY,
 } from '../plugins/personal-inbox/desktop-lock.mjs';
 
 const [command, ...rest] = process.argv.slice(2);
@@ -80,6 +80,6 @@ switch (command) {
     break;
   }
   default:
-    console.error('用法：desktop-lock.mjs release --thread <线程编号> | wait --thread <线程编号> [--what <六类操作里要等确认的那件事>] | status | skip --thread <线程编号> --why <不用了|完成|被接手> | note --thread <线程编号> [--message <消息编号>] [--requester <请求方编号>] | settings --set <键>=<值> [--set …] | next | queue | tick | selftest --thread <测试线程编号>');
+    console.error(`用法：desktop-lock.mjs release --thread <线程编号> | wait --thread <线程编号> [--what <六类操作里要等确认的那件事>] | status | skip --thread <线程编号> --why <${SKIP_WHY.join("|")}> | note --thread <线程编号> [--message <消息编号>] [--requester <请求方编号>] | settings --set <键>=<值> [--set …] | next | queue | tick | selftest --thread <测试线程编号>`);
     process.exit(2);
 }

@@ -9,6 +9,8 @@ import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { crew, botId } from './crew-config.mjs';
+import { lexicon } from './lexicon.mjs';
+const W = lexicon(); // words and instruction texts follow config "locale"
 export const TASK_AUDITOR_MENTION = `<@${botId('task-auditor')}>`; // 任务审计
 export const HELP_WAIT_MS = 20 * 60 * 1000; // 求助后 20 分钟没人回，审批频道点名主人一次
 export const FAIL_LIMIT = 2; // 同一步连败两次（只限桌面角色的屏幕步骤）
@@ -16,12 +18,12 @@ const KEEP_IDS = 10;
 
 export const stuckPathOf = (lockPath) => (lockPath ? join(dirname(lockPath), 'stuck-count.json') : null);
 
-export const HELP_FORMAT = `按这个格式在当前线程点名任务审计 ${TASK_AUDITOR_MENTION}，一条消息写完：\n【求助】\n现象：（卡在哪一步，想做什么）\n我做过什么：（两次各用了什么办法）\n屏幕上现在是什么：（用文字描述，看到了什么窗口、按钮、提示）\n报错原文：（工具返回的原文，没有就写“没有”）`;
-export const BLOCK_ASK_HELP = `同一步已经连续失败两次，先停，不要试第三次，也不要再动屏幕。${HELP_FORMAT}\n发出去以后等任务审计回复，照她的建议再试一次。`;
-export const BLOCK_AFTER_HELP = '求助以后照建议再试，又连续失败了两次：停下，不要再动屏幕、也不要收尾，保持屏幕原样。在线程里写“卡住：”，说清屏幕现在的样子和试过什么，放锁，点名总控，由她报主人，等主人定。不要换模型、不要继续试。';
+export const HELP_FORMAT = W.helpFormat(TASK_AUDITOR_MENTION);
+export const BLOCK_ASK_HELP = W.blockAskHelp(HELP_FORMAT);
+export const BLOCK_AFTER_HELP = W.blockAfterHelp;
 
-export const isHelpRequestText = (text) => typeof text === 'string' && (text.includes(TASK_AUDITOR_MENTION) || text.trimStart().startsWith('【求助】'));
-export const isHelpReplyText = (text) => typeof text === 'string' && text.trimStart().startsWith('【求助回复】');
+export const isHelpRequestText = (text) => typeof text === 'string' && (text.includes(TASK_AUDITOR_MENTION) || text.trimStart().startsWith(W.helpRequestMarker));
+export const isHelpReplyText = (text) => typeof text === 'string' && text.trimStart().startsWith(W.helpReplyMarker);
 
 function readAll(path) { try { const v = JSON.parse(readFileSync(path, 'utf8')); return v && typeof v === 'object' && !Array.isArray(v) && v.threads && typeof v.threads === 'object' ? v : { threads: {} }; } catch { return { threads: {} }; } }
 function writeAll(path, v) { mkdirSync(dirname(path), { recursive: true }); const tmp = `${path}.tmp-${process.pid}`; writeFileSync(tmp, JSON.stringify(v)); renameSync(tmp, path); }

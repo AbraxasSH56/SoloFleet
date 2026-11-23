@@ -8,10 +8,13 @@ import { createHash } from 'node:crypto';
 import { APPROVAL_CHANNEL_ID } from './approval-card.mjs';
 
 import { crew } from './crew-config.mjs';
+import { lexicon } from './lexicon.mjs';
+const W = lexicon(); // words follow config "locale" (zh-CN: the literals this file always used)
+const S = W.ledgerStatus;
 export const OWNER_ID = crew.owner.userId;
 // 审批卡（官方上限 10 分钟）过期不算拒绝，登记进本台账留 24 小时；到点前 2 小时在审批频道点名提醒一次；24 小时到了还没批，算没批、原线程说一句。
 // 这类条目 source='审批过期'，由 runApprovalExpiryTick 单独处理；runTick 的其余各步（读回应、首次点名、3 天合并提醒、截止前 24 小时提醒、总表）一律跳过它，工坊里不会为它多发任何点名。
-export const APPROVAL_EXPIRED_SOURCE = '审批过期';
+export const APPROVAL_EXPIRED_SOURCE = W.ledgerSources.approvalExpired;
 export const APPROVAL_EXPIRY_MS = 24 * 3600 * 1000; // 主人 07:15 定“24 小时、到点前提醒”
 export const APPROVAL_EXPIRY_LEAD_MS = 2 * 3600 * 1000;
 export const isApprovalExpiry = (it) => it?.source === APPROVAL_EXPIRED_SOURCE;
@@ -130,10 +133,10 @@ export function registerItem(ledger, input, now) {
   if (dup) return { item: dup, existing: true };
   const item = {
     id: newItemId(now), title: input.title, suggestion: input.suggestion, blocks: input.blocks,
-    deadline: input.deadline && input.deadline !== '没截止' ? input.deadline : null,
+    deadline: input.deadline && input.deadline !== W.noDeadline ? input.deadline : null,
     requestLink: input.requestLink ?? null, requestMessageId: String(input.requestMessageId), requestChannelId: input.requestChannelId ? String(input.requestChannelId) : null,
     threadId: input.threadId ? String(input.threadId) : null, botId: input.botId ?? null,
-    firstAskedAt: null, lastRemindedAt: null, remindCount: 0, status: '没回', pendingJudgeSince: null, recheckDate: null,
+    firstAskedAt: null, lastRemindedAt: null, remindCount: 0, status: S.noReply, pendingJudgeSince: null, recheckDate: null,
     decision: null, decisionSource: null, decisionBasis: null, isTest: !!input.isTest, autoRegistered: !!input.autoRegistered, batch: input.batch ?? null,
     handledReplies: [], possibleReply: null, responseUnknown: null, preDeadlineRemindedAt: null, registeredAt: now,
     notice: null,
@@ -147,14 +150,14 @@ export function registerItem(ledger, input, now) {
 export function updateItem(ledger, { id, status, recheckDate, decision, source, basis }, message, now) {
   const item = ledger.items.find((it) => it.id === id);
   if (!item) return { error: `找不到 ${id}` };
-  const allowed = ['收到', '已定', '撤销', '没回'];
+  const allowed = [S.received, S.decided, S.revoked, S.noReply];
   if (!allowed.includes(status)) return { error: `状态只能是 ${allowed.join('／')}` };
-  if (item.isTest && status === '撤销') { item.status = '撤销'; item.decisionSource = source ?? '测试件撤销'; return { item }; }
+  if (item.isTest && status === S.revoked) { item.status = S.revoked; item.decisionSource = source ?? '测试件撤销'; return { item }; }
   // 程序补登记的条目（autoRegistered）可能是误报（比如 bot 没登记、主人已经点了按钮办完了）：这类条目总控可以撤销，
   // 不要求主人的消息，但必须写“对应依据”说明为什么撤；只许撤销，不许借此判“已定／收到”。
-  if (item.autoRegistered && status === '撤销') {
+  if (item.autoRegistered && status === S.revoked) {
     if (!basis || !String(basis).trim()) return { error: '撤销程序补登记的条目要填“对应依据”（比如“他已经点了按钮”“这不是要他定的事”）' };
-    item.status = '撤销'; item.decisionSource = '程序补登记误报，总控撤销'; item.decisionBasis = String(basis).trim().slice(0, 200); item.pendingJudgeSince = null;
+    item.status = S.revoked; item.decisionSource = '程序补登记误报，总控撤销'; item.decisionBasis = String(basis).trim().slice(0, 200); item.pendingJudgeSince = null;
     return { item };
   }
   if (!message) return { error: '没有读到你那条回应的原消息，不改' };
@@ -172,18 +175,18 @@ export function updateItem(ledger, { id, status, recheckDate, decision, source, 
   item.decisionSource = String(message.id);
   item.decisionBasis = usedBasis;
   item.pendingJudgeSince = null;
-  if (status === '收到') {
+  if (status === S.received) {
     item.recheckDate = recheckDate || new Date(now + DEFAULT_RECHECK_DAYS * 86400000).toISOString().slice(0, 10);
     item.recheckDefault = !recheckDate;
   }
-  if (status === '已定') item.decision = decision ?? '(未写结论)';
+  if (status === S.decided) item.decision = decision ?? '(未写结论)';
   return { item };
 }
 
 // ----- 文字 -----
 const dayOf = (ms) => new Date(ms).toISOString().slice(0, 10);
 export function activeForTable(ledger, now) {
-  return ledger.items.filter((it) => !it.isTest && !isApprovalExpiry(it) && ['没回', '待判', '收到'].includes(it.status)); // 收到的件一直在总表里显示（到约定日才回到提醒候选，那是 runTick 的事）
+  return ledger.items.filter((it) => !it.isTest && !isApprovalExpiry(it) && [S.noReply, S.judging, S.received].includes(it.status)); // 收到的件一直在总表里显示（到约定日才回到提醒候选，那是 runTick 的事）
 }
 export const TABLE_MAX_CHARS = 1900; // Discord 一条消息最多 2000 字
 export const TABLE_MAX_LINES = 16; // 官方 Discord 渠道每条消息默认最多 17 行，超了会被拆成几条，留 1 行余量
@@ -191,8 +194,8 @@ export const TABLE_MAX_LINES = 16; // 官方 Discord 渠道每条消息默认最
 function itemLines(it, k, level) {
   const link = it.requestLink ?? `消息 ${it.requestMessageId}`;
   const flags = [it.possibleReply ? `你可能回过（消息 ${it.possibleReply.messageId}），bot 还没对上` : null, it.responseUnknown ? `回应：未知（${it.responseUnknown}）` : null].filter(Boolean).join('；');
-  const st = it.status === '收到' ? `收到（${it.recheckDefault ? '未约定日期，默认' : ''}${it.recheckDate} 再看）` : it.status;
-  if (level === 0) return [`${k + 1}. ${it.title}（建议：${it.suggestion}；不定会卡住：${it.blocks}；截止：${it.deadline ?? '没截止'}；状态：${st}${flags ? `；${flags}` : ''}）`, `   原请示：${link}`];
+  const st = it.status === S.received ? `${S.received}（${it.recheckDefault ? '未约定日期，默认' : ''}${it.recheckDate} 再看）` : it.status;
+  if (level === 0) return [`${k + 1}. ${it.title}（建议：${it.suggestion}；不定会卡住：${it.blocks}；截止：${it.deadline ?? W.noDeadline}；状态：${st}${flags ? `；${flags}` : ''}）`, `   原请示：${link}`];
   if (level === 1) return [`${k + 1}. ${it.title}（${st}）原请示 ${link}`];
   return [`${k + 1}. ${it.title}（${st}）`];
 }
@@ -245,11 +248,11 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
     // 2) 识别回应
     let readOk = true;
     for (const it of L.items) {
-      if (it.isTest || isApprovalExpiry(it) || !['没回', '待判', '收到'].includes(it.status)) continue;
-      if (it.status === '待判' && it.pendingJudgeSince && t - it.pendingJudgeSince >= JUDGE_TIMEOUT_MS) {
+      if (it.isTest || isApprovalExpiry(it) || ![S.noReply, S.judging, S.received].includes(it.status)) continue;
+      if (it.status === S.judging && it.pendingJudgeSince && t - it.pendingJudgeSince >= JUDGE_TIMEOUT_MS) {
         // 超时：把那条回应记成“已超时处理”，以后同一条回应再被读到也不再触发
         if (it.lastReplyId && !it.handledReplies.includes(String(it.lastReplyId))) it.handledReplies.push(String(it.lastReplyId));
-        it.status = '没回'; it.pendingJudgeSince = null; it.judgeCall = null; it.possibleReply = { messageId: it.lastReplyId ?? null, note: '你回过，bot 没判出，请看一眼' }; actions.push({ type: 'judge-timeout', id: it.id });
+        it.status = S.noReply; it.pendingJudgeSince = null; it.judgeCall = null; it.possibleReply = { messageId: it.lastReplyId ?? null, note: '你回过，bot 没判出，请看一眼' }; actions.push({ type: 'judge-timeout', id: it.id });
       }
       let msgs;
       if (late()) { skippedReads++; continue; } // 到点：这条留给下一轮，不改 responseUnknown、不算读取失败
@@ -259,11 +262,11 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
         const linked = (m.replyToId && String(m.replyToId) === it.requestMessageId) || (it.threadId && String(m.channelId) === it.threadId);
         if (linked) {
           if (it.handledReplies.includes(String(m.id))) continue; // 已处理过的回应不再把状态改回待判
-          if (it.status !== '待判') {
+          if (it.status !== S.judging) {
             // 认到回应：建一次性任务叫醒总控去判
             const call = await (discord.wakeJudge ? discord.wakeJudge({ item: it, replyId: String(m.id) }).catch((e) => ({ error: String(e?.message ?? e) })) : Promise.resolve({ error: '没有叫醒办法' }));
             if (call?.jobId) {
-              it.status = '待判'; it.pendingJudgeSince = t; it.lastReplyId = String(m.id); it.judgeCall = { state: '已叫起', jobId: call.jobId, at: t };
+              it.status = S.judging; it.pendingJudgeSince = t; it.lastReplyId = String(m.id); it.judgeCall = { state: '已叫起', jobId: call.jobId, at: t };
               actions.push({ type: 'to-judge', id: it.id, replyId: String(m.id), jobId: call.jobId });
             } else {
               it.judgeCall = { state: '叫起失败', error: String(call?.error ?? '没有任务编号').slice(0, 120), at: t }; // 状态不变，下一轮再试；不发任何消息
@@ -292,7 +295,7 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
       await discord.edit({ target: WORKSHOP_CHANNEL, messageId: L.pinnedMessageId, text: table }); L.pinnedTextHash = th; actions.push({ type: 'edit-table' });
     }
     // 4) 首次点名：没点过的；“搭建期首批”合成一条
-    const fresh = L.items.filter((it) => !it.isTest && !isApprovalExpiry(it) && it.status === '没回' && !it.firstAskedAt && !(it.notice && ['待发', '发送待核'].includes(it.notice.state)));
+    const fresh = L.items.filter((it) => !it.isTest && !isApprovalExpiry(it) && it.status === S.noReply && !it.firstAskedAt && !(it.notice && ['待发', '发送待核'].includes(it.notice.state)));
     const groups = new Map();
     for (const it of fresh) { const k = it.batch === '搭建期首批' ? 'batch' : it.id; (groups.get(k) ?? groups.set(k, []).get(k)).push(it); }
     for (const [, items] of groups) {
@@ -306,7 +309,7 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
     // 5) 全表合并提醒：满 3 天才发；最多 3 件；上次提醒最早的优先
     const lastM = L.lastMergedReminderAt ?? 0;
     if (L.lastMergedReminderAt && t - lastM >= MERGE_INTERVAL_MS && !late()) {
-      const cand = L.items.filter((it) => !it.isTest && !isApprovalExpiry(it) && (it.status === '没回' || (it.status === '收到' && it.recheckDate && it.recheckDate <= dayOf(t))) && it.firstAskedAt)
+      const cand = L.items.filter((it) => !it.isTest && !isApprovalExpiry(it) && (it.status === S.noReply || (it.status === S.received && it.recheckDate && it.recheckDate <= dayOf(t))) && it.firstAskedAt)
         .sort((a, b) => (a.lastRemindedAt ?? -1) - (b.lastRemindedAt ?? -1));
       const pick = cand.slice(0, MERGE_MAX_ITEMS);
       if (pick.length > 0) {
@@ -319,7 +322,7 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
     }
     // 6) 截止前 24 小时额外点一次（每件一次）
     for (const it of L.items) {
-      if (it.isTest || isApprovalExpiry(it) || !it.deadline || it.preDeadlineRemindedAt || !['没回', '待判', '收到'].includes(it.status)) continue;
+      if (it.isTest || isApprovalExpiry(it) || !it.deadline || it.preDeadlineRemindedAt || ![S.noReply, S.judging, S.received].includes(it.status)) continue;
       if (late()) break; // 到点：留给下一轮
       const dl = Date.parse(it.deadline);
       if (Number.isNaN(dl) || dl - t > DEADLINE_LEAD_MS || dl < t) continue;
@@ -335,8 +338,8 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
 // 登记（在 withLedger 里调用）：kind＝'结案确认'|'桌面角色六类操作'。requestMessageId 填合成编号（不是 Discord 消息号）：台账要求必填且按它去重，
 // 所以同一张卡不会登记两次；别的地方不拿它去读 Discord（runTick 对这类条目整个跳过）。绝不设 firstAskedAt（设了会进“3 天合并提醒”）。
 export function registerApprovalExpiry(ledger, { kind, what = null, cardId = null, threadId = null, link = null, expiredAt }, now, { probe = false, deadlineAt = null, leadMs = null } = {}) {
-  const kindKey = kind === '结案确认' ? '结案' : '桌面角色';
-  const rid = `审批:${kindKey}:${cardId ?? threadId ?? '未知'}:${expiredAt ?? now}`;
+  const kindKey = kind === W.ledgerKinds.closing ? W.ledgerKindKeys.closing : W.ledgerKindKeys.desktop;
+  const rid = `${W.approvalIdPrefix}:${kindKey}:${cardId ?? threadId ?? W.unknownWord}:${expiredAt ?? now}`;
   const one = String(what ?? '（没写事由）').replace(/\s+/g, ' ').trim().slice(0, 60);
   const dl = deadlineAt ?? (now + APPROVAL_EXPIRY_MS);
   const r = registerItem(ledger, {
@@ -352,11 +355,11 @@ export function registerApprovalExpiry(ledger, { kind, what = null, cardId = nul
 export function closeApprovalExpiryOnReissue(ledger, { kind, cardId = null, threadId = null }, now) {
   let n = 0;
   for (const it of ledger.items) {
-    if (!isApprovalExpiry(it) || it.status !== '没回' || it.kind !== kind) continue;
+    if (!isApprovalExpiry(it) || it.status !== S.noReply || it.kind !== kind) continue;
     // 结案确认按任务卡号认；桌面角色六类操作按卡号或线程认（同一个线程重新申请就算）。
-    const same = kind === '结案确认' ? Boolean(cardId && it.cardId === cardId) : Boolean((cardId && it.cardId === cardId) || (threadId && it.threadId === String(threadId)));
+    const same = kind === W.ledgerKinds.closing ? Boolean(cardId && it.cardId === cardId) : Boolean((cardId && it.cardId === cardId) || (threadId && it.threadId === String(threadId)));
     if (!same) continue;
-    it.status = '已定'; it.decision = '已重新申请，出了新的审批卡'; it.decisionSource = '程序'; it.decisionAt = now; n += 1;
+    it.status = S.decided; it.decision = '已重新申请，出了新的审批卡'; it.decisionSource = '程序'; it.decisionAt = now; n += 1;
   }
   return n;
 }
@@ -371,11 +374,11 @@ export const APPROVAL_EXPIRED_THREAD_TEXT = '这件审批过期了（超过 24 �
 export async function runApprovalExpiryTick(L, t, discord, actions) {
   // 调用方没明确传发送函数就什么都不发，只记一行（不去猜一个默认的真发送）。
   if (typeof discord?.send !== 'function') {
-    if (L.items.some((it) => isApprovalExpiry(it) && it.status === '没回')) actions.push({ type: 'approval-expiry-no-send', why: '没有传发送函数，这一遍不发提醒也不撤销' });
+    if (L.items.some((it) => isApprovalExpiry(it) && it.status === S.noReply)) actions.push({ type: 'approval-expiry-no-send', why: '没有传发送函数，这一遍不发提醒也不撤销' });
     return;
   }
   for (const it of L.items) {
-    if (!isApprovalExpiry(it) || it.status !== '没回' || !Number.isFinite(it.deadlineAt)) continue;
+    if (!isApprovalExpiry(it) || it.status !== S.noReply || !Number.isFinite(it.deadlineAt)) continue;
     if (t >= it.deadlineAt) {
       // 原线程那句“过期了”只发一次，记在台账文件里去重——发之前先记 expirySay.state＝'发送中'，
       // 发完记 '已发'（拿到消息编号）或 '结果不明'（命令超时之类，消息可能已经发出去，也算用掉了，不重发）。
@@ -387,7 +390,7 @@ export async function runApprovalExpiryTick(L, t, discord, actions) {
           it.expirySay = r?.messageId ? { state: '已发', at: t, messageId: String(r.messageId) } : { state: '结果不明', at: t, why: '没拿到消息编号' };
         } catch (e) { it.expirySay = { state: '结果不明', at: t, why: String(e?.message ?? e).slice(0, 120) }; }
       }
-      it.status = '撤销'; it.decision = '24 小时到了没批，按没批处理'; it.decisionSource = '程序'; it.decisionAt = t;
+      it.status = S.revoked; it.decision = '24 小时到了没批，按没批处理'; it.decisionSource = '程序'; it.decisionAt = t;
       actions.push({ type: 'approval-expiry-cancelled', id: it.id, saidInThread: it.expirySay?.state ?? null });
       continue;
     }

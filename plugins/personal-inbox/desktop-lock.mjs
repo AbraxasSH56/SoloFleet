@@ -21,6 +21,9 @@ import { composeApprovalDescription, cutCodePoints, notifyApprovalCard, plainApp
 import { loadWords, recordObservation, loadObservations, classifyCall, describeDiagnostics, invalidateObservations, wordsPathFromLock, PROGRAM_NOTE } from './sensitive-click.mjs';
 
 import { crew, botId } from './crew-config.mjs';
+import { lexicon } from './lexicon.mjs';
+const W = lexicon(); // words and instruction texts follow config "locale" (zh-CN: the texts this file always sent)
+const Q = W.queueText;
 const desktopDir = join(crew.paths.workspaceRoot, 'desktop');
 export const defaultLockPath = join(desktopDir, 'screen.lock');
 export const defaultLogPath = join(desktopDir, 'screen-lock.log');
@@ -70,7 +73,7 @@ export const MIN_BUDGET_FOR_SEND_MS = 45_000; // 30 秒发送 + 5 秒强停 + 10
 export const MIN_BUDGET_FOR_READ_MS = 15_000;
 export const STALL_NOTE_MS = 10 * 60 * 1000; // 推进停了的提醒
 export const HISTORY_AFTER_MS = 7 * 24 * 3600 * 1000; // 不占队列的旧件满 7 天挪进历史
-export const SKIP_WHY = ['不用了', '完成', '被接手'];
+export const SKIP_WHY = W.queueSkipReasons;
 export const DEFAULT_SETTINGS = Object.freeze({ holdMinutes: 15, confirmMinutes: 5, maxNotifyAttempts: 3, paused: false });
 const SETTING_RANGES = { holdMinutes: [1, 120], confirmMinutes: [1, 30], maxNotifyAttempts: [1, 10] };
 
@@ -80,7 +83,7 @@ export function threadIdFromSessionKey(sessionKey) {
 }
 
 const threadLink = (threadId) => (threadId ? `https://discord.com/channels/${GUILD_ID}/${threadId}` : null);
-const clock = (ms) => new Date(ms).toLocaleString('zh-CN', { hour12: false, timeZone: tzName() });
+const clock = (ms) => new Date(ms).toLocaleString(W.clockLocale, { hour12: false, timeZone: tzName() });
 const randomToken = () => randomBytes(8).toString('hex');
 const isDiscordId = (value) => typeof value === 'string' && /^[1-9]\d{4,24}$/.test(value);
 
@@ -203,7 +206,7 @@ function newLock({ sessionKey, runId, requester, now }) {
 
 function holderText(lock) {
   const where = lock.link ?? lock.sessionKey;
-  return `持锁线程：${where}；请求方：${lock.requester ?? '未记录（系统没给出）'}；开始：${clock(lock.startedAt)}；最后一次动屏幕：${clock(lock.lastActivityAt)}`;
+  return Q.holderText(where, lock.requester ?? Q.notRecorded, clock(lock.startedAt), clock(lock.lastActivityAt));
 }
 
 function staleReason(lock, now) {
@@ -217,7 +220,7 @@ function staleReason(lock, now) {
 const LEGACY_BUSY_NOTE = '请在当前线程回一句“我在别处忙，好了再叫我”，点名叫你的人或 bot，然后结束这一轮。不要等、不要重试、不要绕开这个检查。';
 const LOCK_UNREADABLE_NOTE = '桌面锁文件读不懂，不能确认屏幕有没有人在用。请在当前线程点名主人说明，不要自己改锁文件。';
 const SETTINGS_INVALID_NOTE = '排队设置读不到：回话时顺带点名主人说一句。';
-const STALL_NOTE = '排队推进好像停了：回话时顺带点名主人说一句。';
+const STALL_NOTE = Q.stall;
 
 // ---- 设置文件（4.10）----
 function validateSettings(value) {
@@ -445,8 +448,8 @@ function logEvent(logPath, entry) {
 const scriptPathFor = () => join(crew.paths.projectRoot, 'scripts', 'desktop-lock.mjs');
 
 function noteCommand(ctx, item) {
-  const base = `${NODE_BIN} ${scriptPathFor(ctx.lockPath)} note --thread ${item.threadId} --message <点名你的那条消息的编号>`;
-  return isDiscordId(item.requester) ? base : `${base} --requester <点名你的人或 bot 的编号>`;
+  const base = `${NODE_BIN} ${scriptPathFor(ctx.lockPath)} note --thread ${item.threadId} --message ${Q.noteMessage}`;
+  return isDiscordId(item.requester) ? base : `${base} --requester ${Q.noteRequester}`;
 }
 
 // 选人函数（4.3）：调用前已确认设置有效、没暂停。有留位不另挑人；锁有效不挑人；
@@ -591,12 +594,12 @@ function queuedText(ctx, q, item, { lock, why }) {
   const lockActive = Boolean(lock && !lock.unreadable && !staleReason(lock, ctx.now));
   const n = aheadCount(q, item, lockActive);
   let head;
-  if (why === 'lock') head = `桌面正被另一个线程占用${lock.state === 'waiting' ? '（那边屏幕上留着等主人确认的东西）' : ''}。${holderText(lock)}。`;
-  else if (why === 'hold') head = `屏幕留给排在前面的那位了（排队号 ${q.hold.queueNo}，它被点名后来接）。`;
-  else head = '前面还有人在等，屏幕要按先后排给排第一的那位（程序两分钟左右会去叫它）。';
-  const including = lockActive || q.hold ? '（含正在做的那件）' : '';
-  let text = `${head}已按先来后到把这个线程记进等候名单，前面还有 ${n} 件${including}。请在当前线程点名请求方${isDiscordId(item.requester) ? `：这次叫你的是 <@${item.requester}>${item.requester === OWNER_USER_ID ? '（主人本人）' : ''}，点名它就把 <@${item.requester}> 原样写进回话里` : '（一般是总控或别的 bot）'}，回一句“我在别处忙，排上了，前面还有 ${n} 件，轮到你我来叫你，不用再叫我”，然后结束这一轮。不要等、不要重试、不要绕开这个检查。`;
-  if (!item.requestMessageId || !isDiscordId(item.requester)) text += `回话之前先照原样跑一次这条命令（补记是谁、哪条消息叫的你，把尖括号换成编号）：${noteCommand(ctx, item)}`;
+  if (why === 'lock') head = Q.lockHead(lock.state === 'waiting', holderText(lock));
+  else if (why === 'hold') head = Q.holdHead(q.hold.queueNo);
+  else head = Q.lineHead;
+  const including = lockActive || q.hold ? Q.including : '';
+  let text = Q.body(head, n, including, isDiscordId(item.requester) ? Q.requesterKnown(item.requester, item.requester === OWNER_USER_ID) : Q.requesterUnknown);
+  if (!item.requestMessageId || !isDiscordId(item.requester)) text += `${Q.noteLead}${noteCommand(ctx, item)}`;
   if (tickStalled(q, ctx.now)) text += STALL_NOTE;
   return text;
 }
@@ -806,7 +809,7 @@ export function holdForConfirmation({ lockPath = defaultLockPath, threadId, what
 // 划掉（4.6）：不用了／完成／被接手。正占着留位就清留位、选下一位（下一轮 tick 发点名）；暂停或设置无效时照样能划掉，只是不选人。
 export function skipQueued({ lockPath = defaultLockPath, threadId, why, now = Date.now(), logPath = null, settingsPath, queuePath, _hooks } = {}) {
   if (!threadId) return { ok: false, message: '要写 --thread <线程编号>。名单没动。' };
-  if (!SKIP_WHY.includes(why)) return { ok: false, message: '--why 只能是“不用了”“完成”“被接手”之一。名单没动。' };
+  if (!SKIP_WHY.includes(why)) return { ok: false, message: Q.whyInvalid(SKIP_WHY) };
   const paths = queuePathsFor(lockPath, { settingsPath, queuePath });
   return withLockGuard(lockPath, _hooks, () => {
     const read = readQueueSafe(paths.queuePath);
@@ -1087,9 +1090,9 @@ export async function findMarkedMessage({ deps, remaining, clock: now }, { targe
 export function notifyText(hold, holdMinutes) {
   if (String(hold.requester) === OWNER_USER_ID) {
     // 请求方是主人本人：程序用总控账号点名桌面角色，桌面角色读他的原话直接接着做。不点名主人（免得又打扰他）、不点名总控。
-    return `<@${DESKTOP_USER_ID}> 轮到你了：主人 ${clock(hold.queuedAt)} 在这个线程叫你做的事，现在屏幕空了（排队号 ${hold.queueNo}）。先读这个线程，确认他的原话还在、之后他没说过取消，就直接按他的原话动手，不用他再说一遍；他说过取消的，跑 skip --thread ${hold.threadId} --why 不用了 划掉这一件。这是程序发的通知，不用回复、不要点名总控；做完只点名主人报结果。六类操作（付款、对外发送、永久删除、提交表单、上传文件、安装软件）照旧停下等他，这条通知不是新授权。给你留 ${holdMinutes} 分钟，过了就让给下一位。`;
+    return Q.notifyOwnerJob(DESKTOP_USER_ID, clock(hold.queuedAt), hold.queueNo, hold.threadId, SKIP_WHY[0], holdMinutes);
   }
-  return `<@${hold.requester}> 轮到你了：你 ${clock(hold.queuedAt)} 在这里叫我做的事，现在屏幕空了（排队号 ${hold.queueNo}）。先重读任务记录的“当前状态”，还要做就在这个线程重新点名我、把事情再说一遍；不用了就点名我说“不用了”。给你留 ${holdMinutes} 分钟，过了就让给下一位，之后还要做再叫我、重新排。这只是通知，不是新授权。`;
+  return Q.notifyRequesterJob(hold.requester, clock(hold.queuedAt), hold.queueNo, W.sectionCurrentStatus, SKIP_WHY[0], holdMinutes);
 }
 
 // 主人的件过号（桌面角色这一轮没接上）时，用总控账号在原线程点名他一句。每个留位只会过号一次，所以只发一次。
@@ -1672,7 +1675,7 @@ export function createScreenGate({ lockPath = defaultLockPath, logPath = default
           { kind: 'tail', text: `桌面角色在线程 ${info.threadId} 里要继续动屏幕；之后要再做六类操作，桌面角色要先重新记“等确认”、重新批。` },
         ]);
 // 同一线程又出了新的审批卡（重新申请）→ 把还没处理的“审批过期”条目改已定（失败不影响卡）。
-        try { Promise.resolve(approvalLedger?.reissued?.({ kind: '桌面角色六类操作', cardId: info.cardId ?? found?.id ?? null, threadId: info.threadId })).catch(() => {}); } catch { /* 只是记录 */ }
+        try { Promise.resolve(approvalLedger?.reissued?.({ kind: W.ledgerKinds.desktop, cardId: info.cardId ?? found?.id ?? null, threadId: info.threadId })).catch(() => {}); } catch { /* 只是记录 */ }
         // 每出一张卡，异步用总控账号往“审批”频道另发一条点名主人的短消息（做法二）；发失败只记日志，不影响卡。
         try {
           notifyApprovalCard({ dedupKey: `desktop:${info.fingerprint ?? info.threadId}`, what: info.what, cardId: info.cardId ?? found?.id ?? null, source: '桌面角色六类操作', now, send: sendApprovalNotice, dedupPath, log: (row) => logDecision(logPath, { at: now(), toolName, agentId, ...row }) });
@@ -1698,7 +1701,7 @@ export function createScreenGate({ lockPath = defaultLockPath, logPath = default
                 if (marked) try { r = refuseHeldAccess({ lockPath, threadId: info.threadId, fingerprint: info.fingerprint, reason: kind, now: now() }); } catch (e) { r = { ok: false, message: String(e?.message ?? e) }; }
                 logDecision(logPath, { at: now(), toolName, agentId, decision: kind, lockReleasedToWorking: r.ok, reason: r.ok ? undefined : r.message });
                 if (kind === 'approval-timeout' || kind === 'approval-cancelled' || kind === 'approval-denied-or-timeout') {
-                  try { Promise.resolve(approvalLedger?.expired?.({ kind: '桌面角色六类操作', what: info.what ?? null, cardId: info.cardId ?? found?.id ?? null, threadId: info.threadId, link: info.link ?? null, expiredAt: now() })).catch((e) => logDecision(logPath, { at: now(), toolName, agentId, decision: 'approval-expiry-register-failed', reason: String(e?.message ?? e).slice(0, 200) })); } catch { /* 登记失败不影响卡 */ }
+                  try { Promise.resolve(approvalLedger?.expired?.({ kind: W.ledgerKinds.desktop, what: info.what ?? null, cardId: info.cardId ?? found?.id ?? null, threadId: info.threadId, link: info.link ?? null, expiredAt: now() })).catch((e) => logDecision(logPath, { at: now(), toolName, agentId, decision: 'approval-expiry-register-failed', reason: String(e?.message ?? e).slice(0, 200) })); } catch { /* 登记失败不影响卡 */ }
                 }
               }
             },

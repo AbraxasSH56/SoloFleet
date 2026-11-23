@@ -18,6 +18,8 @@ import { withLedger, registerItem, OWNER_ID, WORKSHOP_CHANNEL } from './pending-
 import { APPROVAL_CHANNEL_ID } from './approval-card.mjs';
 
 import { crew } from './crew-config.mjs';
+import { lexicon, escapeRe } from './lexicon.mjs';
+const W = lexicon(); // words follow config "locale"
 export const CHAT_CHANNEL = crew.channels.lounge; // 闲聊茶会：不参与任务卡和台账
 export const GUILD_ID = crew.guildId;
 export const SKIP_AGENTS = new Set(['system-auditor', 'task-auditor']); // 审计角色
@@ -28,7 +30,7 @@ export const CALL_TIMEOUT_MS = 60 * 1000; // 核账里每条命令（channel inf
 export const SLOW_CALL_LOG_MS = 5 * 1000; // 命令超过这么久就记一行日志（看实际有多慢）
 export const INFO_KEEP_MS = 30 * 24 * 3600 * 1000; // 频道信息缓存里 30 天没用到的键清掉
 export const DONE_KEEP_MS = 3 * 24 * 3600 * 1000; // 已核记录只留 3 天（读流水只扫今天和昨天）
-export const AUTO_PREFIX = '（程序补登记）';
+export const AUTO_PREFIX = W.autoRegisterPrefix;
 const dayOf = (ms) => localDate(ms);
 export const requestDir = (dataRoot) => join(dataRoot, '运行记录', '请示待核');
 
@@ -75,7 +77,7 @@ export function extractRequest(event, ctx = {}) {
   const messageId = findKey(res, ['messageId', 'message_id']) ?? (res?.message?.id != null ? String(res.message.id) : null);
   const channelId = findKey(res, ['channelId', 'channel_id']) ?? idOfTarget(p.target ?? p.to ?? p.channelId ?? p.channel) ?? idOfTarget(res?.to) ?? (res?.result?.target?.id != null ? String(res.result.target.id) : null); // 回执深处的 raw.channelId 没有时，退回参数里的 target、回执顶层的 to、result.target.id
   const text = textHead(p);
-  return { messageId: messageId ?? null, channelId: channelId ?? null, agentId, text, isTest: /^【测试】/.test(text), sentAt: null };
+  return { messageId: messageId ?? null, channelId: channelId ?? null, agentId, text, isTest: new RegExp(`^${escapeRe(W.testMarker)}`).test(text), sentAt: null };
 }
 
 // ---------- ③ “收到消息”观察钩子：记主人的回应（含按钮点击）----------
@@ -306,10 +308,10 @@ export async function reconcileRequests({ dataRoot, ledgerPath, discord, now = (
     const link = `https://discord.com/channels/${GUILD_ID}/${r.channelId}/${id}`;
     const res = await withLedger(ledgerPath, (L) => {
       const reg = registerItem(L, {
-        title: `${AUTO_PREFIX}${String(r.text || '带按钮的请示').slice(0, 180)}`,
-        suggestion: '（程序补登记：bot 没登记；建议和选项见原消息）',
-        blocks: '（程序补登记：不定会卡住什么，见原消息）',
-        deadline: '没截止', requestMessageId: id, requestChannelId, requestLink: link, threadId, botId: r.agentId ?? null, isTest: !!r.isTest, autoRegistered: true,
+        title: `${AUTO_PREFIX}${String(r.text || W.autoRegisterTexts.title).slice(0, 180)}`,
+        suggestion: W.autoRegisterTexts.suggestion,
+        blocks: W.autoRegisterTexts.blocks,
+        deadline: W.noDeadline, requestMessageId: id, requestChannelId, requestLink: link, threadId, botId: r.agentId ?? null, isTest: !!r.isTest, autoRegistered: true,
       }, t);
       if (reg.error) return { noWrite: true, error: reg.error };
       if (reg.existing) return { noWrite: true, existing: true };
