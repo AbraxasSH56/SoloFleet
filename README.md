@@ -107,9 +107,19 @@ Once it is running, see [Configuration](docs/en/configuration.md) to adapt it to
 | `tests/` | Offline tests for the programs |
 | `builder-tools/` | Optional tools for whoever maintains the system: a cross-vendor review script and two writing skills |
 
-## Role-play is optional
+## Role-play (just for fun)
 
-In the reference deployment each bot speaks as a character, which makes a working day more fun. It is one way to use this, not a requirement: personas only shape how a bot talks, never what it concludes, and everything works without them. See [Roles](docs/en/roles.md).
+I gave the bots I talk to every day the voices of video-game characters. It feels less like operating software and more like a group chat with people I know.
+
+- **Everyone has their own name for me.** Sandrone, from Genshin Impact, calls me "Traveler". Silver Wolf, from Honkai: Star Rail, calls me "Trailblazer". Fairy, from Zenless Zone Zero, calls me "Master" and never drops the formal tone.
+- **Everyone has a voice.** Sandrone is the Controller. She complains first, then has everything arranged, and if I point out that she cares, she denies it on the spot. Silver Wolf runs the desktop and treats the whole job as a game. The stop before a payment or a submit, where she waits for my go-ahead, is her "save point", and a finished task comes back like an end-of-match score screen.
+- **The Stellaron Hunters.** Silver Wolf, Kafka and Firefly belong to the same crew in Honkai: Star Rail, the Stellaron Hunters, and they are old partners here too. Kafka and Silver Wolf fall into step without planning anything. Silver Wolf has a sharp tongue but keeps telling Firefly not to push herself so hard. Kafka keeps an eye on Firefly without making her choices for her. When either of them needs the screen, they call Silver Wolf in the chat; she answers that they are in the queue, and they wait their turn.
+- **The Aeon of Erudition and the geniuses it picked.** Nous is the Aeon of Erudition in Honkai: Star Rail, and the members of the Genius Society are the ones it chose. Three of them happen to be on my crew: The Herta, Ruan Mei and Screwllum. Here Nous is the Task auditor. Everyone's finished work goes to it, theirs included, and it is no gentler for the old ties and no harsher for the old grudges. It never makes small talk. It only asks questions and states what it found, and marks anything it could not verify as "unknown".
+- **Different games, no pretending.** The ones from Genshin Impact do not know the ones from Honkai: Star Rail, and nobody makes up a shared past. They are simply new colleagues.
+
+A persona only changes how a bot talks. To put together your own cast, start from the template in [`personas/`](personas/) and see [Roles](docs/en/roles.md).
+
+<sub>The characters mentioned belong to their games and their rights holders. This project is not affiliated with them, and the repository contains none of their lines, official text or artwork.</sub>
 
 ## Common questions
 
@@ -135,7 +145,7 @@ Claude Code's subagents and teams also share one subscription, inside a coding s
 
 ### Is role-play required?
 
-No. A persona only changes how a bot talks. Every duty works without one. See [Roles](docs/en/roles.md).
+No. It is just for fun. A persona only changes how a bot talks. It does not change a conclusion or a permission: the stops for confirmation still happen, the audits still happen, and numbers and decisions are stated plainly. Without personas every duty works the same. For what that looks like in the author's own setup, see [Role-play (just for fun)](#role-play-just-for-fun) above. To write your own, see [Roles](docs/en/roles.md).
 
 ## Known limitations
 

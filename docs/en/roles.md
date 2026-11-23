@@ -42,6 +42,6 @@ The reference deployment gave its roles voices from video games. They are listed
 | Task auditor | Nous | Honkai: Star Rail |
 | Diary keeper | Fairy | Zenless Zone Zero |
 | Standby | Kafka, Firefly | Honkai: Star Rail |
-| Workers | a mix of characters from the same three games | – |
+| Workers | The Herta, Ruan Mei, Screwllum, and other characters from the same three games | Honkai: Star Rail and others |
 
 (Character names are spelled as in the games' English versions. The repository contains no lines or art from the originals; the table is only an example and carries no endorsement from the rights holders.)
