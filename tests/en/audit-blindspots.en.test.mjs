@@ -27,8 +27,9 @@ test('the file is written to audit/daily/<date>-blindspot-check.md with the Engl
     assert.ok(!existsSync(join(data, '审计')));
     const text = readFileSync(file, 'utf8');
     assert.match(text, /^Business date: 2026-11-12$/m);
-    assert.match(text, /^Status: incomplete（未能检查：/m, 'the mark is "Status: incomplete" while a section could not be checked');
+    assert.match(text, /^Status: incomplete \(Could not check: /m, 'the mark is "Status: incomplete" while a section could not be checked');
     assert.doesNotMatch(text, /^Status: complete$/m);
+    for (const h of ['# Blind-spot check · 2026-11-12', '## Summary of leads', '## 1. Rework count', '## 2. Out-of-scope files', '### A Rule files changed', "### B2 How recognition of the Desktop operator's submit-type clicks is running", '## 3. Backup status']) assert.ok(text.includes(h), h);
     assert.equal(blindspotsDue(Date.parse('2026-11-12T17:40:00+05:30'), data), true, 'incomplete: the watch runs it again');
     writeFileSync(file, text.replace(/^Status: incomplete.*$/m, 'Status: complete'));
     assert.equal(blindspotsDue(Date.parse('2026-11-12T17:40:00+05:30'), data), false, 'complete: the watch leaves it alone');

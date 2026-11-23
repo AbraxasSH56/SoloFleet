@@ -21,7 +21,7 @@ import { composeApprovalDescription, cutCodePoints, notifyApprovalCard, plainApp
 import { loadWords, recordObservation, loadObservations, classifyCall, describeDiagnostics, invalidateObservations, wordsPathFromLock, PROGRAM_NOTE } from './sensitive-click.mjs';
 
 import { crew, botId } from './crew-config.mjs';
-import { lexicon } from './lexicon.mjs';
+import { lexicon, escapeRe } from './lexicon.mjs';
 const W = lexicon(); // words and instruction texts follow config "locale" (zh-CN: the texts this file always sent)
 const Q = W.queueText;
 const desktopDir = join(crew.paths.workspaceRoot, 'desktop');
@@ -317,10 +317,7 @@ export function updateSettings({ lockPath = defaultLockPath, settingsPath, sets 
 
 // ---- 等候名单（4.1）----
 const OCCUPYING = new Set(['waiting', 'pending', 'notified']);
-export const STATUS_TEXT = {
-  waiting: '等候', pending: '待通知', notified: '已通知', taken: '已接', cancelled: '划掉',
-  expired: '过号', 'notify-failed': '通知失败', 'notify-unknown': '通知结果未定', 'needs-info': '待补资料',
-};
+export const STATUS_TEXT = W.queueStatusText;
 
 function emptyQueue() {
   return { version: 1, counter: 0, items: [], hold: null, lease: null, inProgress: null, sceneCheck: null, lastTickAt: null, anomalies: [], tickJobId: null };
@@ -911,12 +908,12 @@ export function describeQueueLine({ lockPath = defaultLockPath, settingsPath, qu
   const paths = queuePathsFor(lockPath, { settingsPath, queuePath });
   const settings = readSettings(paths.settingsPath);
   const read = readQueueSafe(paths.queuePath);
-  const settingsText = settings.valid ? `设置有效（留位 ${settings.values.holdMinutes} 分钟）；暂停：${settings.values.paused ? '是' : '否'}` : `设置无效（${settings.why}）`;
-  if (read.unreadable) return `排队：等候名单读不懂；${settingsText}`;
+  const settingsText = settings.valid ? W.queueSummary.settingsOk(settings.values.holdMinutes, settings.values.paused) : W.queueSummary.settingsBad(settings.why);
+  if (read.unreadable) return W.queueSummary.unreadable(settingsText);
   const q = read.q;
   const occupying = q.items.filter((item) => OCCUPYING.has(item.status)).length;
-  const hold = q.hold ? `留位：${q.hold.queueNo}（${STATUS_TEXT[q.hold.status]}，线程 ${q.hold.threadId}）` : '留位：没有';
-  return `排队：占队列 ${occupying} 件；${hold}；${settingsText}；现场待检查标记：${q.sceneCheck ? '有' : '没有'}`;
+  const hold = q.hold ? W.queueSummary.hold(q.hold.queueNo, STATUS_TEXT[q.hold.status], q.hold.threadId) : W.queueSummary.noHold;
+  return W.queueSummary.line(occupying, hold, settingsText, q.sceneCheck);
 }
 
 // queue：只读，列出占队列的、留位、发送尝试、现场待检查标记、最近的划掉记录和异常。
@@ -1556,7 +1553,7 @@ export function threadRefusedState(path, threadId, now = Date.now()) {
 // 同步只读（读任务记录文件、只读打开任务板数据库取卡名），不写任何东西。
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
 function recordSection(text, heading) {
-  const m = new RegExp(`^##\\s*${heading}\\s*\\n([\\s\\S]*?)(?=^##\\s|(?![\\s\\S]))`, 'm').exec(text);
+  const m = new RegExp(`^##\\s*${escapeRe(heading)}\\s*\\n([\\s\\S]*?)(?=^##\\s|(?![\\s\\S]))`, 'm').exec(text);
   return m ? m[1] : null;
 }
 const DONE_STATUS = ['done'];
@@ -1575,7 +1572,7 @@ function readCardInfo(dbPath, ids) {
   } catch { /* 读不到就只有卡号、不过滤 */ }
   return out;
 }
-export function findCardByThread(threadId, { dataRoot = `${process.env.HOME}/OpenClaw/资料`, dbPath = `${process.env.HOME}/.openclaw/plugins/workboard/workboard.sqlite` } = {}) {
+export function findCardByThread(threadId, { dataRoot = crew.paths.dataRoot || `${process.env.HOME}/OpenClaw/资料`, dbPath = `${process.env.HOME}/.openclaw/plugins/workboard/workboard.sqlite` } = {}) {
   try {
     const tid = String(threadId ?? '').replace(/[^0-9]/g, '');
     if (tid.length < 5) return null;
@@ -1595,19 +1592,19 @@ export function findCardByThread(threadId, { dataRoot = `${process.env.HOME}/Ope
       }
     } catch { /* 没有对应表就走任务记录那一层 */ }
     // 第二层：任务记录文件
-    const projects = path.join(dataRoot, '项目');
+    const projects = path.join(dataRoot, W.layout.projects);
     const hits = [];
     for (const proj of fs.readdirSync(projects)) {
-      const dir = path.join(projects, proj, '任务');
+      const dir = path.join(projects, proj, W.layout.tasks);
       let names = [];
       try { names = fs.readdirSync(dir).filter((n) => n.endsWith('.md')); } catch { continue; }
       for (const n of names) {
         let text; try { text = fs.readFileSync(path.join(dir, n), 'utf8'); } catch { continue; }
-        const link = recordSection(text, 'Discord 线程链接');
+        const link = recordSection(text, W.taskRecordSections.threadLink);
         if (!link) continue;
         const ids = [...link.matchAll(/(?<!\d)(\d{17,20})(?!\d)/g)].map((m) => m[1]);
         if (!ids.includes(tid)) continue;
-        hits.push({ file: n, cards: [...new Set((recordSection(text, '任务卡号') ?? '').match(UUID_RE) ?? [])] });
+        hits.push({ file: n, cards: [...new Set((recordSection(text, W.taskRecordSections.cardId) ?? '').match(UUID_RE) ?? [])] });
       }
     }
     if (hits.length !== 1 || hits[0].cards.length !== 1) return null;
@@ -1626,7 +1623,7 @@ export function cardTextOf(found, threadId) {
 // 界面元素表放在锁文件同目录的小状态文件里（几份插件拷贝共用）。
 export const observationPathOf = (lockPath) => (lockPath ? join(dirname(lockPath), 'ui-elements.json') : null);
 
-export function createScreenGate({ lockPath = defaultLockPath, logPath = defaultLogPath, now = Date.now, guardWaitMs, findCard = findCardByThread, sendApprovalNotice, dedupPath = null, approvalLedger = null, sensitive = true, observationPath, wordsPath } = {}) {
+export function createScreenGate({ lockPath = defaultLockPath, logPath = defaultLogPath, now = Date.now, guardWaitMs, findCard = null, dataRoot = null, sendApprovalNotice, dedupPath = null, approvalLedger = null, sensitive = true, observationPath, wordsPath } = {}) {
   const obsPath = observationPath ?? observationPathOf(lockPath);
   const wordsFile = wordsPath ?? wordsPathFromLock(lockPath); // 从锁文件位置拼，不从插件自己的位置推
   let wordsCfg = null;
@@ -1657,7 +1654,7 @@ export function createScreenGate({ lockPath = defaultLockPath, logPath = default
       });
       logDecision(logPath, { at: now(), toolName, agentId, sessionKey: ctx.sessionKey ?? null, decision: verdict.allow ? 'allow' : 'block', requester: ctx.requester?.senderId ?? null, reason: verdict.allow ? undefined : verdict.reason.slice(0, 80) });
       const approvalReturn = (info) => {
-        const found = info.cardId ? { id: info.cardId, title: null } : findCard(info.threadId);
+        const found = info.cardId ? { id: info.cardId, title: null } : (findCard ?? ((tid) => findCardByThread(tid, dataRoot ? { dataRoot } : {})))(info.threadId);
         const cardText = cardTextOf(found, info.threadId);
         logDecision(logPath, { at: now(), toolName, agentId, sessionKey: ctx.sessionKey ?? null, decision: 'require-approval', fingerprint: info.fingerprint });
         // 说明在程序里先换掉会被官方清理放大的字符、再截到 480 码点以内（官方清理后超 512 会整张拒掉）。

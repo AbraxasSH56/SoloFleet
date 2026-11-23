@@ -44,8 +44,8 @@ export function realDiscord(env = process.env) {
     },
     // 认到主人的回应后：建一次性任务叫醒总控去判（照白天看护的做法；不靠发消息点名——消息是总控自己的账号发的，叫不醒她）
     async wakeJudge({ item, replyId }) {
-      const msg = `主人回了“等你定”台账里的一件（台账编号 ${item.id}：${item.title}）：他的回应消息编号 ${replyId}（原请示 ${item.requestLink ?? item.requestMessageId}）。请用 pending_decision_update 判：“周末再看／收到”→状态“收到”并写约定日期（没约定不写）；给了答案→“已定”并写结论一句；source 填 ${replyId}；判不准就在原线程点名主人，不猜。只做这一件事，不发别的消息。`;
-      const d = json(run(['automations', 'add', '--name', `等你定叫起-${item.id}`, '--at', '1m', '--agent', 'main', '--session', 'isolated', '--message', msg, '--no-deliver', '--delete-after-run', '--json']));
+      const msg = W.wake.pendingJudge(item.id, item.title, replyId, item.requestLink ?? item.requestMessageId);
+      const d = json(run(['automations', 'add', '--name', `${W.wake.pendingJudgeJob}${item.id}`, '--at', '1m', '--agent', 'main', '--session', 'isolated', '--message', msg, '--no-deliver', '--delete-after-run', '--json']));
       const id = d.id ?? d.job?.id ?? d.payload?.id ?? null;
       return { jobId: id ? String(id) : null };
     },

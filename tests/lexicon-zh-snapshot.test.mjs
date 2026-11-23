@@ -186,3 +186,41 @@ test('audit round record, anomaly flag, publish receipt and deep-review trigger 
   assert.deepEqual(Z.receiptKeys, { task: '任务', businessDate: '业务日期', account: '账号', channel: '频道', target: '目标', state: '状态', messageId: '消息编号', digest: '摘要指纹', receiptFile: '回执文件', receiptTime: '回执时间', reason: '原因', time: '时间', unconfirmedId: '回执里的编号_未确认' });
   assert.deepEqual(Z.deepTrigger, { businessDate: '业务日期=', cutoff: '截止点=', toReview: '待审=', toContinue: '待接=', none: '无', finishOnly: '只补收尾（本轮已完成，不重审内容）', continueReview: '接着审（本轮记录不是完成）', cannotTell: '未能判断（读不到那一天的本轮记录，请深审自己查）' });
 });
+
+test('rework additions: wake sentences, task-record sections and desktop queue texts are the old Chinese texts', () => {
+  assert.deepEqual(Z.taskRecordSections, { cardId: '任务卡号', threadLink: 'Discord 线程链接' });
+  assert.equal(Z.wake.pendingJudge('P-1', '标题', 'R9', 'L1'), '主人回了“等你定”台账里的一件（台账编号 P-1：标题）：他的回应消息编号 R9（原请示 L1）。请用 pending_decision_update 判：“周末再看／收到”→状态“收到”并写约定日期（没约定不写）；给了答案→“已定”并写结论一句；source 填 R9；判不准就在原线程点名主人，不猜。只做这一件事，不发别的消息。');
+  assert.equal(Z.wake.pendingJudgeJob, '等你定叫起-');
+  assert.equal(Z.wake.ledgerBacklog(2, 'N', 'S'), '账本待补：有 2 条主人的决定还没写进 资料/决定账本.md。\n1. 先运行 `N S list` 看清单（每条带日期、短标题和主人原话）。\n2. 照账本现有写法补写：短版、带原话、编号接着最后一条；原话一个字都不要改。\n3. 写好一条就运行 `N S done <待补编号> --ledger-id D-0xx`。\n只改 决定账本.md；不要改 运行记录 里的任何文件；不要运行 git。写不了就在工坊说一句，不要硬写。');
+  assert.equal(Z.wake.ledgerBacklogTest('B'), '【这是测试，不要改决定账本.md】只回一句“收到测试”即可，或只写一个临时测试文件。\n\nB');
+  assert.equal(Z.wake.ledgerBacklogJob, '账本待补叫起-');
+  assert.equal(Z.wake.watchMarker('fp'), '〔看护·fp〕');
+  assert.equal(Z.wake.watchBody('M', 'T'), 'M异常清单原样：T\n按规则核实；需要就在对应线程点名相关 bot；要主人定的照丙档登记台账（pending_decision_register）。');
+  assert.equal(Z.wake.watchJob, '白天看护叫起-');
+  assert.deepEqual(Z.queueStatusText, { waiting: '等候', pending: '待通知', notified: '已通知', taken: '已接', cancelled: '划掉', expired: '过号', 'notify-failed': '通知失败', 'notify-unknown': '通知结果未定', 'needs-info': '待补资料' });
+  assert.equal(Z.queueSummary.settingsOk(30, false), '设置有效（留位 30 分钟）；暂停：否');
+  assert.equal(Z.queueSummary.settingsBad('x'), '设置无效（x）');
+  assert.equal(Z.queueSummary.hold('3', '等候', 'T'), '留位：3（等候，线程 T）');
+  assert.equal(Z.queueSummary.noHold, '留位：没有');
+  assert.equal(Z.queueSummary.line(1, 'H', 'S', false), '排队：占队列 1 件；H；S；现场待检查标记：没有');
+});
+
+test('rework additions: format-check and blind-spot report lines are the old Chinese lines', () => {
+  const F = Z.fc, B = Z.bs;
+  assert.equal(F.title('2026-11-22'), '# 格式抽查 · 2026-11-22');
+  assert.deepEqual([F.secRecords, F.secCards, F.secLedger, F.secNotChecked], ['## 任务记录（F1、F2）', '## 任务卡（F3）', '## 决定账本（F4）', '## 未能检查']);
+  assert.equal(F.secHandoff(8), '## 转手条数（H1；点名 8 条以上标“交日审判断”，其余日审不必读全文）');
+  assert.equal(F.cannotCheck('决定账本', 'E'), '未能检查：决定账本（E）');
+  assert.equal(F.cardNoLabel('审计:'), '没有 审计:… 标签');
+  assert.equal(F.ledgerAllOk(3, '原话'), '- 查了 3 条，都有日期和“原话：”');
+  assert.equal(F.ledgerUnchanged, '- 自上一轮以来账本文件没改过，没查');
+  assert.equal(F.rowOk('a', 'b', 9, 9, 8), '| a | b | 9 | 9 | **交日审判断** |');
+  assert.equal(F.rowOk('a', 'b', 7, 7, 8), '| a | b | 7 | 7 | <8，脚本数，不必读 |');
+  assert.equal(F.eTooMany(5), '消息太多，只读了最近 5 条');
+  assert.equal(F.tooManyRe, '^消息太多');
+  assert.deepEqual([B.secClues, B.secRework, B.secOutside, B.secRules, B.secBackup], ['## 线索汇总', '## 一、返工次数', '## 二、范围外文件（补文件管理那份没盖的）', '### A 规则文件被改', '## 三、备份状态']);
+  assert.equal(B.secLock, '### B2 桌面角色提交类点击识别的运行情况（来自屏幕锁日志）');
+  assert.equal(B.title('2026-11-22'), '# 盲区抽查 · 2026-11-22');
+  assert.equal(B.cannotCheck('返工次数', 'E'), '未能检查：返工次数（E）');
+  assert.equal(B.cannotWord, '未能检查');
+});

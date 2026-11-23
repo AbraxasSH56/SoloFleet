@@ -7,9 +7,13 @@ const CUT_HOUR = 19; // scheduled time 19:00 local (config jobs.deepReview.time)
 const LOCALE = "en"; // config "locale": "en" or "zh-CN". This trigger cannot import lexicon.mjs, so the words it needs are in the table below (keep it in step with lexicon.mjs: tests/trigger-literals-consistency.test.mjs checks it).
 const LX = ({
   "zh-CN": { audit: "审计", flags: "异常标记", deep: "异常深审", kStatus: "状态", kFound: "发现时间", sToReview: "待深审", sReviewing: "深审中", sReviewed: "已深审", kExec: "执行", vDone: "完成",
-    bizEq: "业务日期=", cutEq: "截止点=", toReviewEq: "待审=", toContinueEq: "待接=", none: "无", sep: "；", listSep: "，", wrap: (s) => `（${s}）`, finishOnly: "只补收尾（本轮已完成，不重审内容）", continueReview: "接着审（本轮记录不是完成）", cannotTell: "未能判断（读不到那一天的本轮记录，请深审自己查）" },
+    bizEq: "业务日期=", cutEq: "截止点=", toReviewEq: "待审=", toContinueEq: "待接=", none: "无", sep: "；", listSep: "，", wrap: (s) => `（${s}）`, finishOnly: "只补收尾（本轮已完成，不重审内容）", continueReview: "接着审（本轮记录不是完成）", cannotTell: "未能判断（读不到那一天的本轮记录，请深审自己查）",
+    inc: (why, head, dir) => `条件检查读取不完整：${why}；${head}；请自己去查标记目录 ${dir}`, wCmd: "读取标记目录的命令失败", wCd: "进不了标记目录", wCut: "输出被截断（没有读到结尾标记）", wTotal: "读不到文件总数",
+    wCount: (got, want, total) => `读到 ${got} 个文件，应有 ${want} 个（总数 ${total}）`, wParse: (n) => `文件 ${n} 解析不了`, wFound: (n) => `文件 ${n} 的发现时间读不出`, wState: (n, st) => `文件 ${n} 的状态读不出（${st}）`, wScript: (m) => `脚本出错：${m}` },
   "en": { audit: "audit", flags: "anomaly-flags", deep: "deep-review", kStatus: "status", kFound: "found_at", sToReview: "to-review", sReviewing: "reviewing", sReviewed: "reviewed", kExec: "execution", vDone: "done",
-    bizEq: "business_date=", cutEq: "cutoff=", toReviewEq: "to_review=", toContinueEq: "to_continue=", none: "none", sep: "; ", listSep: ", ", wrap: (s) => ` (${s})`, finishOnly: "finish-up only (this round is already done; do not re-review the content)", continueReview: "continue the review (this round record is not done)", cannotTell: "cannot tell (the round record of that day cannot be read; please check it yourself)" },
+    bizEq: "business_date=", cutEq: "cutoff=", toReviewEq: "to_review=", toContinueEq: "to_continue=", none: "none", sep: "; ", listSep: ", ", wrap: (s) => ` (${s})`, finishOnly: "finish-up only (this round is already done; do not re-review the content)", continueReview: "continue the review (this round record is not done)", cannotTell: "cannot tell (the round record of that day cannot be read; please check it yourself)",
+    inc: (why, head, dir) => `Condition check read incomplete: ${why}; ${head}; please check the flag folder yourself: ${dir}`, wCmd: "the command that reads the flag folder failed", wCd: "cannot enter the flag folder", wCut: "the output was cut off (the end marker was not read)", wTotal: "cannot read the total number of files",
+    wCount: (got, want, total) => `read ${got} file(s) but expected ${want} (total ${total})`, wParse: (n) => `file ${n} cannot be parsed`, wFound: (n) => `the found-time of file ${n} cannot be read`, wState: (n, st) => `the status of file ${n} cannot be read (${st})`, wScript: (m) => `script error: ${m}` },
 })[LOCALE];
 const MARK_DIR = DATA_ROOT + "/" + LX.audit + "/" + LX.flags;
 const RUN_DIR = DATA_ROOT + "/" + LX.audit + "/" + LX.deep;
@@ -32,7 +36,7 @@ const offMin = Math.round(tzOffset(cutMs) / 60000);
 const offSuffix = `${offMin < 0 ? "-" : "+"}${pad(Math.floor(Math.abs(offMin) / 60))}:${pad(Math.abs(offMin) % 60)}`;
 const cutoff = `${bizDate}T${pad(CUT_HOUR)}:00:00${offSuffix}`;
 const head = `${LX.bizEq}${bizDate}${LX.sep}${LX.cutEq}${cutoff}`;
-const incomplete = (why) => json({ fire: true, message: `条件检查读取不完整：${why}；${head}；请自己去查标记目录 ${MARK_DIR}` });
+const incomplete = (why) => json({ fire: true, message: LX.inc(why, head, MARK_DIR) });
 
 const main = async () => {
 try {
@@ -46,33 +50,33 @@ try {
     `echo '=====END'`,
   ].join("\n");
   const r1 = await exec({ command: cmd1 });
-  if (!r1 || r1.isError) return incomplete("读取标记目录的命令失败");
+  if (!r1 || r1.isError) return incomplete(LX.wCmd);
   const out = String(r1.aggregated ?? "");
-  if (/^ERR=cd/m.test(out)) return incomplete("进不了标记目录");
-  if (!/^=====END\s*$/m.test(out)) return incomplete("输出被截断（没有读到结尾标记）");
+  if (/^ERR=cd/m.test(out)) return incomplete(LX.wCd);
+  if (!/^=====END\s*$/m.test(out)) return incomplete(LX.wCut);
   const total = +((out.match(/^TOTAL=(\d+)/m) || [])[1] ?? NaN);
   const nondone = +((out.match(/^NONDONE=(\d+)/m) || [])[1] ?? NaN);
-  if (!Number.isInteger(total) || !Number.isInteger(nondone)) return incomplete("读不到文件总数");
+  if (!Number.isInteger(total) || !Number.isInteger(nondone)) return incomplete(LX.wTotal);
   const blocks = out.split(/^=====FILE /m).slice(1).map((b) => {
     const nl = b.indexOf("\n");
     return { name: b.slice(0, nl).trim(), body: b.slice(nl + 1).replace(/^=====END\s*$/m, "").trim() };
   });
-  if (blocks.length !== nondone) return incomplete(`读到 ${blocks.length} 个文件，应有 ${nondone} 个（总数 ${total}）`);
+  if (blocks.length !== nondone) return incomplete(LX.wCount(blocks.length, nondone, total));
 
   const pending = [], carry = [];
   for (const b of blocks) {
     let j;
-    try { j = JSON.parse(b.body); } catch { return incomplete(`文件 ${b.name} 解析不了`); }
+    try { j = JSON.parse(b.body); } catch { return incomplete(LX.wParse(b.name)); }
     const st = String(j[LX.kStatus] ?? "");
     if (st === LX.sToReview) {
       const t = Date.parse(String(j[LX.kFound] ?? ""));
-      if (Number.isNaN(t)) return incomplete(`文件 ${b.name} 的发现时间读不出`);
+      if (Number.isNaN(t)) return incomplete(LX.wFound(b.name));
       if (t < Date.parse(cutoff)) pending.push(b.name);
     } else if (st.startsWith(LX.sReviewing)) {
       const m = st.match(/(\d{4}-\d{2}-\d{2})/);
       carry.push({ name: b.name, date: m ? m[1] : null });
     } else {
-      return incomplete(`文件 ${b.name} 的状态读不出（${st.slice(0, 20)}）`);
+      return incomplete(LX.wState(b.name, st.slice(0, 20)));
     }
   }
 
@@ -101,7 +105,7 @@ try {
   if (!pending.length && !carry.length) return json({ fire: false });
   return json({ fire: true, message: `${head}${LX.sep}${LX.toReviewEq}${pending.join(LX.listSep) || LX.none}${LX.sep}${LX.toContinueEq}${carryTxt.join(LX.listSep) || LX.none}` });
 } catch (e) {
-  return incomplete(`脚本出错：${String(e && e.message || e).slice(0, 80)}`);
+  return incomplete(LX.wScript(String(e && e.message || e).slice(0, 80)));
 }
 };
 await main(); // 用函数包一层，里面的 return 不依赖官方怎样包装脚本

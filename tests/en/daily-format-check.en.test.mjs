@@ -2,11 +2,11 @@
 // Run: SOLOFLEET_CONFIG=tests/fixtures/crew.test.en.json node --test tests/en/daily-format-check.en.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, utimesSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { locale } from '../../plugins/personal-inbox/lexicon.mjs';
-import { checkTaskRecord, scanTaskRecords, checkLedgerText, scanLedger, checkCard, auditLabelOf, levelLineOf, STATUS_HEADS } from '../../scripts/automation/daily-format-check.mjs';
+import { checkTaskRecord, scanTaskRecords, checkLedgerText, scanLedger, checkCard, auditLabelOf, levelLineOf, STATUS_HEADS, run } from '../../scripts/automation/daily-format-check.mjs';
 
 assert.equal(locale(), 'en', 'run the tests in tests/en/ with SOLOFLEET_CONFIG=tests/fixtures/crew.test.en.json');
 const NOW = Date.parse('2026-11-22T12:10:00Z');
@@ -21,10 +21,10 @@ test('the five English status heads', () => {
 
 test('F1: a good record passes; missing status line, wrong opener and template text are reported; no-space colon is fine', () => {
   assert.deepEqual(checkTaskRecord(GOOD), []);
-  for (const h of ['Done', 'Did not run', 'Stuck', 'Waiting on owner']) assert.ok(!checkTaskRecord(withStatus(`Status: ${h} | x`)).some((x) => x.includes('开头')), h);
+  for (const h of ['Done', 'Did not run', 'Stuck', 'Waiting on owner']) assert.ok(!checkTaskRecord(withStatus(`Status: ${h} | x`)).some((x) => x.includes('does not start with')), h);
   assert.match(checkTaskRecord(GOOD.replace('Status: In progress | 11-22 10:00\n', ''))[0], /Status: /);
-  assert.match(checkTaskRecord(withStatus('Status: finished | x'))[0], /开头不是 Done／In progress／Did not run／Waiting on owner／Stuck/);
-  assert.match(checkTaskRecord(withStatus('Status: <Done / In progress> | <date>'))[0], /模板原样/);
+  assert.match(checkTaskRecord(withStatus('Status: finished | x'))[0], /does not start with one of Done\/In progress\/Did not run\/Waiting on owner\/Stuck/);
+  assert.match(checkTaskRecord(withStatus('Status: <Done / In progress> | <date>'))[0], /is still the template as is/);
   assert.match(checkTaskRecord('# Task record\n\n## Goal\n\nx\n')[0], /Current status/);
   assert.deepEqual(checkTaskRecord(withStatus('Status:Done | x')), [], 'no space after the colon is accepted');
   assert.ok(checkTaskRecord(withStatus('状态：完成 | x')).length > 0, 'the Chinese status line is not read in en');
@@ -75,18 +75,18 @@ test('F3 task card: label, level line, authorization block and its four lines', 
   assert.deepEqual(checkCard(card(), ctx), []);
   assert.equal(auditLabelOf(card()), 'audit:single-task');
   assert.equal(levelLineOf(card()), NOTES_OK.split('\n')[0]);
-  assert.match(checkCard(card({ labels: [] }), ctx).join(), /没有 audit:… 标签/);
-  assert.match(checkCard(card({ labels: ['审计:单审任务审计'] }), ctx).join(), /没有 audit:… 标签/, 'the Chinese label is not read in en');
-  assert.match(checkCard(card({ notes: NOTES_OK.replace('[Audit level]', 'level') }), ctx).join(), /没有\[Audit level\]/);
-  assert.match(checkCard(card({ notes: '[Audit level] x\nnothing else' }), ctx).join(), /没有\[Authorization scope\]块/);
-  assert.match(checkCard(card({ notes: NOTES_OK.replace('Stop conditions: w\n', '') }), ctx).join(), /缺：Stop conditions/);
-  assert.match(checkCard(card({ notes: NOTES_OK.replace('Goal: x\n', '').replace('Allowed: y\n', '') }), ctx).join(), /缺：Goal、Allowed/);
+  assert.match(checkCard(card({ labels: [] }), ctx).join(), /no audit:… label/);
+  assert.match(checkCard(card({ labels: ['审计:单审任务审计'] }), ctx).join(), /no audit:… label/, 'the Chinese label is not read in en');
+  assert.match(checkCard(card({ notes: NOTES_OK.replace('[Audit level]', 'level') }), ctx).join(), /no \[Audit level\] line/);
+  assert.match(checkCard(card({ notes: '[Audit level] x\nnothing else' }), ctx).join(), /no \[Authorization scope\] block/);
+  assert.match(checkCard(card({ notes: NOTES_OK.replace('Stop conditions: w\n', '') }), ctx).join(), /lacks: Stop conditions/);
+  assert.match(checkCard(card({ notes: NOTES_OK.replace('Goal: x\n', '').replace('Allowed: y\n', '') }), ctx).join(), /lacks: Goal, Allowed/);
   assert.deepEqual(checkCard(card({ notes: NOTES_OK.replace(/: /g, ':') }), ctx), [], 'no space after the colons is fine');
 });
 
 test('F3 raising or lowering the level needs an owner confirmation in the same or a neighbouring comment', () => {
   const chg = { ordinal: 1, body: 'Audit level: Single (task audit) → Chained, reason: big consequences', created_at: NOW };
-  assert.match(checkCard(card({ comments: [chg] }), ctx).join(), /升降级缺确认/);
+  assert.match(checkCard(card({ comments: [chg] }), ctx).join(), /upgrade\/downgrade lacks confirmation/);
   assert.deepEqual(checkCard(card({ comments: [{ ...chg, body: `${chg.body}, owner confirmed on 03-09` }] }), ctx), []);
   assert.deepEqual(checkCard(card({ comments: [{ ...chg, body: `${chg.body}; owner 03-04 approved` }] }), ctx), []);
   assert.deepEqual(checkCard(card({ comments: [chg, { ordinal: 2, body: 'the owner confirmed it', created_at: NOW }] }), ctx), []);
@@ -95,6 +95,27 @@ test('F3 raising or lowering the level needs an owner confirmation in the same o
 
 test('F3 label snapshot: a label that changed without a comment is reported', () => {
   const snap = { c1: { audit: 'audit:single-task', level: NOTES_OK.split('\n')[0] } };
-  assert.match(checkCard(card({ labels: ['audit:chained'] }), { ...ctx, snapshotAt: NOW - 3600000, snapshot: snap }).join(), /标签或级别行变了/);
+  assert.match(checkCard(card({ labels: ['audit:chained'] }), { ...ctx, snapshotAt: NOW - 3600000, snapshot: snap }).join(), /label or level line changed/);
   assert.deepEqual(checkCard(card(), { ...ctx, snapshotAt: NOW - 3600000, snapshot: snap }), []);
+});
+
+test('the whole report is written in English: headings, marks, verdicts and the "Could not check" list', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'dfc-en-'));
+  try {
+    mkdirSync(join(root, 'audit', 'daily'), { recursive: true });
+    writeFileSync(join(root, 'audit', 'daily', 'bot-roster.json'), JSON.stringify({ 状态: '有效', 人设bot: [{ 角色: 'main', Discord编号: '1000000000000000001' }] }));
+    const dir = join(root, 'projects', 'P', 'tasks'); mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'ok.md'), GOOD); writeFileSync(join(dir, 'bad.md'), WAIT_EMPTY);
+    const t = (NOW - 3600000) / 1000; utimesSync(join(dir, 'ok.md'), t, t); utimesSync(join(dir, 'bad.md'), t, t);
+    writeFileSync(join(root, 'decision-ledger.md'), '# Decision ledger\n'); const old = (NOW - 3 * 86400000) / 1000; utimesSync(join(root, 'decision-ledger.md'), old, old);
+    const deps = { now: () => NOW, listThreads: async () => { throw new Error('boom'); }, readMessages: async () => [], readCards: async () => [card({ id: 'cardA-xxxxxxxx', title: 'Good card' }), card({ id: 'cardB-xxxxxxxx', title: 'Bad card', labels: [] })] };
+    const r = await run({ dataRoot: root, deps, nowMs: NOW });
+    const text = readFileSync(r.out, 'utf8');
+    assert.ok(!/[\u3400-\u9fff]/.test(text), text.match(/.*[\u3400-\u9fff].*/)?.[0]);
+    for (const h of ['# Format check · 2026-11-22', 'Business date: 2026-11-22', 'Status: unfinished', '## Task records (F1, F2)', '## Task cards (F3)', '## Decision ledger (F4)', '## Hand-off counts (H1;', '## Could not check', '- Ledger file unchanged since the previous round; not checked']) assert.ok(text.includes(h), h);
+    assert.match(text, /bad\.md: .*status is "Waiting on owner", but the "Waiting for the owner's decision" section is empty or only says "None"/);
+    assert.match(text, /ok\.md: OK/);
+    assert.match(text, /Bad card: no audit:… label/);
+    assert.match(text, /Could not check: hand-off counts \(cannot list the threads: boom\)/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

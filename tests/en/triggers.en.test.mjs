@@ -78,7 +78,8 @@ test('deep-review trigger: English folders, flag keys and states, round record k
   assert.ok(inprog.result.message.includes('continue the review (this round record is not done)'), inprog.result.message);
   assert.ok(!HAN.test(inprog.result.message), inprog.result.message);
   const chinese = await run(src, () => ({ isError: false, aggregated: 'TOTAL=1\nNONDONE=1\n=====FILE a.json\n{"状态":"深审中 2026-11-10"}\n\n=====END\n' }));
-  assert.match(chinese.result.message, /^Condition check read incomplete|条件检查读取不完整/, 'the Chinese flag is not understood in en');
+  assert.match(chinese.result.message, /^Condition check read incomplete: /, 'the Chinese flag is not understood in en');
+  assert.ok(!HAN.test(chinese.result.message), chinese.result.message);
 });
 
 test('manual file-scan command: the English path and file name', () => {

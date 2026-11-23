@@ -8,6 +8,7 @@
 import { linkSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { lexicon } from './lexicon.mjs';
+import { crew } from './crew-config.mjs';
 const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
 
 export const AUDIT_TASK_NAMES = [W.jobNames.daily, W.jobNames.patrol, W.jobNames.deepReview, W.jobNames.weekly];
@@ -166,7 +167,7 @@ const readJson = (path) => { try { return JSON.parse(readFileSync(path, 'utf8'))
 // ---------- 登记 ----------
 export function createQuotaRegistry({ dataRoot, modelFor = () => null, now = Date.now }) {
   const dir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota);
-  const archiveDir = join(dir, '计划存档');
+  const archiveDir = join(dir, W.layout.runLogDirs.quotaPlanArchive);
   const actions = new Map();
   const jobIdOf = (sessionKey) => /^agent:[^:]+:cron:([^:]+):run:/.exec(sessionKey ?? '')?.[1] ?? null;
 
@@ -262,7 +263,7 @@ export function modelFromConfig(config, id) {
 
 export function registerQuotaRecovery(api, root, options = {}) {
   if (!root) return;
-  const dataRoot = options.dataRoot ?? join(dirname(root), '资料');
+  const dataRoot = options.dataRoot ?? (crew.paths.dataRoot || join(dirname(root), '资料')); // index.mjs passes the configured data root; the folder beside the project root is only the last resort
   let registry = null;
   let stopHook = null;
   api.on('cron_changed', (event) => {

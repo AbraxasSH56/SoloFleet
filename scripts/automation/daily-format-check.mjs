@@ -19,7 +19,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rename
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
 import { lexicon, labelText, labelRe, tagText, escapeRe } from '../../plugins/personal-inbox/lexicon.mjs';
-const W = lexicon(); // words follow config "locale" (zh-CN: the literals this script always matched)
+const W = lexicon();
+const F = W.fc; // texts of the report this file writes (zh-CN: the Chinese report the daily audit always read) // words follow config "locale" (zh-CN: the literals this script always matched)
 const execFileAsync = promisify(execFile);
 
 export const DATA_ROOT = process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot; // env var first (offline tests), then config
@@ -69,23 +70,23 @@ export function checkTaskRecord(text) {
   const issues = [];
   let waiting = false;
   const st = sectionOf(text, new RegExp(`^##\\s*${escapeRe(W.sectionCurrentStatus)}`));
-  if (st === null) issues.push(`没有“${W.sectionCurrentStatus}”一节`);
+  if (st === null) issues.push(F.noSection(W.sectionCurrentStatus));
   else {
     const m = new RegExp(`^${labelRe(W.statusLabel)}(.*)$`, 'm').exec(st);
-    if (!m) issues.push(`没有“${labelText(W.statusLabel)}”一行`);
+    if (!m) issues.push(F.noLine(labelText(W.statusLabel)));
     else {
       const rest = m[1].trim();
-      if (rest.startsWith('<')) issues.push(`“${labelText(W.statusLabel)}”还是模板原样`);
-      else if (!STATUS_HEADS.some((h) => rest.startsWith(h))) issues.push(`“${labelText(W.statusLabel)}”开头不是 ${STATUS_HEADS.join('／')} 之一（写的是“${rest.slice(0, 12)}”）`);
+      if (rest.startsWith('<')) issues.push(F.stillTemplate(labelText(W.statusLabel)));
+      else if (!STATUS_HEADS.some((h) => rest.startsWith(h))) issues.push(F.badHead(labelText(W.statusLabel), STATUS_HEADS.join(F.slash), rest.slice(0, 12)));
       else waiting = rest.startsWith(W.statusHeads[3]);
     }
   }
   if (waiting) {
     const dec = sectionOf(text, new RegExp(`^##\\s*${escapeRe(W.sectionWaitingForOwner)}`));
-    if (dec === null) issues.push(`状态是“${W.statusHeads[3]}”，但没有“${W.sectionWaitingForOwner}”一节（请示没写进记录）`);
+    if (dec === null) issues.push(F.waitNoSection(W.statusHeads[3], W.sectionWaitingForOwner));
     else {
       const body = dec.replace(/<[^>]*>/g, '').trim();
-      if (body === '' || new RegExp(`^${escapeRe(W.noneWord)}[。.]?$`, 'i').test(body)) issues.push(`状态是“${W.statusHeads[3]}”，“${W.sectionWaitingForOwner}”一节却是空的或只写“${W.noneWord}”（请示没写进记录）`);
+      if (body === '' || new RegExp(`^${escapeRe(W.noneWord)}[。.]?$`, 'i').test(body)) issues.push(F.waitEmpty(W.statusHeads[3], W.sectionWaitingForOwner, W.noneWord));
     }
   }
   return issues;
@@ -94,7 +95,7 @@ export function scanTaskRecords(dataRoot, startMs, endMs, notes, oldBefore = OLD
   const out = { checked: [], oldCount: 0, bad: [] };
   const projDir = join(dataRoot, W.layout.projects);
   let projects = [];
-  try { projects = readdirSync(projDir, { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith('.')); } catch (e) { notes.push(`未能检查：任务记录（读不了 ${W.layout.projects}/：${e.code ?? e.message}）`); return out; }
+  try { projects = readdirSync(projDir, { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith('.')); } catch (e) { notes.push(F.cannotCheck(F.wRecords, F.whyRecordsDir(W.layout.projects, e.code ?? e.message))); return out; }
   for (const p of projects) {
     const tdir = join(projDir, p.name, W.layout.tasks);
     let files = [];
@@ -107,9 +108,9 @@ export function scanTaskRecords(dataRoot, startMs, endMs, notes, oldBefore = OLD
         const rel = relative(dataRoot, full);
         if (s.birthtimeMs < oldBefore) { out.oldCount++; continue; }
         const issues = checkTaskRecord(readFileSync(full, 'utf8'));
-        out.checked.push({ file: rel, result: issues.length ? issues.join('；') : '合格' });
+        out.checked.push({ file: rel, result: issues.length ? issues.join(F.semi) : F.ok });
         if (issues.length) out.bad.push({ file: rel, issues });
-      } catch (e) { notes.push(`未能检查：${join(p.name, W.layout.tasks, f)}（${e.code ?? e.message}）`); }
+      } catch (e) { notes.push(F.cannotCheck(join(p.name, W.layout.tasks, f), e.code ?? e.message)); }
     }
   }
   return out;
@@ -135,7 +136,7 @@ export function scanLedger(dataRoot, startMs, notes) {
     const s = statSync(p);
     if (s.mtimeMs < startMs) return { skipped: true };
     return { skipped: false, ...checkLedgerText(readFileSync(p, 'utf8')) };
-  } catch (e) { notes.push(`未能检查：决定账本（${e.code ?? e.message}）`); return { skipped: true, unreadable: true }; }
+  } catch (e) { notes.push(F.cannotCheck(F.wLedger, e.code ?? e.message)); return { skipped: true, unreadable: true }; }
 }
 
 // ---------- F3 任务卡 ----------
@@ -150,24 +151,24 @@ export function levelLineOf(card) { const first = String(card.notes ?? '').split
 export function checkCard(card, { startMs, snapshotAt, snapshot }) {
   const miss = [];
   const notes = String(card.notes ?? '');
-  if (!auditLabelOf(card)) miss.push(`没有 ${W.auditLabelPrefix}… 标签`);
-  if (!levelLineOf(card)) miss.push(`正文最前面没有${LEVEL_TAG}一行`);
-  if (!notes.includes(AUTH_TAG)) miss.push(`没有${AUTH_TAG}块`);
+  if (!auditLabelOf(card)) miss.push(F.cardNoLabel(W.auditLabelPrefix));
+  if (!levelLineOf(card)) miss.push(F.cardNoLevel(LEVEL_TAG));
+  if (!notes.includes(AUTH_TAG)) miss.push(F.cardNoAuth(AUTH_TAG));
   else {
     const lacking = ROLE_LINES.filter(([, re]) => !re.test(notes)).map(([n]) => n);
-    if (lacking.length) miss.push(`${AUTH_TAG}缺：${lacking.join('、')}`);
+    if (lacking.length) miss.push(F.cardAuthLacking(AUTH_TAG, lacking.join(F.jn)));
   }
   // 升降级：评论里的改动记录要有确认；标签和快照对不上却没留记录
   const cs = [...(card.comments ?? [])].sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0));
   cs.forEach((c, i) => {
     if (!CHANGE_RE.test(c.body ?? '') || (c.created_at ?? 0) < startMs) return;
     const near = [cs[i - 1], c, cs[i + 1]].filter(Boolean).map((x) => x.body ?? '').join('\n');
-    if (!CONFIRM_RE.test(near)) miss.push(`升降级缺确认（评论里有 ${labelText(W.auditLevelWord)}A → B，同一条或相邻评论里没有“${W.ownerWord}／${W.ownerWord} …${W.confirmWords.join('／')}”）`);
+    if (!CONFIRM_RE.test(near)) miss.push(F.cardNoConfirm(labelText(W.auditLevelWord), W.ownerWord, W.confirmWords.join(F.slash)));
   });
   const old = snapshot?.[card.id];
   if (old && (old.audit !== auditLabelOf(card) || old.level !== levelLineOf(card))) {
     const recorded = cs.some((c) => CHANGE_RE.test(c.body ?? '') && (c.created_at ?? 0) >= (snapshotAt ?? 0));
-    if (!recorded) { const parts = []; if (old.audit !== auditLabelOf(card)) parts.push(`标签 ${old.audit || '无'} → ${auditLabelOf(card) || '无'}`); if (old.level !== levelLineOf(card)) parts.push(`${LEVEL_TAG}行 “${(old.level || '无').slice(0, 30)}” → “${(levelLineOf(card) || '无').slice(0, 30)}”`); miss.push(`审计标签或级别行变了（${parts.join('；')}），评论里没留改动记录`); }
+    if (!recorded) { const parts = []; if (old.audit !== auditLabelOf(card)) parts.push(F.partLabel(old.audit || F.noneShort, auditLabelOf(card) || F.noneShort)); if (old.level !== levelLineOf(card)) parts.push(F.partLevel(LEVEL_TAG, (old.level || F.noneShort).slice(0, 30), (levelLineOf(card) || F.noneShort).slice(0, 30))); miss.push(F.cardChangedMsg(parts.join(F.semi))); }
   }
   return miss;
 }
@@ -218,7 +219,7 @@ export function realDeps(env = process.env) {
 // ---------- 主流程 ----------
 const jread = (p, fb = null) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fb; } };
 function atomicWrite(path, text) { mkdirSync(join(path, '..'), { recursive: true }); const t = `${path}.tmp-${process.pid}`; writeFileSync(t, text, { mode: 0o644 }); renameSync(t, path); }
-const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`${what}超时`)), ms).unref?.())]);
+const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(F.eTimeout(what))), ms).unref?.())]);
 
 export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), limits = LIMITS, nowMs = null } = {}) {
   const t0 = deps.now();
@@ -239,12 +240,12 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), limits = LI
   let cards = null; const cardRows = [];
   const snapPath = join(stateDir, '卡标签快照.json');
   const snap = jread(snapPath, null);
-  try { cards = await deps.readCards(startMs); } catch (e) { notes.push(`未能检查：任务卡（读不了任务板：${String(e.message ?? e).slice(0, 60)}）`); complete = false; }
+  try { cards = await deps.readCards(startMs); } catch (e) { notes.push(F.cannotCheck(F.wCards, F.whyBoard(String(e.message ?? e).slice(0, 60)))); complete = false; }
   if (cards) {
     for (const c of cards) {
       const inWindow = (c.updated_at ?? 0) >= startMs || (c.created_at ?? 0) >= startMs;
       const miss = checkCard(c, { startMs, snapshotAt: snap?.generatedAt ?? null, snapshot: snap?.cards ?? null });
-      if (inWindow || miss.some((x) => x.startsWith('审计标签或级别行变了'))) cardRows.push({ id: c.id, title: c.title, miss, inWindow });
+      if (inWindow || miss.some((x) => x.startsWith(F.cardChanged))) cardRows.push({ id: c.id, title: c.title, miss, inWindow });
     }
   }
   // H1
@@ -252,42 +253,42 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), limits = LI
   try {
     const table = jread(join(dataRoot, W.layout.audit, W.layout.auditDaily, W.layout.dailyFiles.botRoster), null);
     const bots = (table?.人设bot ?? []).map((b) => b?.['Discord编号']).filter((x) => x != null && String(x).trim()).map(String);
-    if (!bots.length) { notes.push(`未能检查：转手条数（读不到 ${W.layout.dailyFiles.botRoster}）`); complete = false; }
+    if (!bots.length) { notes.push(F.cannotCheck(F.wHandoff, F.whyNoRoster(W.layout.dailyFiles.botRoster))); complete = false; }
     else {
       const botIds = new Set(bots);
-      if (table?.状态 && table.状态 !== '有效') notes.push(`编号表状态是“${table.状态}”，仍按表里现有名单数`);
+      if (table?.状态 && table.状态 !== '有效') notes.push(F.rosterStatus(table.状态));
       discordT0 = deps.now();
       let threads = [];
-      try { threads = await withTimeout(deps.listThreads(limits.cmdMs), limits.cmdMs + 500, '列线程'); } catch (e) { notes.push(`未能检查：转手条数（列不出线程：${String(e.message ?? e).slice(0, 60)}）`); threads = null; complete = false; }
+      try { threads = await withTimeout(deps.listThreads(limits.cmdMs), limits.cmdMs + 500, F.eListThreads); } catch (e) { notes.push(F.cannotCheck(F.wHandoff, F.whyListThreads(String(e.message ?? e).slice(0, 60)))); threads = null; complete = false; }
       if (threads) {
-        if (threads.hasMore) notes.push('线程列表官方说还有没列完的（has_more），可能不全');
+        if (threads.hasMore) notes.push(F.hasMore);
         const cand = threads.filter((t) => String(t.id) !== CHAT_CHANNEL && String(t.parent_id ?? '') !== CHAT_CHANNEL && t.last_message_id && snowflakeMs(String(t.last_message_id)) >= startMs)
           .sort((a, b) => (BigInt(b.last_message_id) > BigInt(a.last_message_id) ? 1 : -1)).slice(0, limits.maxThreads);
-        if (cand.length === limits.maxThreads && threads.filter((t) => String(t.id) !== CHAT_CHANNEL && String(t.parent_id ?? '') !== CHAT_CHANNEL && t.last_message_id && snowflakeMs(String(t.last_message_id)) >= startMs).length > limits.maxThreads) notes.push(`未能检查：超过 ${limits.maxThreads} 个活跃线程，只读了最新的 ${limits.maxThreads} 个`);
+        if (cand.length === limits.maxThreads && threads.filter((t) => String(t.id) !== CHAT_CHANNEL && String(t.parent_id ?? '') !== CHAT_CHANNEL && t.last_message_id && snowflakeMs(String(t.last_message_id)) >= startMs).length > limits.maxThreads) notes.push(F.cannotCheckBare(F.whyTooManyThreads(limits.maxThreads)));
         threadsTotal = cand.length;
         for (const t of cand) {
-          if (budgetLeft() < 1000) { notes.push(`未能检查：其余线程（超时保护，已读 ${threadsRead}／共 ${threadsTotal}）`); complete = false; break; }
+          if (budgetLeft() < 1000) { notes.push(F.cannotCheck(F.wOtherThreads, F.whyTimeGuard(threadsRead, threadsTotal))); complete = false; break; }
           try {
             const all = new Map(); let before = null;
             for (let page = 0; page < limits.maxPages; page++) {
               const wait = Math.min(limits.cmdMs, budgetLeft());
-              if (wait < 500) throw new Error('总时间用完');
-              const msgs = await withTimeout(deps.readMessages(String(t.id), before, wait), wait + 500, '读线程');
+              if (wait < 500) throw new Error(F.eBudget);
+              const msgs = await withTimeout(deps.readMessages(String(t.id), before, wait), wait + 500, F.eReadThread);
               if (!msgs.length) { before = null; break; }
               for (const m of msgs) all.set(String(m.id), m);
               if (msgs.length < 100) { before = null; break; }
               before = msgs.reduce((mn, m) => (BigInt(m.id) < mn ? BigInt(m.id) : mn), BigInt(msgs[0].id)).toString();
-              if (page === limits.maxPages - 1) throw new Error(`消息太多，只读了最近 ${all.size} 条`);
+              if (page === limits.maxPages - 1) throw new Error(F.eTooMany(all.size));
             }
             const { n, unknownBots: ub } = countHandoffs([...all.values()], botIds);
             ub.forEach((x) => unknownBots.add(x));
             rows.push({ id: String(t.id), name: String(t.name ?? ''), total: all.size, n });
             threadsRead++;
-          } catch (e) { rows.push({ id: String(t.id), name: String(t.name ?? ''), error: String(e.message ?? e).slice(0, 60) }); if (!/^消息太多/.test(String(e.message ?? e))) complete = false; /* 任何一条线程读失败（“消息太多”是重试也没用的，不算）（真超时报的是 Command failed，不含“超时”二字）都算未完成：不推进快照，18:05 前下一遍再试 */ }
+          } catch (e) { rows.push({ id: String(t.id), name: String(t.name ?? ''), error: String(e.message ?? e).slice(0, 60) }); if (!new RegExp(F.tooManyRe).test(String(e.message ?? e))) complete = false; /* 任何一条线程读失败（“消息太多”是重试也没用的，不算）（真超时报的是 Command failed，不含“超时”二字）都算未完成：不推进快照，18:05 前下一遍再试 */ }
         }
       }
     }
-  } catch (e) { notes.push(`未能检查：转手条数（${String(e.message ?? e).slice(0, 60)}）`); }
+  } catch (e) { notes.push(F.cannotCheck(F.wHandoff, String(e.message ?? e).slice(0, 60))); }
 
   // ---- 写文件 ----
   const L = [];
@@ -295,23 +296,23 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), limits = LI
   const badRec = rec.bad.length;
   const badCards = cardRows.filter((c) => c.miss.length).length;
   const flagged = rows.filter((r) => r.n >= limits.handoffAt);
-  L.push(`# 格式抽查 · ${bizDate}`, '', `${labelText(W.businessDateLabel)}${bizDate}`, `${labelText(W.statusLabel)}${complete ? W.reportComplete : `${W.reportUnfinished}（有没读成的，18:05 前下一遍会再试）`}`,
-    `窗口：${localStamp(startMs)} → ${stopAt}（本地时区；起点是上一份“${W.auditRecordKeys.execution}: ${W.auditRecordValues.done}”的日审的截止点，没有就取本轮截止点前 24 小时；统计到 ${stopAt.slice(11, 16)}，之后的新消息这份文件没统计）`,
-    `本轮截止点：${bizDate} ${pad(CUT_H)}:${pad(CUT_M)}`, `生成时间：${localStamp(deps.now())}（用时 ${Math.round((deps.now() - t0) / 1000)} 秒）`,
-    '说明：本文件由固定脚本生成，不调模型；日审只读本文件，不自己再数、再查。脚本只列事实：不判违规，不判“原地打转”，不写异常标记。', '',
-    `汇总：任务记录读了 ${rec.checked.length} 份、有问题 ${badRec} 份（旧记录 ${rec.oldCount} 份只计数）；任务卡看了 ${cardRows.length} 张、有问题 ${badCards} 张；账本${led.skipped ? (led.unreadable ? '未能检查' : '没改过，没查') : `查了 ${led.total} 条、有问题 ${led.bad.length} 条`}；线程读了 ${threadsRead}／${threadsTotal} 个、点名 ${limits.handoffAt} 条以上 ${flagged.length} 个。`, '');
-  L.push('## 任务记录（F1、F2）', '');
-  L.push(`窗口内改过且在检查起点之后建的任务记录共 ${rec.checked.length} 份；更早建的旧记录 ${rec.oldCount} 份，只计数、不逐条列。`, '');
-  L.push(rec.checked.length ? rec.checked.map((r) => `- ${r.file}：${r.result}`).join('\n') : '- 无', '');
-  L.push('## 任务卡（F3）', '');
-  L.push(cardRows.length ? cardRows.map((c) => `- ${c.id.slice(0, 8)} ${c.title}：${c.miss.length ? c.miss.join('；') : '合格'}`).join('\n') : '- 无（窗口内没有新建或改过的卡）', '');
-  if (cards && !snap) L.push('（第一次运行：只建了审计标签快照，升降级对比从下一遍开始。）', '');
-  L.push('## 决定账本（F4）', '');
-  L.push(led.skipped ? (led.unreadable ? '- 未能检查（见文末）' : '- 自上一轮以来账本文件没改过，没查') : (led.bad.length ? led.bad.map((b) => `- ${b.id}：缺${b.miss.join('、')}`).join('\n') : `- 查了 ${led.total} 条，都有日期和“原话：”`), '');
-  L.push(`## 转手条数（H1；点名 ${limits.handoffAt} 条以上标“交日审判断”，其余日审不必读全文）`, '');
-  L.push(rows.length ? ['| 线程 | 线程名 | 消息总数 | 带点名的 bot 消息条数 | 日审要不要读 |', '| --- | --- | --- | --- | --- |', ...rows.map((r) => (r.error ? `| ${r.id} | ${r.name} | ? | ? | 未能检查（${r.error}） |` : `| ${r.id} | ${r.name} | ${r.total} | ${r.n} | ${r.n >= limits.handoffAt ? '**交日审判断**' : `<${limits.handoffAt}，脚本数，不必读`} |`))].join('\n') : '- 无（窗口内没有新消息的线程，或没读成，见文末）', '');
-  if (unknownBots.size) L.push(`编号表缺：${[...unknownBots].join('、')}（消息记录显示是 bot，但不在 bot编号表里，没算进条数）`, '');
-  L.push('## 未能检查', '', notes.length ? notes.map((x) => `- ${x}`).join('\n') : '- 无', '');
+  L.push(F.title(bizDate), '', `${labelText(W.businessDateLabel)}${bizDate}`, `${labelText(W.statusLabel)}${complete ? W.reportComplete : `${W.reportUnfinished}${F.statusUnfinishedNote}`}`,
+    F.windowLine(localStamp(startMs), stopAt, W.auditRecordKeys.execution, W.auditRecordValues.done, stopAt.slice(11, 16)),
+    F.cutoffLine(bizDate, `${pad(CUT_H)}:${pad(CUT_M)}`), F.generatedLine(localStamp(deps.now()), Math.round((deps.now() - t0) / 1000)),
+    F.noteLine, '',
+    F.summaryLine(rec.checked.length, badRec, rec.oldCount, cardRows.length, badCards, led.skipped ? (led.unreadable ? F.ledgerSummaryUnreadable : F.ledgerSummaryUnchanged) : F.ledgerChecked(led.total, led.bad.length), threadsRead, threadsTotal, limits.handoffAt, flagged.length), '');
+  L.push(F.secRecords, '');
+  L.push(F.recordsNote(rec.checked.length, rec.oldCount), '');
+  L.push(rec.checked.length ? rec.checked.map((r) => F.recordLine(r.file, r.result)).join('\n') : F.listNone, '');
+  L.push(F.secCards, '');
+  L.push(cardRows.length ? cardRows.map((c) => F.cardLine(c.id.slice(0, 8), c.title, c.miss.length ? c.miss.join(F.semi) : F.ok)).join('\n') : F.cardsNone, '');
+  if (cards && !snap) L.push(F.firstRun, '');
+  L.push(F.secLedger, '');
+  L.push(led.skipped ? (led.unreadable ? F.ledgerUnreadable : F.ledgerUnchanged) : (led.bad.length ? led.bad.map((b) => F.ledgerMiss(b.id, b.miss.join(F.jn))).join('\n') : F.ledgerAllOk(led.total, W.ledgerQuoteLabel)), '');
+  L.push(F.secHandoff(limits.handoffAt), '');
+  L.push(rows.length ? [...F.tableHead, ...rows.map((r) => (r.error ? F.rowError(r.id, r.name, r.error) : F.rowOk(r.id, r.name, r.total, r.n, limits.handoffAt)))].join('\n') : F.handoffNone, '');
+  if (unknownBots.size) L.push(F.rosterLacks([...unknownBots].join(F.jn)), '');
+  L.push(F.secNotChecked, '', notes.length ? notes.map((x) => `- ${x}`).join('\n') : F.listNone, '');
   atomicWrite(out, L.join('\n'));
   // 快照：只有任务卡读成功、而且这一遍完整跑完才更新
   if (cards && complete) {

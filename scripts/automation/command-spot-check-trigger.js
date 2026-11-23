@@ -15,9 +15,69 @@ const AGENTS_ROOT = "/home/example/.openclaw/agents"; // API 通路角色的会�
 const LOCALE = "en"; // config "locale": "en" or "zh-CN". This trigger cannot import lexicon.mjs, so the words it needs are in the table below (keep it in step with lexicon.mjs: tests/trigger-literals-consistency.test.mjs checks it).
 const LX = ({
   "zh-CN": { audit: "审计", daily: "日审", execKey: "执行", doneVal: "完成", cutoffKey: "截止点", cmdFile: "命令抽查.md", reconFile: "文件对账.md", scanMade: "已生成", scanNot: "没生成", title: "命令抽查", bizDate: "业务日期：", fileEq: "命令抽查文件=", reconEq: "文件对账=", sep: "；",
-    failMsg: (out, brief, tail) => `命令抽查脚本：结果文件没能写出（${out}）；${brief}；${tail}；日审写"命令抽查：记录不足（脚本没有生成）"` },
+    failMsg: (out, brief, tail) => `命令抽查脚本：结果文件没能写出（${out}）；${brief}；${tail}；日审写"命令抽查：记录不足（脚本没有生成）"`,
+    R: { masked: "[已遮蔽]", ins: "记录不足", jn: "、", none: "无", dash: "；",
+      deskApiNone: (why) => `\n## 桌面角色命令与 API 通路命令\n\n记录不足：${why}\n`, deskApiNoneBrief: (why) => `桌面角色／API 通路命令：记录不足（${why}）`,
+      read3: "第 3 次读取失败或结果不完整", scriptErr: (m) => "脚本出错 " + m, deskNotRead: "桌面角色命令：没读",
+      deskWsBad: `\n## 桌面角色（desktop）的命令\n\n记录不足：桌面角色的工作区路径和白名单不符，未取她的会话记录。\n`, deskMissing: `\n## 桌面角色（desktop）的命令\n\n记录不足：这一段未取得。\n`,
+      deskFlag: (t, k, shown) => `- ${t} ⚠ 疑似用命令行动屏幕：命中 ${k}；${shown}`, deskHit: (t, k, shown) => `- desktop ${t} ⚠命中：${k}；${shown}`, deskNonWl: (t, shown) => `- ${t} 非白名单：${shown}`,
+      deskBrief: (n, f) => `桌面角色命令 ${n} 条，⚠ ${f} 条`,
+      deskSection: (kw, n, nodir, flagged, nonWl, all) => `\n## 桌面角色（desktop）的命令（全部列出；⚠＝命中动屏幕关键字：${kw}；"非白名单"只作线索）\n\n共 ${n} 条${nodir ? "（她的会话目录不存在）" : ""}。\n\n### ⚠ 疑似用命令行动屏幕\n\n${flagged}\n\n### 非白名单（线索）\n\n${nonWl}\n\n### 全部\n\n${all}\n`,
+      apiNoDb: (r, nodb) => `\n### ${r}\n\n记录不足：${nodb ? "找不到它的事件库文件" : "这一段未取得"}。\n`, apiNoDbBrief: (r) => `${r}:没读`,
+      apiErr: (r) => `\n### ${r}\n\n记录不足：事件库读取出错（只读打开失败或格式不认识）。\n`, apiErrBrief: (r) => `${r}:读不了`,
+      apiLine: (r, t, k, shown) => `- ${r} ${t} ${k ? `命中：${k}；` : ""}${shown}`, apiHit: (r, t, k, shown) => `- ${r} ${t} 命中：${k}；${shown}（API 通路）`,
+      apiRole: (r, n, zstd, listed, all) => `\n### ${r}\n\n窗口内命令 ${n} 条${zstd ? `；另有 ${zstd} 条消息压缩存放，没抽查到` : ""}${listed !== null ? `（只列 ${listed} 条，命中关键字的全部列出）` : ""}。\n\n${all}\n`,
+      apiSection: (roles, text) => `\n## 读事件库的 API 通路命令（${roles}；只读打开各角色的 openclaw-agent.sqlite；主会话走订阅的角色只取定时任务那几个会话）\n${text}`, apiNoRoles: "无这类角色",
+      apiBrief: (d, a) => `${d}；API 通路事件库 ${a}`,
+      head: (title, bizLabel, biz, cut, now, scope, out) => `# ${title} · ${biz}\n\n${bizLabel}${biz}\n窗口：见下（上一个执行完成的日审的截止点 → 本轮截止点 ${cut}）\n生成时间：${now}\n范围：${scope}\n说明：只放命令正文（已遮蔽、截到 ${out} 个字符），不放对话内容；脚本自己生成，日审只读本文件。\n`,
+      scopeNoCfg: "读不了配置", scopeRoles: (ids) => `${ids}（上面的对账不含 desktop、system-auditor；桌面角色和 API 通路命令见后面单独的小节）`,
+      resNoCfg: (head) => `${head}\n## 结果\n\n命令抽查：记录不足（读不了配置）。未读任何会话记录。\n`, resNoCfgBrief: "记录不足：读不了配置",
+      resNoMain: (head) => `${head}\n## 结果\n\n命令抽查：记录不足（读不了配置：配置里没有 main）。未读任何会话记录。\n`,
+      resRoleCount: (head, n, max) => `${head}\n## 结果\n\n命令抽查：停（角色数 ${n} 不在 1～${max} 之间），未读任何会话记录。\n`, resRoleCountBrief: (n, max) => `停：角色数 ${n} 不在 1～${max} 之间，未读任何会话记录`,
+      resBadId: (head, ids) => `${head}\n## 结果\n\n命令抽查：停（${ids} 的编号写法不对），未读任何会话记录。\n`, resBadIdBrief: (ids) => `停：${ids} 的编号写法不对，未读任何会话记录`,
+      resBadWs: (head, ids) => `${head}\n## 结果\n\n命令抽查：停（${ids} 的工作区路径和白名单不符），未读任何会话记录。\n`, resBadWsBrief: (ids) => `停：${ids} 的工作区路径和白名单不符，未读任何会话记录`,
+      resRead: (head, lost) => `${head}\n## 结果\n\n命令抽查：记录不足（会话记录读取失败或输出被截断${lost ? "：" + lost : ""}）。\n`, resReadBrief: (lost) => `记录不足：会话记录读取失败或输出被截断${lost ? `（${lost}）` : ""}`,
+      lostBoth: "开头和结尾标记都丢了", lostBegin: "开头标记丢了", lostEnd: "结尾标记丢了",
+      whyUnread: "官方记录读不了", whyNotJson: "官方记录读不了（不是 JSON）", whyFormat: "官方记录读不了（格式不认识）", whyCap: "官方记录读不了（达到单页上限 500，可能不全）",
+      rowNoResult: (r) => `| ${r} | ? | ? | 记录不足：这个角色的结果没读到 |`, vInsufficient: (why) => `记录不足：${why}`, vNoCli: "本轮没有命令行调用", vMatch: "对得上", vMatchEdge: "对得上（差 1，窗口边缘）", vMismatch: (cli, m) => `记录不足：条数对不上（官方 ${cli}、会话记录 ${m}）`,
+      apiRow: (r, n) => `- ${r}：官方 ${n} 条，API 通路，明细见下面“读事件库的 API 通路命令”一节`, row: (r, m, cli, verdict, apiN) => `| ${r} | ${m} | ${cli === null ? "读不了" : cli} | ${verdict}${apiN > 0 ? `（API 通路另列 ${apiN} 条）` : ""} |`,
+      hitLine: (r, t, k, shown) => `- ${r} ${t} 命中：${k}；${shown}`,
+      body: (head, A, B, rows, apiRows, kw, hits, total, roleShow, over, maxLines, all, extra) => `${head}\n窗口（UTC）：${A} → ${B}\n\n## 条数对账\n\n| 角色 | 会话记录里的命令数 | 官方记录里的命令数 | 结论 |\n| --- | --- | --- | --- |\n${rows}\n\n## API 通路（单列：不和会话记录对账；API 通路的会话正文不在命令行记录里，命令明细见下面“读事件库的 API 通路命令”一节）\n\n${apiRows}\n\n## 命中关键字（${kw}）\n\n${hits}\n\n## 全部命令（共 ${total} 条；每个角色最多列 ${roleShow} 条，命中关键字的全部列出${over ? `；超过 ${maxLines} 行，只写前 ${maxLines} 行` : ""}）\n\n${all}\n${extra}`,
+      doneBrief: (hits, short, total, extraBrief) => `命中关键字 ${hits} 条；${short} 个角色记录不足；共 ${total} 条命令；${extraBrief}`,
+      catchMsg: (m) => `命令抽查脚本出错：${m}；日审写"命令抽查：记录不足（脚本出错）"` },
+  },
   "en": { audit: "audit", daily: "daily", execKey: "execution", doneVal: "done", cutoffKey: "cutoff", cmdFile: "command-check.md", reconFile: "file-reconcile.md", scanMade: "generated", scanNot: "not generated", title: "Command check", bizDate: "Business date: ", fileEq: "command-check file=", reconEq: "file-reconcile=", sep: "; ",
-    failMsg: (out, brief, tail) => `Command spot-check script: the result file could not be written (${out}); ${brief}; ${tail}; in the daily audit write "command check: records insufficient (the script did not generate it)"` },
+    failMsg: (out, brief, tail) => `Command spot-check script: the result file could not be written (${out}); ${brief}; ${tail}; in the daily audit write "command check: records insufficient (the script did not generate it)"`,
+    R: { masked: "[masked]", ins: "records insufficient", jn: ", ", none: "none", dash: "; ",
+      deskApiNone: (why) => `\n## Desktop operator and API-route commands\n\nRecords insufficient: ${why}\n`, deskApiNoneBrief: (why) => `Desktop operator / API-route commands: records insufficient (${why})`,
+      read3: "the 3rd read failed or the result was incomplete", scriptErr: (m) => "script error " + m, deskNotRead: "Desktop operator commands: not read",
+      deskWsBad: `\n## Commands of the Desktop operator (desktop)\n\nRecords insufficient: the Desktop operator's workspace path does not match the whitelist; her session records were not taken.\n`, deskMissing: `\n## Commands of the Desktop operator (desktop)\n\nRecords insufficient: this part was not obtained.\n`,
+      deskFlag: (t, k, shown) => `- ${t} ⚠ suspected screen action by command line: hit ${k}; ${shown}`, deskHit: (t, k, shown) => `- desktop ${t} ⚠ hit: ${k}; ${shown}`, deskNonWl: (t, shown) => `- ${t} not on the whitelist: ${shown}`,
+      deskBrief: (n, f) => `Desktop operator commands: ${n}, ⚠ ${f}`,
+      deskSection: (kw, n, nodir, flagged, nonWl, all) => `\n## Commands of the Desktop operator (desktop) (all listed; ⚠ = hit a screen-action keyword: ${kw}; "not on the whitelist" is only a lead)\n\n${n} in total${nodir ? " (her session directory does not exist)" : ""}.\n\n### ⚠ Suspected screen action by command line\n\n${flagged}\n\n### Not on the whitelist (leads)\n\n${nonWl}\n\n### All\n\n${all}\n`,
+      apiNoDb: (r, nodb) => `\n### ${r}\n\nRecords insufficient: ${nodb ? "its event-store file was not found" : "this part was not obtained"}.\n`, apiNoDbBrief: (r) => `${r}: not read`,
+      apiErr: (r) => `\n### ${r}\n\nRecords insufficient: reading the event store failed (read-only open failed or the format is not recognised).\n`, apiErrBrief: (r) => `${r}: unreadable`,
+      apiLine: (r, t, k, shown) => `- ${r} ${t} ${k ? `hit: ${k}; ` : ""}${shown}`, apiHit: (r, t, k, shown) => `- ${r} ${t} hit: ${k}; ${shown} (API route)`,
+      apiRole: (r, n, zstd, listed, all) => `\n### ${r}\n\nCommands in the window: ${n}${zstd ? `; another ${zstd} message(s) are stored compressed and were not sampled` : ""}${listed !== null ? ` (only ${listed} listed; all keyword hits are listed)` : ""}.\n\n${all}\n`,
+      apiSection: (roles, text) => `\n## API-route commands read from the event store (${roles}; each role's openclaw-agent.sqlite is opened read-only; for roles whose main session is subscription-based, only the scheduled-job sessions are taken)\n${text}`, apiNoRoles: "no such roles",
+      apiBrief: (d, a) => `${d}; API-route event stores ${a}`,
+      head: (title, bizLabel, biz, cut, now, scope, out) => `# ${title} · ${biz}\n\n${bizLabel}${biz}\nWindow: see below (cutoff of the previous completed daily audit → this round's cutoff ${cut})\nGenerated at: ${now}\nScope: ${scope}\nNote: only command text (masked, cut to ${out} characters), no conversation content; generated by the script itself, the daily audit only reads this file.\n`,
+      scopeNoCfg: "config unreadable", scopeRoles: (ids) => `${ids} (the reconciliation above excludes desktop and system-auditor; the Desktop operator's and the API-route commands are in separate sections further down)`,
+      resNoCfg: (head) => `${head}\n## Result\n\nCommand spot-check: records insufficient (config unreadable). No session records were read.\n`, resNoCfgBrief: "records insufficient: config unreadable",
+      resNoMain: (head) => `${head}\n## Result\n\nCommand spot-check: records insufficient (config unreadable: there is no main in the config). No session records were read.\n`,
+      resRoleCount: (head, n, max) => `${head}\n## Result\n\nCommand spot-check: stopped (the number of roles ${n} is not between 1 and ${max}). No session records were read.\n`, resRoleCountBrief: (n, max) => `stopped: the number of roles ${n} is not between 1 and ${max}; no session records were read`,
+      resBadId: (head, ids) => `${head}\n## Result\n\nCommand spot-check: stopped (the ID spelling of ${ids} is wrong). No session records were read.\n`, resBadIdBrief: (ids) => `stopped: the ID spelling of ${ids} is wrong; no session records were read`,
+      resBadWs: (head, ids) => `${head}\n## Result\n\nCommand spot-check: stopped (the workspace path of ${ids} does not match the whitelist). No session records were read.\n`, resBadWsBrief: (ids) => `stopped: the workspace path of ${ids} does not match the whitelist; no session records were read`,
+      resRead: (head, lost) => `${head}\n## Result\n\nCommand spot-check: records insufficient (reading the session records failed or the output was cut off${lost ? ": " + lost : ""}).\n`, resReadBrief: (lost) => `records insufficient: reading the session records failed or the output was cut off${lost ? ` (${lost})` : ""}`,
+      lostBoth: "both the start and the end marker are missing", lostBegin: "the start marker is missing", lostEnd: "the end marker is missing",
+      whyUnread: "official record unreadable", whyNotJson: "official record unreadable (not JSON)", whyFormat: "official record unreadable (format not recognised)", whyCap: "official record unreadable (reached the single-page limit of 500; may be incomplete)",
+      rowNoResult: (r) => `| ${r} | ? | ? | records insufficient: the result for this role was not read |`, vInsufficient: (why) => `records insufficient: ${why}`, vNoCli: "no command-line calls this round", vMatch: "matches", vMatchEdge: "matches (off by 1, window edge)", vMismatch: (cli, m) => `records insufficient: the counts do not match (official ${cli}, session record ${m})`,
+      apiRow: (r, n) => `- ${r}: official ${n}, API route; details in the section "API-route commands read from the event store" below`, row: (r, m, cli, verdict, apiN) => `| ${r} | ${m} | ${cli === null ? "unreadable" : cli} | ${verdict}${apiN > 0 ? ` (${apiN} more via the API route, listed separately)` : ""} |`,
+      hitLine: (r, t, k, shown) => `- ${r} ${t} hit: ${k}; ${shown}`,
+      body: (head, A, B, rows, apiRows, kw, hits, total, roleShow, over, maxLines, all, extra) => `${head}\nWindow (UTC): ${A} → ${B}\n\n## Count reconciliation\n\n| Role | Commands in the session record | Commands in the official record | Conclusion |\n| --- | --- | --- | --- |\n${rows}\n\n## API route (listed separately: not reconciled against session records; the session text of the API route is not in the command-line records; for command details see the section "API-route commands read from the event store" below)\n\n${apiRows}\n\n## Keyword hits (${kw})\n\n${hits}\n\n## All commands (${total} in total; at most ${roleShow} per role, all keyword hits are listed${over ? `; over ${maxLines} lines, only the first ${maxLines} are written` : ""})\n\n${all}\n${extra}`,
+      doneBrief: (hits, short, total, extraBrief) => `${hits} keyword hit(s); ${short} role(s) with records insufficient; ${total} command(s) in total; ${extraBrief}`,
+      catchMsg: (m) => `Command spot-check script error: ${m}; in the daily audit write "command check: records insufficient (script error)"` },
+  },
 })[LOCALE];
 const CUT_H = 18, CUT_M = 5; // daily audit scheduled time 18:05 local (config jobs.dailyAudit.time)
 // 目录白名单：配置里除 desktop（桌面角色本来就要动桌面）和 system-auditor（审计自己）以外的每个角色都抽。
@@ -45,10 +105,10 @@ const q = (s) => "'" + String(s).replace(/'/g, "'\\''") + "'";
 // Claude 会话记录的目录名：工作区绝对路径里的 "/" 和每个非 ASCII 字符都换成 "-"
 const dirName = (ws) => Array.from(ws).map((c) => (c === "/" || c.codePointAt(0) > 127 ? "-" : c)).join("");
 const mask = (s) => s
-  .replace(/Bearer\s+[A-Za-z0-9._~+\/=-]{8,}/gi, "Bearer [已遮蔽]")
-  .replace(/\b(sk|pk|ghp|gho|xox[a-z])[-_][A-Za-z0-9_-]{8,}/g, "[已遮蔽]")
-  .replace(/\b(token|password|passwd|secret|apikey|api_key)\s*[=:]\s*\S+/gi, "$1=[已遮蔽]")
-  .replace(/[A-Za-z0-9+\/_=-]{24,}/g, "[已遮蔽]");
+  .replace(/Bearer\s+[A-Za-z0-9._~+\/=-]{8,}/gi, "Bearer " + LX.R.masked)
+  .replace(/\b(sk|pk|ghp|gho|xox[a-z])[-_][A-Za-z0-9_-]{8,}/g, LX.R.masked)
+  .replace(/\b(token|password|passwd|secret|apikey|api_key)\s*[=:]\s*\S+/gi, "$1=" + LX.R.masked)
+  .replace(/[A-Za-z0-9+\/_=-]{24,}/g, LX.R.masked);
 
 const now = typeof FAKE_NOW === "undefined" ? new Date() : new Date(FAKE_NOW); // FAKE_NOW 只在测试台里定义
 const tzParts = (ms) => Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: TIMEZONE, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })
@@ -109,7 +169,7 @@ const done = async (text, brief) => {
 };
 
 const readExtra = async ({ A, B, startMs, cutMs, ws, apiJobs, roleApi, jqCmdsFor }) => {
-  const none = (why) => ({ text: `\n## 桌面角色命令与 API 通路命令\n\n记录不足：${why}\n`, hits: [], brief: `桌面角色／API 通路命令：记录不足（${why}）` });
+  const none = (why) => ({ text: LX.R.deskApiNone(why), hits: [], brief: LX.R.deskApiNoneBrief(why) });
   try {
     const parts = ["echo '=====EXTRA_BEGIN'", `cd ${q(CLAUDE_ROOT)} || { echo 'ERR=cd'; exit 0; }`];
     const deskOk = ws[DESKTOP] !== undefined && ws[DESKTOP] === expectWs(DESKTOP);
@@ -132,7 +192,7 @@ const readExtra = async ({ A, B, startMs, cutMs, ws, apiJobs, roleApi, jqCmdsFor
     parts.push("echo '=====EXTRA_END'");
     const r3 = await exec({ command: parts.join("\n") });
     const o3 = String(r3?.aggregated ?? "");
-    if (!r3 || r3.isError || /^ERR=cd/m.test(o3) || !/^=====EXTRA_BEGIN\s*$/m.test(o3) || !/^=====EXTRA_END\s*$/m.test(o3)) return none("第 3 次读取失败或结果不完整");
+    if (!r3 || r3.isError || /^ERR=cd/m.test(o3) || !/^=====EXTRA_BEGIN\s*$/m.test(o3) || !/^=====EXTRA_END\s*$/m.test(o3)) return none(LX.R.read3);
     const sec = {};
     let cur = null;
     for (const line of o3.split("\n")) {
@@ -151,10 +211,10 @@ const readExtra = async ({ A, B, startMs, cutMs, ws, apiJobs, roleApi, jqCmdsFor
     const hits = [];
     let text = "";
     // 桌面角色
-    let deskBrief = "桌面角色命令：没读";
-    if (!deskOk) text += `\n## 桌面角色（desktop）的命令\n\n记录不足：桌面角色的工作区路径和白名单不符，未取她的会话记录。\n`;
+    let deskBrief = LX.R.deskNotRead;
+    if (!deskOk) text += LX.R.deskWsBad;
     else if (!sec.desktop || (sec.desktop.n === null && !sec.desktop.nodir)) {
-      text += `\n## 桌面角色（desktop）的命令\n\n记录不足：这一段未取得。\n`;
+      text += LX.R.deskMissing;
     } else {
       const s = sec.desktop, lines = [], flagged = [], nonWl = [];
       for (const { t, k, cut, c } of s.cmds) {
@@ -162,38 +222,38 @@ const readExtra = async ({ A, B, startMs, cutMs, ws, apiJobs, roleApi, jqCmdsFor
         const white = DESKTOP_WHITELIST.some((re) => re.test(raw));
         const shown = show(c, cut);
         lines.push(`- ${t} ${shown}`);
-        if (k.length) { flagged.push(`- ${t} ⚠ 疑似用命令行动屏幕：命中 ${k.join("、")}；${shown}`); hits.push(`- desktop ${t} ⚠命中：${k.join("、")}；${shown}`); }
-        else if (!white) nonWl.push(`- ${t} 非白名单：${shown}`);
+        if (k.length) { flagged.push(LX.R.deskFlag(t, k.join(LX.R.jn), shown)); hits.push(LX.R.deskHit(t, k.join(LX.R.jn), shown)); }
+        else if (!white) nonWl.push(LX.R.deskNonWl(t, shown));
       }
-      deskBrief = `桌面角色命令 ${s.n ?? s.cmds.length} 条，⚠ ${flagged.length} 条`;
-      text += `\n## 桌面角色（desktop）的命令（全部列出；⚠＝命中动屏幕关键字：${DESKTOP_KEYWORDS.join("、")}；"非白名单"只作线索）\n\n共 ${s.n ?? s.cmds.length} 条${s.nodir ? "（她的会话目录不存在）" : ""}。\n\n### ⚠ 疑似用命令行动屏幕\n\n${flagged.length ? flagged.join("\n") : "无"}\n\n### 非白名单（线索）\n\n${nonWl.length ? nonWl.slice(0, 60).join("\n") : "无"}\n\n### 全部\n\n${lines.length ? lines.join("\n") : "无"}\n`;
+      deskBrief = LX.R.deskBrief(s.n ?? s.cmds.length, flagged.length);
+      text += LX.R.deskSection(DESKTOP_KEYWORDS.join(LX.R.jn), s.n ?? s.cmds.length, s.nodir, flagged.length ? flagged.join("\n") : LX.R.none, nonWl.length ? nonWl.slice(0, 60).join("\n") : LX.R.none, lines.length ? lines.join("\n") : LX.R.none);
     }
     // API 通路
     const apiBrief = [];
     let apiText = "";
     for (const r of apiRoles) {
       const s = sec[r];
-      if (!s || s.nodb) { apiText += `\n### ${r}\n\n记录不足：${s?.nodb ? "找不到它的事件库文件" : "这一段未取得"}。\n`; apiBrief.push(`${r}:没读`); continue; }
-      if (s.err || s.n === null) { apiText += `\n### ${r}\n\n记录不足：事件库读取出错（只读打开失败或格式不认识）。\n`; apiBrief.push(`${r}:读不了`); continue; }
+      if (!s || s.nodb) { apiText += LX.R.apiNoDb(r, s?.nodb); apiBrief.push(LX.R.apiNoDbBrief(r)); continue; }
+      if (s.err || s.n === null) { apiText += LX.R.apiErr(r); apiBrief.push(LX.R.apiErrBrief(r)); continue; }
       const lines = [];
       for (const { t, k, cut, c } of s.cmds) {
         const shown = show(c, cut);
-        lines.push(`- ${r} ${t} ${k.length ? `命中：${k.join("、")}；` : ""}${shown}`);
-        if (k.length) hits.push(`- ${r} ${t} 命中：${k.join("、")}；${shown}（API 通路）`);
+        lines.push(LX.R.apiLine(r, t, k.length ? k.join(LX.R.jn) : "", shown));
+        if (k.length) hits.push(LX.R.apiHit(r, t, k.join(LX.R.jn), shown));
       }
-      apiText += `\n### ${r}\n\n窗口内命令 ${s.n} 条${s.zstd ? `；另有 ${s.zstd} 条消息压缩存放，没抽查到` : ""}${s.n > s.cmds.length ? `（只列 ${s.cmds.length} 条，命中关键字的全部列出）` : ""}。\n\n${lines.length ? lines.join("\n") : "无"}\n`;
+      apiText += LX.R.apiRole(r, s.n, s.zstd, s.n > s.cmds.length ? s.cmds.length : null, lines.length ? lines.join("\n") : LX.R.none);
       apiBrief.push(`${r}:${s.n}`);
     }
-    text += `\n## 读事件库的 API 通路命令（${apiRoles.length ? apiRoles.join("、") : "无这类角色"}；只读打开各角色的 openclaw-agent.sqlite；主会话走订阅的角色只取定时任务那几个会话）\n${apiText || "\n无\n"}`;
-    return { text, hits, brief: `${deskBrief}；API 通路事件库 ${apiBrief.join("、") || "无"}` };
+    text += LX.R.apiSection(apiRoles.length ? apiRoles.join(LX.R.jn) : LX.R.apiNoRoles, apiText || `\n${LX.R.none}\n`);
+    return { text, hits, brief: LX.R.apiBrief(deskBrief, apiBrief.join(LX.R.jn) || LX.R.none) };
   } catch (e) {
-    return none("脚本出错 " + String(e && e.message || e).slice(0, 60));
+    return none(LX.R.scriptErr(String(e && e.message || e).slice(0, 60)));
   }
 };
 
 const main = async () => {
-  const headOf = (scope) => `# ${LX.title} · ${bizDate}\n\n${LX.bizDate}${bizDate}\n窗口：见下（上一个执行完成的日审的截止点 → 本轮截止点 ${cutIso}）\n生成时间：${now.toISOString()}\n范围：${scope}\n说明：只放命令正文（已遮蔽、截到 ${CMD_OUT} 个字符），不放对话内容；脚本自己生成，日审只读本文件。\n`;
-  let head = headOf("读不了配置");
+  const headOf = (scope) => LX.R.head(LX.title, LX.bizDate, bizDate, cutIso, now.toISOString(), scope, CMD_OUT);
+  let head = headOf(LX.R.scopeNoCfg);
   try {
     // 第 1 次工具调用：从配置列出所有角色和 workspace；读上一个执行完成的日审的截止点
     // 第三栏是这个角色主模型的运行方式（`openclaw`＝API 通路，空＝命令行）。API 通路的会话正文不在 ~/.claude/projects，不拿它和会话记录对账。
@@ -204,7 +264,7 @@ const main = async () => {
     const r1 = await exec({ command: `${jqCfg}\necho '=====ROUNDS'\n${jqRounds}\necho '=====APIREFS'\n${jqApiRefs}\necho '=====CRONJOBS'\n${cronJobs}\necho '=====END'` });
     const o1 = String(r1?.aggregated ?? "");
     if (!r1 || r1.isError || !/^=====END\s*$/m.test(o1) || !/=====ROUNDS/.test(o1)) {
-      return await done(`${head}\n## 结果\n\n命令抽查：记录不足（读不了配置）。未读任何会话记录。\n`, "记录不足：读不了配置");
+      return await done(LX.R.resNoCfg(head), LX.R.resNoCfgBrief);
     }
     const [cfgPart, afterRounds] = o1.split(/^=====ROUNDS\s*$/m);
     const [roundPart, afterRefs = ""] = afterRounds.split(/^=====APIREFS\s*$/m);
@@ -225,19 +285,19 @@ const main = async () => {
     const roleApi = (r) => rtOf[r] === "openclaw";
     const ids = Object.keys(ws).filter((r) => !EXCLUDE.includes(r)).sort();
     if (!ids.includes("main")) {
-      return await done(`${head}\n## 结果\n\n命令抽查：记录不足（读不了配置：配置里没有 main）。未读任何会话记录。\n`, "记录不足：读不了配置");
+      return await done(LX.R.resNoMain(head), LX.R.resNoCfgBrief);
     }
-    head = headOf(`${ids.join("、")}（上面的对账不含 desktop、system-auditor；桌面角色和 API 通路命令见后面单独的小节）`);
+    head = headOf(LX.R.scopeRoles(ids.join(LX.R.jn)));
     if (ids.length < 1 || ids.length > MAX_ROLES) {
-      return await done(`${head}\n## 结果\n\n命令抽查：停（角色数 ${ids.length} 不在 1～${MAX_ROLES} 之间），未读任何会话记录。\n`, `停：角色数 ${ids.length} 不在 1～${MAX_ROLES} 之间，未读任何会话记录`);
+      return await done(LX.R.resRoleCount(head, ids.length, MAX_ROLES), LX.R.resRoleCountBrief(ids.length, MAX_ROLES));
     }
     const badId = ids.filter((r) => !ID_OK.test(r));
     if (badId.length) {
-      return await done(`${head}\n## 结果\n\n命令抽查：停（${badId.join("、")} 的编号写法不对），未读任何会话记录。\n`, `停：${badId.join("、")} 的编号写法不对，未读任何会话记录`);
+      return await done(LX.R.resBadId(head, badId.join(LX.R.jn)), LX.R.resBadIdBrief(badId.join(LX.R.jn)));
     }
     const bad = ids.filter((r) => ws[r] !== expectWs(r));
     if (bad.length) {
-      return await done(`${head}\n## 结果\n\n命令抽查：停（${bad.join("、")} 的工作区路径和白名单不符），未读任何会话记录。\n`, `停：${bad.join("、")} 的工作区路径和白名单不符，未读任何会话记录`);
+      return await done(LX.R.resBadWs(head, bad.join(LX.R.jn)), LX.R.resBadWsBrief(bad.join(LX.R.jn)));
     }
     ROLES = ids;
     const cutOf = (s) => Date.parse(s);
@@ -261,13 +321,13 @@ openclaw audit --agent ${r} --kind tool_action --after ${q(A)} --before ${q(B)} 
     const r2 = await exec({ command: `echo '=====BEGIN'\ncd ${q(CLAUDE_ROOT)} || { echo 'ERR=cd'; exit 0; }\n${per}\necho '=====END'` });
     const o2 = String(r2?.aggregated ?? "");
     if (!r2 || r2.isError || /^ERR=cd/m.test(o2)) {
-      return await done(`${head}\n## 结果\n\n命令抽查：记录不足（会话记录读取失败或输出被截断）。\n`, "记录不足：会话记录读取失败或输出被截断");
+      return await done(LX.R.resRead(head, ""), LX.R.resReadBrief(""));
     }
     // 开头、结尾两个标记缺一个，整份写"记录不足"，不再逐角色写误导的"没读到"
     const hasBegin = /^=====BEGIN\s*$/m.test(o2), hasEnd = /^=====END\s*$/m.test(o2);
     if (!hasBegin || !hasEnd) {
-      const lost = !hasBegin && !hasEnd ? "开头和结尾标记都丢了" : !hasBegin ? "开头标记丢了" : "结尾标记丢了";
-      return await done(`${head}\n## 结果\n\n命令抽查：记录不足（会话记录读取失败或输出被截断：${lost}）。\n`, `记录不足：会话记录读取失败或输出被截断（${lost}）`);
+      const lost = !hasBegin && !hasEnd ? LX.R.lostBoth : !hasBegin ? LX.R.lostBegin : LX.R.lostEnd;
+      return await done(LX.R.resRead(head, lost), LX.R.resReadBrief(lost));
     }
     const sections = {};
     let cur = null, mode = null;
@@ -285,14 +345,14 @@ openclaw audit --agent ${r} --kind tool_action --after ${q(A)} --before ${q(B)} 
     // 官方记录：命令里已经压成一行 "=====AUDIT <角色> arr=1 total=N known=N n=N"；判法和旧版 auditCount 逐条一致
     const auditCount = (r) => {
       const lines = sections[r]?.audit ?? [];
-      if (!lines.length) return { n: null, why: "官方记录读不了" };
-      if (lines.length > 1) return { n: null, why: "官方记录读不了（不是 JSON）" };
+      if (!lines.length) return { n: null, why: LX.R.whyUnread };
+      if (lines.length > 1) return { n: null, why: LX.R.whyNotJson };
       const m = lines[0].match(/^=====AUDIT (\S+) arr=([01])(?: total=(\d+) known=(\d+) n=(\d+)(?: api=(\d+))?)?$/);
-      if (!m || m[1] !== r) return { n: null, why: "官方记录读不了" };
-      if (m[2] === "0") return { n: null, why: "官方记录读不了（格式不认识）" };
+      if (!m || m[1] !== r) return { n: null, why: LX.R.whyUnread };
+      if (m[2] === "0") return { n: null, why: LX.R.whyFormat };
       const total = +m[3], known = +m[4], n = +m[5], api = Math.min(+(m[6] ?? 0), +m[5]);
-      if (total >= MAX_LINES) return { n: null, why: "官方记录读不了（达到单页上限 500，可能不全）" };
-      if (total && !known) return { n: null, why: "官方记录读不了（格式不认识）" };
+      if (total >= MAX_LINES) return { n: null, why: LX.R.whyCap };
+      if (total && !known) return { n: null, why: LX.R.whyFormat };
       return { n, api }; // n＝官方 exec 总数；api＝其中走 API 通路的（会话正文不在命令行记录里，不对账）
     };
     // 第 3 次工具调用：桌面角色的会话命令＋API 通路角色的事件库命令。失败只让这一段写"记录不足"，不影响上面的结果。
@@ -301,17 +361,17 @@ openclaw audit --agent ${r} --kind tool_action --after ${q(A)} --before ${q(B)} 
     let totalCmds = 0;
     for (const r of ROLES) {
       const s = sections[r];
-      if (!s || s.total === null) { rows.push(`| ${r} | ? | ? | 记录不足：这个角色的结果没读到 |`); continue; }
+      if (!s || s.total === null) { rows.push(LX.R.rowNoResult(r)); continue; }
       const m = s.total, a = auditCount(r);
       // 官方记录里走 API 通路的那部分（角色整个走 API，或定时任务走 API）单列，不和命令行会话记录对账、也不判"记录不足"；其余照旧对账。
       const apiN = a.n === null ? 0 : a.api, cliN = a.n === null ? null : a.n - apiN;
       let verdict;
-      if (a.n === null) verdict = `记录不足：${a.why}`;
-      else if (m === 0 && cliN === 0) verdict = "本轮没有命令行调用";
-      else if (Math.abs(m - cliN) <= TOLERANCE) verdict = Math.abs(m - cliN) === 0 ? "对得上" : "对得上（差 1，窗口边缘）";
-      else verdict = `记录不足：条数对不上（官方 ${cliN}、会话记录 ${m}）`;
-      if (apiN > 0) apiRows.push(`- ${r}：官方 ${apiN} 条，API 通路，明细见下面“读事件库的 API 通路命令”一节`);
-      rows.push(`| ${r} | ${m} | ${a.n === null ? "读不了" : cliN} | ${verdict}${apiN > 0 ? `（API 通路另列 ${apiN} 条）` : ""} |`);
+      if (a.n === null) verdict = LX.R.vInsufficient(a.why);
+      else if (m === 0 && cliN === 0) verdict = LX.R.vNoCli;
+      else if (Math.abs(m - cliN) <= TOLERANCE) verdict = Math.abs(m - cliN) === 0 ? LX.R.vMatch : LX.R.vMatchEdge;
+      else verdict = LX.R.vMismatch(cliN, m);
+      if (apiN > 0) apiRows.push(LX.R.apiRow(r, apiN));
+      rows.push(LX.R.row(r, m, a.n === null ? null : cliN, verdict, apiN));
       totalCmds += m;
       for (const { t, k, cut, c } of s.cmds) {
         // 命令在 400 字符处被截断时，去掉末尾可能被切半的一截"像密钥的字符"，免得半截密钥漏过遮蔽
@@ -319,15 +379,15 @@ openclaw audit --agent ${r} --kind tool_action --after ${q(A)} --before ${q(B)} 
         const hit = k;
         const shown = mask(raw).slice(0, CMD_OUT).replace(/\s+/g, " ");
         all.push(`- ${r} ${t} ${shown}`);
-        if (hit.length) hits.push(`- ${r} ${t} 命中：${hit.join("、")}；${shown}`);
+        if (hit.length) hits.push(LX.R.hitLine(r, t, hit.join(LX.R.jn), shown));
       }
     }
     for (const l of extra.hits) hits.push(l);
-    const body = `${head}\n窗口（UTC）：${A} → ${B}\n\n## 条数对账\n\n| 角色 | 会话记录里的命令数 | 官方记录里的命令数 | 结论 |\n| --- | --- | --- | --- |\n${rows.join("\n")}\n\n## API 通路（单列：不和会话记录对账；API 通路的会话正文不在命令行记录里，命令明细见下面“读事件库的 API 通路命令”一节）\n\n${apiRows.length ? apiRows.join("\n") : "无"}\n\n## 命中关键字（${KEYWORDS.join("、")}）\n\n${hits.length ? hits.slice(0, MAX_LINES).join("\n") : "无"}\n\n## 全部命令（共 ${totalCmds} 条；每个角色最多列 ${ROLE_SHOW} 条，命中关键字的全部列出${all.length > MAX_LINES ? `；超过 ${MAX_LINES} 行，只写前 ${MAX_LINES} 行` : ""}）\n\n${all.length ? all.slice(0, MAX_LINES).join("\n") : "无"}\n${extra.text}`;
-    const short = rows.filter((x) => x.includes("记录不足")).length;
-    return await done(body, `命中关键字 ${hits.length} 条；${short} 个角色记录不足；共 ${totalCmds} 条命令；${extra.brief}`);
+    const body = LX.R.body(head, A, B, rows.join("\n"), apiRows.length ? apiRows.join("\n") : LX.R.none, KEYWORDS.join(LX.R.jn), hits.length ? hits.slice(0, MAX_LINES).join("\n") : LX.R.none, totalCmds, ROLE_SHOW, all.length > MAX_LINES, MAX_LINES, all.length ? all.slice(0, MAX_LINES).join("\n") : LX.R.none, extra.text);
+    const short = rows.filter((x) => x.includes(LX.R.ins)).length;
+    return await done(body, LX.R.doneBrief(hits.length, short, totalCmds, extra.brief));
   } catch (e) {
-    return json({ fire: true, message: `命令抽查脚本出错：${String(e && e.message || e).slice(0, 80)}；日审写"命令抽查：记录不足（脚本出错）"` });
+    return json({ fire: true, message: LX.R.catchMsg(String(e && e.message || e).slice(0, 80)) });
   }
 };
 await main();

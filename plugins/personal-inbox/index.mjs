@@ -125,11 +125,11 @@ export default {
     const pendingLedgerPath = dataRoot ? join(dataRoot, W.layout.audit, W.layout.auditAwaiting, W.layout.awaitingLedgerFile) : null;
     const approvalLedger = pendingLedgerPath ? { expired: (info) => recordApprovalExpiry(pendingLedgerPath, info), reissued: (info) => recordApprovalReissue(pendingLedgerPath, info) } : null;
     registerApprovalReminder(api, { ledgerPath: pendingLedgerPath, syncRoot, log: (row) => { try { api.logger?.info?.(`approval-reminder: ${JSON.stringify(row)}`); } catch { /* 只是记录 */ } } });
-    registerQuotaRecovery(api, syncRoot);
+    registerQuotaRecovery(api, syncRoot, { dataRoot });
     const executionRecord = registerExecutionRecord(api);
     // 官方把插件复制到临时目录里加载，路径不能从插件文件自己的位置推，要用项目根目录。
     registerDesktopScreenLock(api, syncRoot
-      ? { lockPath: join(desktopDir, 'screen.lock'), logPath: join(desktopDir, 'screen-lock.log'), wordsPath: join(syncRoot, 'plugins', 'personal-inbox', 'sensitive-words.json'), sendApprovalNotice: realApprovalSend, dedupPath: join(desktopDir, 'approval-notice-dedup.json'), approvalLedger }
+      ? { lockPath: join(desktopDir, 'screen.lock'), logPath: join(desktopDir, 'screen-lock.log'), wordsPath: join(syncRoot, 'plugins', 'personal-inbox', 'sensitive-words.json'), sendApprovalNotice: realApprovalSend, dedupPath: join(desktopDir, 'approval-notice-dedup.json'), approvalLedger, dataRoot }
       : { lockPath: null });
     // 审计守门：只管 系统审计、task-auditor 的命令和写入位置；规则文件在项目里，守门记录放资料根下。
     registerAuditGuard(api, syncRoot

@@ -199,8 +199,8 @@ export async function cmdVoid(deps, id) {
 // ---------- 定时检查 ----------
 export function wakeMessage(pend) {
   const test = pend.some((e) => e.测试);
-  const base = `账本待补：有 ${pend.length} 条主人的决定还没写进 资料/决定账本.md。\n1. 先运行 \`${NODE_BIN} ${SCRIPT} list\` 看清单（每条带日期、短标题和主人原话）。\n2. 照账本现有写法补写：短版、带原话、编号接着最后一条；原话一个字都不要改。\n3. 写好一条就运行 \`${NODE_BIN} ${SCRIPT} done <待补编号> --ledger-id D-0xx\`。\n只改 决定账本.md；不要改 运行记录 里的任何文件；不要运行 git。写不了就在工坊说一句，不要硬写。`;
-  return test ? `【这是测试，不要改决定账本.md】只回一句“收到测试”即可，或只写一个临时测试文件。\n\n${base}` : base;
+  const base = W.wake.ledgerBacklog(pend.length, NODE_BIN, SCRIPT);
+  return test ? W.wake.ledgerBacklogTest(base) : base;
 }
 
 export async function runCheck(deps) {
@@ -247,7 +247,7 @@ export function realDeps(env = process.env, dataRoot = DEFAULT_DATA_ROOT) {
     now: () => Date.now(), dataRoot, send: realSend(run),
     // 叫醒总控：建一次性小任务（用完自动删），照 pending-decisions.mjs 的做法；发消息叫不醒她（消息是她自己账号发的）
     wake: async (message) => {
-      const r = run(['automations', 'add', '--name', `账本待补叫起-${localParts(Date.now()).date}`, '--at', '1m', '--agent', 'main', '--session', 'isolated', '--message', message, '--no-deliver', '--delete-after-run', '--json'], { timeout: 60000 });
+      const r = run(['automations', 'add', '--name', `${W.wake.ledgerBacklogJob}${localParts(Date.now()).date}`, '--at', '1m', '--agent', 'main', '--session', 'isolated', '--message', message, '--no-deliver', '--delete-after-run', '--json'], { timeout: 60000 });
       if (r.code !== 0) return { ok: false, error: `automations add 退出码 ${r.code}` };
       try { const d = parseJsonLoose(r.stdout); const id = d.id ?? d.job?.id ?? d.payload?.id ?? null; return id ? { ok: true, jobId: String(id) } : { ok: false, error: '没拿到任务编号' }; } catch (e) { return { ok: false, error: e.message }; }
     },

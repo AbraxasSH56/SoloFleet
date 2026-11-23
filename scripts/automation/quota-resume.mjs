@@ -62,7 +62,7 @@ export function expireAt(chain) { return (Number.isFinite(chain.恢复时间毫�
 // ---------- 文件 ----------
 export function paths(dataRoot) {
   const quotaDir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota);
-  const dir = join(quotaDir, '接续');
+  const dir = join(quotaDir, W.layout.runLogDirs.quotaResume);
   return { quotaDir, dir, ledger: join(dir, '账.json'), lock: join(dir, '.接续.lock'), logs: join(dir, '发起日志') };
 }
 export function writeFile644(path, text) {

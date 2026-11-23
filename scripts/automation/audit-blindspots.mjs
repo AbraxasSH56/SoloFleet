@@ -18,9 +18,10 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { bizDateOf, localStamp, windowOf } from './daily-format-check.mjs';
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
-import { lexicon, labelText } from '../../plugins/personal-inbox/lexicon.mjs';
+import { lexicon, labelText, locale } from '../../plugins/personal-inbox/lexicon.mjs';
+const B = lexicon().bs;
+const NC_RE = new RegExp(B.cannotWord); // a part that could not be read is written with this word
 const W = lexicon(); // folder and file names and report markers follow config "locale" (zh-CN: the literals this script always used)
-import { locale } from '../../plugins/personal-inbox/lexicon.mjs';
 const execFileAsync = promisify(execFile);
 export const DATA_ROOT = process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot; // env var first (offline tests), then config
 export const PROJECT_ROOT = process.env.OPENCLAW_PROJECT_ROOT || crew.paths.projectRoot;
@@ -68,7 +69,7 @@ export function reworkReport(cards, startMs, endMs) {
   return { hit, earlier, max, attemptNotes, skipped, total: cards.length };
 }
 function reworkSection(rep) {
-  if (rep.error) return `未能检查：返工次数（${rep.error}）`;
+  if (rep.error) return B.cannotCheck(B.wRework, rep.error);
   const lines = [`卡 ${rep.total} 张（已归档跳过 ${rep.skipped} 张）；返工次数最多的一张是 ${rep.max.count} 次${rep.max.id ? `（${rep.max.id}）` : ''}。定义：从“进行中／卡住／完成”退回“待办”的次数，加上从“卡住／完成”再进“进行中”的次数；≥${LIMITS.reworkAt} 次才列。“重新尝试”事件另有 ${rep.attemptNotes} 条（只作线索，不计入）。`];
   if (rep.hit.length) lines.push('', '**本轮首次达到的：**', ...rep.hit.map((x) => `- ${x.id}《${x.title}》返工 ${x.count} 次（第 ${LIMITS.reworkAt} 次发生在 ${localStamp(x.reachedAt)}）`));
   else lines.push('', '本轮没有卡首次达到。');
@@ -109,7 +110,7 @@ export async function ruleFileReport({ projectRoot, workspaceRoot = join(project
   return { commit, first: !base, count: files.length, changed: rows, created, syncNote, baselineAt: base?.at ?? null };
 }
 function ruleSection(r) {
-  if (r.error) return `未能检查：规则文件（${r.error}）`;
+  if (r.error) return B.cannotCheck(B.wRules, r.error);
   if (r.first) return `首次建立基线：${r.count} 个规则文件（AGENTS.md／SOUL.md／IDENTITY.md，只算实际存在的）。明天起才和基线比。${r.syncNote}。`;
   const lines = [`和上一次基线（${localStamp(r.baselineAt)}）比，${r.count} 个规则文件里：${r.changed.length ? `${r.changed.length} 个内容变了` : '没有内容变了的'}${r.created.length ? `；新出现 ${r.created.length} 个（${r.created.join('、')}）` : ''}。${r.syncNote}。`];
   if (r.changed.length) lines.push('', ...r.changed, '', '（有 Git 提交＝开发会话改的，只作线索；无提交且文件刚变＝疑似 bot 或手工改，交日审判断，本脚本不记异常标记。）');
@@ -150,7 +151,7 @@ async function outsideSection(runFind, startMs, endMs, areas = AREAS) {
       const g = await changedFiles(root, startMs, endMs, runFind, { prune });
       const lines = groupLines(g, normalRe);
       parts.push(`### ${name}\n\n窗口内新增或改动的文件按文件夹汇总（只列路径，不读内容）：${lines.length ? '\n' + lines.join('\n') : '无。'}`);
-    } catch (e) { parts.push(`### ${name}\n\n未能检查：${String(e?.message ?? e).slice(0, 100)}。`); }
+    } catch (e) { parts.push(`### ${name}\n\n${B.cannotBare(String(e?.message ?? e).slice(0, 100))}`); }
   }
   return parts.join('\n\n');
 }
@@ -174,7 +175,7 @@ export function screenLockStats(logPath, startMs, endMs) {
   return out;
 }
 function screenLockSection(st) {
-  if (!st.ok) return `未能检查：桌面角色屏幕锁日志（${st.why}）`;
+  if (!st.ok) return B.cannotCheck(B.wLock, st.why);
   if (st.nolog) return '桌面角色屏幕锁日志还不存在（还没有桌面角色动过屏幕，或日志位置不对）。';
   const via = Object.entries(st.byVia).map(([k, n]) => `${k} ${n}`).join('、');
   return `窗口内程序认出提交类点击 ${st.detected} 次${via ? `（按来源：${via}；回车类的次数多就该收窄）` : ''}；认不出的点击 ${st.unrecognized} 次；识别自己出错 ${st.errors} 次；词表读不到 ${st.wordsUnreadable} 次。（网页不认、鼠标点按钮按坐标反查已关闭：认出 0 次≠没发生提交。）`;
@@ -183,9 +184,9 @@ function screenLockSection(st) {
 // ───── 三、备份状态 ─────
 export function backupStatus({ backups, nowMs }) {
   const out = { lines: [], clues: [] };
-  if (!backups || !existsSync(join(backups, 'consistent-checkpoints'))) return { lines: ['备份状态：未启用（没配置，或目录不存在）。'], clues: [], disabled: true };
+  if (!backups || !existsSync(join(backups, 'consistent-checkpoints'))) return { lines: [B.backupDisabled], clues: [], disabled: true };
   const dirs = (() => { try { return readdirSync(join(backups, 'consistent-checkpoints'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort(); } catch { return null; } })();
-  if (dirs === null) return { lines: ['未能检查：备份目录读不了。'], clues: ['备份状态：未能检查'] };
+  if (dirs === null) return { lines: [B.backupDirUnreadable], clues: [B.backupClueNot] };
   let latest = null;
   for (const d of [...dirs].reverse()) { const m = jread(join(backups, 'consistent-checkpoints', d, 'manifest.json'), null); if (m) { latest = { d, m }; break; } }
   if (!latest) out.lines.push('最新一份备份：读不到清单。');
@@ -265,28 +266,28 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), nowMs = nul
   const bk = backupStatus({ backups: areas.backup, nowMs: now });
   // 某一节读不到（写的是“未能检查”）：整份不能照样写“状态：完整”——写“不完整”并进线索汇总，看护下一遍会重试（它只认“状态：完整”）
   const incomplete = [];
-  if (result.rework?.error) incomplete.push('返工次数');
-  if (result.rules?.error) incomplete.push('规则文件');
-  if (/未能检查/.test(outside)) incomplete.push('审查区／名册／备份区新增');
-  if (!lockStats.ok) incomplete.push('桌面角色屏幕锁日志');
-  if (bk.lines.some((l) => /未能检查/.test(l)) || bk.clues.some((c) => /未能检查/.test(c))) incomplete.push('备份状态');
+  if (result.rework?.error) incomplete.push(B.wRework);
+  if (result.rules?.error) incomplete.push(B.wRules);
+  if (NC_RE.test(outside)) incomplete.push(B.wOutside);
+  if (!lockStats.ok) incomplete.push(B.wLock);
+  if (bk.lines.some((l) => NC_RE.test(l)) || bk.clues.some((c) => NC_RE.test(c))) incomplete.push(B.wBackup);
   const clues = [];
-  if (incomplete.length) clues.push(`盲区抽查这些小节未能检查：${incomplete.join('、')}（这份文件不算完整，看护会重试）`);
+  if (incomplete.length) clues.push(B.cluesIncomplete(incomplete.join(B.jn)));
   if (result.rework?.hit?.length) clues.push(`返工 ≥${LIMITS.reworkAt} 次的卡 ${result.rework.hit.length} 张`);
   if (result.rules?.changed?.length) clues.push(`规则文件内容变了 ${result.rules.changed.length} 个`);
   if (lockStats.ok && (lockStats.errors || lockStats.wordsUnreadable)) clues.push(`桌面角色提交类点击识别出错 ${lockStats.errors} 次、词表读不到 ${lockStats.wordsUnreadable} 次（识别可能没在起作用）`);
   clues.push(...bk.clues);
   const text = [
-    `# 盲区抽查 · ${bizDate}`, '',
-    `${labelText(W.businessDateLabel)}${bizDate}`, `窗口：${localStamp(startMs)} → ${localStamp(endMs)}（本地时区）`, `生成时间：${new Date(now).toISOString()}`,
-    '说明：脚本自己生成，只读；只放数量和文件夹分组，不放内容；日审只读本文件，周审也只读这份。读不到的写“未能检查”，不写“没有”。', '',
-    '## 线索汇总', '', clues.length ? clues.map((c) => `- ${c}`).join('\n') : '无', '',
-    '## 一、返工次数', '', reworkSection(result.rework), '',
-    '## 二、范围外文件（补文件管理那份没盖的）', '', '### A 规则文件被改', '', ruleSection(result.rules), '', outside, '',
-    '### B2 桌面角色提交类点击识别的运行情况（来自屏幕锁日志）', '', screenLockSection(lockStats), '',
-    '### C ~/OpenClaw 以外的地方', '', '不扫描（全局规矩不扫描个人文件夹、照片、云同步目录）。这些地方只能靠命令抽查里 bot 的命令指向它们来发现——**这是一个明确的看不到的地方**。', '',
-    '## 三、备份状态', '', ...bk.lines.map((l) => `- ${l}`), '',
-    incomplete.length ? `${labelText(W.statusLabel)}${W.reportIncomplete}（未能检查：${incomplete.join('、')}）` : `${labelText(W.statusLabel)}${W.reportComplete}`, '',
+    B.title(bizDate), '',
+    `${labelText(W.businessDateLabel)}${bizDate}`, B.windowLine(localStamp(startMs), localStamp(endMs)), B.generatedLine(new Date(now).toISOString()),
+    B.noteLine, '',
+    B.secClues, '', clues.length ? clues.map((c) => `- ${c}`).join('\n') : B.none, '',
+    B.secRework, '', reworkSection(result.rework), '',
+    B.secOutside, '', B.secRules, '', ruleSection(result.rules), '', outside, '',
+    B.secLock, '', screenLockSection(lockStats), '',
+    B.secElsewhere, '', B.elsewhereText, '',
+    B.secBackup, '', ...bk.lines.map((l) => `- ${l}`), '',
+    incomplete.length ? `${labelText(W.statusLabel)}${W.reportIncomplete}${B.statusIncomplete(incomplete.join(B.jn))}` : `${labelText(W.statusLabel)}${W.reportComplete}`, '',
   ].join('\n');
   atomicWrite(join(dataRoot, W.layout.audit, W.layout.auditDaily, `${bizDate}-${W.layout.dailyFiles.blindspot}`), text);
   try { result.rules?.commit?.(); } catch { /* 基线更新失败不影响报告 */ }

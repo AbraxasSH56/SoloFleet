@@ -319,7 +319,7 @@ export function addResult({ dataRoot, project, name, path, outside, note, now = 
   let position;
   if (path) {
     const rel = String(path).trim();
-    if (rel.startsWith('/') || rel.split('/').includes('..')) return fail('--path 要写相对项目文件夹的路径（如 ${LY.outputs}/xxx.md），不能以 / 开头，也不能含 ..', { code: 'bad-path' });
+    if (rel.startsWith('/') || rel.split('/').includes('..')) return fail(`--path 要写相对项目文件夹的路径（如 ${LY.outputs}/xxx.md），不能以 / 开头，也不能含 ..`, { code: 'bad-path' });
     const abs = resolve(dir, rel);
     if (!abs.startsWith(dir + sep)) return fail('--path 指到了项目文件夹外面', { code: 'bad-path' });
     if (!isFile(abs)) return fail(`成果文件不存在：${abs}。先把文件放进项目文件夹再登记；成果不在项目里就改用 --outside`, { code: 'no-file' });

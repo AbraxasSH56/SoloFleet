@@ -60,9 +60,9 @@ With several displays, first confirm with real windows and screenshots which scr
 - Then, in the current thread, mention the Task auditor `<@<TASK_AUDITOR_BOT_USER_ID>>` and write everything in one message in the format below (an ordinary reply or the `message` tool both work; the program recognizes both). The marker `[Help request]` is the exact word the programs match; use it exactly as written:
   [Help request]
   Symptom: (which step you are stuck at, what you wanted to do)
-  What I did: (what you used each of the two times)
-  What is on the screen now: (describe it in words; the Task auditor cannot see the screen)
-  Error text: (the tool's original return text, or write "none")
+  What I tried: (what you did on each of the two attempts)
+  What is on the screen now: (describe it in words: the windows, buttons and prompts you see; the Task auditor cannot see the screen)
+  Original error: (the text the tool returned; write "none" if there is none)
 - The Task auditor replies in the same thread with `[Help reply]`. Try once more following its advice, and only once more.
 - If it still fails: do not touch the screen again and do not wrap up (leave the screen as it is); write `Stuck: <what you tried, where it stopped, what the screen looks like now>` in the thread, release the lock, and mention the Controller, who reports it to the owner, and wait for their decision. Do not keep trying yourself, do not try other ways around it, and do not change the model either.
 - If the Task auditor does not reply within 20 minutes, the program itself mentions the owner in the approval channel; you need not handle it, and do not ask for help again.

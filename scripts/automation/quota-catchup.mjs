@@ -62,7 +62,7 @@ export function realDeps(env = process.env) {
 }
 
 // ---------- 账本 ----------
-function paths(dataRoot) {
+export function paths(dataRoot) {
   const base = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.catchup);
   return {
     base,

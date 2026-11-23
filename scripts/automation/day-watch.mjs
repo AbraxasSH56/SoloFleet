@@ -89,7 +89,7 @@ const RESUME_GRACE_MS = 30 * 60 * 1000; // 登记出现后 30 分钟内，账里
 // 读额度接续的账：没有这个文件（接续还没跑过）＝空账；文件在但读不出（损坏），或者超过 45 分钟没更新（额度接续每 10 分钟一轮、每轮都会重写账；
 // 停用了或连续出错就会变旧）＝undefined，看护照旧不让路——免得账里一条“待发起”让看护永远让路、谁也不叫
 const RESUME_LEDGER_STALE_MS = 45 * 60 * 1000;
-function readResumeLedger(dataRoot, nowMs) {
+export function readResumeLedger(dataRoot, nowMs) {
   const f = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota, W.layout.runLogDirs.quotaResume, '账.json');
   if (!existsSync(f)) return { 链: {}, 运行: {} };
   try {
@@ -258,13 +258,13 @@ export async function handleAnomaly(d, an) {
 }
 
 async function findByFingerprint(d, fp) {
-  try { return d.listJobs().find((j) => String(j.payload?.message ?? '').includes(`〔看护·${fp}〕`))?.id ?? null; } catch { return null; }
+  try { return d.listJobs().find((j) => String(j.payload?.message ?? '').includes(W.wake.watchMarker(fp)))?.id ?? null; } catch { return null; }
 }
 
 async function callAndRecord(d, an, fp, file) {
-  const msg = `〔看护·${fp}〕异常清单原样：${an.text}\n按规则核实；需要就在对应线程点名相关 bot；要主人定的照丙档登记台账（pending_decision_register）。`;
+  const msg = W.wake.watchBody(W.wake.watchMarker(fp), an.text);
   let r = null;
-  try { r = d.addJob(msg, `白天看护叫起-${fp}`); } catch { r = null; }
+  try { r = d.addJob(msg, `${W.wake.watchJob}${fp}`); } catch { r = null; }
   const a = jread(file, {});
   if (r?.id) { a.state = '已叫起'; a.jobId = r.id; a.calledAt = d.now(); a.calls = [...(a.calls ?? []), d.now()]; jwrite(file, a); return { action: 'called', fp, jobId: r.id }; }
   return { action: 'prepared-unknown', fp }; // 保持“准备叫起”，下一次先按指纹找原请求
