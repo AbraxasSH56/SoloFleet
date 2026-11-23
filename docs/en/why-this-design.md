@@ -83,9 +83,9 @@ The owner's attention is treated as the scarcest resource in the system, and the
 
 *Done elsewhere, taken a step further. Daily model-free reconciliation: not seen elsewhere.*
 
-Section 3 guards the owner's attention. This one guards the model's. A model has only so much attention in a turn, and every format check, filing step, ledger entry or "did it really happen?" check it does from memory takes attention away from the one thing only it can do: judge. So the chores that must come out the same way every time are walled off into a program layer, and the model's attention goes to what needs judgement.
+Section 3 guards the owner's attention. This one guards the model's. A model has only so much attention in a turn, and every format check, back-fill of a missed request, reconciliation or "did it really happen?" check it does from memory takes attention away from the one thing only it can do: judge. So the checks that must come out the same way every time are walled off into a program layer, and the model's attention goes to what needs judgement. (The model still writes its own records; the program checks and backs them up.)
 
-In most agent setups, roles, reviews and handoffs are written into prompts and the model is trusted to follow them. That works until the day it does not, and even on a good day it spends the model's attention on bookkeeping.
+In most agent setups, roles, reviews and handoffs are written into prompts and the model is trusted to follow them. That works until the day it does not, and even on a good day it spends the model's attention on checking its own work.
 
 Here, the chores that must happen are listed and each is given to a program:
 
@@ -99,7 +99,7 @@ Things that need judgement stay with the model and in the rules. The rules given
 
 **Others.** The stance is not new. [12-factor agents](https://github.com/humanlayer/12-factor-agents) argues for keeping control flow in your own code. Claude Code has hooks that can stop a task from being marked complete, and you write what they check. What we did is go through the "must happen" list item by item, attach a program to each, and say in the rules which kind of backing each step has.
 
-**In daily use.** "Done" from a bot is not the end of it; whether the card turns over is decided by a program. The rules do not stop working because a model had an off day, and the model's turn is not spent on filing and checking.
+**In daily use.** "Done" from a bot is not the end of it; whether the card turns over is decided by a program. The rules do not stop working because a model had an off day, and the model does not have to rely on its memory to check formats, back-fill ledger entries or reconcile folders.
 
 **Where to look.** `plugins/personal-inbox/index.mjs` registers every gate; `scripts/automation/`; the tests in `tests/`. The step-by-step map is in [Development process](development-process.md).
 
