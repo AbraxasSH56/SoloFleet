@@ -33,15 +33,16 @@
           <a class="gh" href="https://github.com/AbraxasSH56/SoloFleet" target="_blank" rel="noopener" data-cta="nav">View on GitHub ↗<span class="sr-only"> (opens in a new tab)</span></a>
         </header>
 
-        <h1 class="display">
-          <span class="line">One Claude subscription.</span>
-          <span class="line"><span class="serif">A whole crew</span> of bots</span>
-          <span class="line">in Discord<span class="dot">.</span></span>
-        </h1>
+        <h1 class="brand-title"><span class="line">SoloFleet<span class="dot">.</span></span></h1>
 
         <div class="hero-grid">
           <div>
-            <p class="lede">An open-source OpenClaw setup: one duty per bot, one flat subscription, a program layer for the basics.</p>
+            <p class="subhead">
+              <span class="sr-only">One Claude subscription. A whole crew to keep you focused.</span>
+              <span aria-hidden="true">One <span class="rot" id="rot"><span class="rot-w is-on" data-word="claude">Claude</span><span class="rot-w" data-word="gemini">Gemini<span class="q">?</span></span><span class="rot-w" data-word="codex">Codex<span class="q">?</span></span></span> subscription.<br><span class="serif">A whole crew</span> to keep you focused<span class="dot">.</span></span>
+            </p>
+            <p class="lede">Open-source rules, one plugin and scripts for OpenClaw, in Discord.</p>
+            <p class="rot-note mono"><span>Tested on Claude only · others untried</span> <button type="button" class="rot-toggle" id="rot-toggle" hidden>Pause names</button></p>
             <div class="ctas">
               <a class="btn" href="https://github.com/AbraxasSH56/SoloFleet" target="_blank" rel="noopener" data-cta="hero">View on GitHub<span class="sr-only"> (opens in a new tab)</span></a>
               <a class="btn btn-ghost" href="#safety">How it stays safe</a>
@@ -127,6 +128,17 @@
       </div>
     </section>
 
+    <!-- Interlude: optional role-play (paper, light) -->
+    <section class="interlude ruled" id="cast" aria-labelledby="cast-title">
+      <div class="wrap">
+        <aside class="cast reveal">
+          <h2 id="cast-title" class="cast-title">Optional: give the crew <span class="serif">a cast</span></h2>
+          <p>I gave my bots the voices of game characters. Silver Wolf, from Honkai: Star Rail, runs my desktop. She stops and waits for me before a payment or a submit, and calls that her “save point”. Her fellow Stellaron Hunters, Kafka and Firefly, wait in her queue like everyone else. A persona only changes the voice, never the rules or the result.</p>
+          <p class="credit cast-credit">Character names belong to their respective games and rights holders. Not affiliated.</p>
+        </aside>
+      </div>
+    </section>
+
     <!-- 4. Safety (signal orange) -->
     <section class="sec signal-bg" id="safety" aria-labelledby="safety-title">
       <div class="wrap">
@@ -178,8 +190,7 @@
         <h2 id="before-title" class="reveal">Before <span class="serif">you try</span>.</h2>
         <ul class="checklist">
           <li>An always-on Mac; desktop verified on macOS only.</li>
-          <li>OpenClaw, Node 24.16+, the <code>claude</code> CLI, a Discord bot per duty.</li>
-          <li>Some fixed protocol words are still Chinese.</li>
+          <li>OpenClaw, Node 24.16+, Python 3, the <code>claude</code> CLI, a Discord bot per duty.</li>
           <li>Not yet built from scratch on a fresh machine.</li>
           <li>You sign in yourself; the repo never touches your login.</li>
           <li>One person uses it.</li>

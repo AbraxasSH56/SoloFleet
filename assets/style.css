@@ -15,6 +15,9 @@
   --mute-dark: #a9a49a;
   --signal: #ff4a1c;       /* thick lines, big shapes, fills, buttons with black text only */
   --signal-ink: #b82905;   /* small orange text and thin annotations on paper/card */
+  --claude: #e0431a;       /* Claude word in the subhead, large text only (3.6:1 on paper) */
+  --gemini: #1558b0;       /* 5.8:1 */
+  --codex: #0f6b55;        /* 5.5:1 */
   --sans: "Inter Tight", ui-sans-serif, -apple-system, "Segoe UI", Arial, sans-serif;
   --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -69,6 +72,22 @@ code { font-family: var(--mono); font-size: .88em; }
 .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 36px; align-items: start; }
 .lede { font-size: var(--fs-lede); line-height: 1.4; max-width: 30em; margin-bottom: 24px; }
 .footnote { margin-top: 20px; color: var(--ink-2); }
+
+/* brand title + rotating subhead (round 9) */
+.brand-title { margin-top: 28px; font-size: clamp(60px, 14.4vw, 208px); font-weight: 650; line-height: .86; letter-spacing: -.055em; }
+.brand-title .line { display: block; }
+.subhead { margin: 0 0 18px; font-size: clamp(26px, 3.1vw, 44px); font-weight: 600; line-height: 1.12; letter-spacing: -.03em; }
+.rot { display: inline-grid; vertical-align: bottom; text-align: center; overflow: hidden; }
+.rot-w { grid-area: 1 / 1; opacity: 0; transform: translateY(60%); transition: opacity .35s var(--ease), transform .35s var(--ease); }
+.rot-w.is-on { opacity: 1; transform: none; }
+.rot-w.is-out { opacity: 0; transform: translateY(-60%); }
+.rot-w[data-word="claude"] { color: var(--claude); }
+.rot-w[data-word="gemini"] { color: var(--gemini); }
+.rot-w[data-word="codex"] { color: var(--codex); }
+.rot-w .q { color: var(--ink-2); }
+.rot-note { color: var(--ink-2); margin: -6px 0 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.rot-toggle { font: inherit; letter-spacing: inherit; text-transform: inherit; background: none; border: 0; border-bottom: 1px solid var(--ink-2); color: var(--ink-2); padding: 0; min-height: 32px; cursor: pointer; }
+.lede { margin-bottom: 14px; }
 
 /* the Discord exhibit */
 .exhibit { position: relative; margin: 0; justify-self: end; width: 100%; max-width: 560px; }
@@ -133,6 +152,16 @@ code { font-family: var(--mono); font-size: .88em; }
 .more ul { margin: 0 0 8px; padding-left: 20px; font-size: 16px; color: var(--ink-2); }
 .more li { margin-bottom: 6px; }
 
+/* interlude: optional role-play, small and light */
+.interlude { padding: 8px 0 var(--gap-section); }
+.cast { max-width: 640px; margin-left: auto; background: var(--card); border: 2px solid var(--ink); border-radius: 8px; padding: 20px 24px 18px; transform: rotate(1.2deg); box-shadow: 6px 6px 0 var(--ink); }
+.anim .cast.reveal { transform: translateY(18px) rotate(1.2deg); }
+.anim .cast.reveal.in { transform: rotate(1.2deg); }
+.cast-title { font-size: var(--fs-h3); font-weight: 600; line-height: 1.2; margin: 0 0 10px; }
+.cast p { font-size: 16px; line-height: 1.55; margin: 0 0 10px; }
+.cast .cast-credit { margin: 12px 0 0; text-align: right; font-size: 11px; line-height: 1.4; color: var(--ink-2); }
+@media (max-width: 959px) { .cast { margin-left: 0; transform: none; } .anim .cast.reveal, .anim .cast.reveal.in { transform: none; } }
+
 /* safety on signal orange */
 .safety-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 48px; }
 .safety-list li { border-top: 2px solid var(--ink); padding: 16px 0 20px; font-size: 20px; line-height: 1.35; }
@@ -194,7 +223,7 @@ td.status { white-space: nowrap; }
 .page a { color: var(--signal-ink); }
 
 /* ---------- entrance motion (JS adds .anim; reduced motion never gets it) ---------- */
-.anim .display .line, .anim .chan, .anim .appr, .anim .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+.anim .display .line, .anim .brand-title .line, .anim .chan, .anim .appr, .anim .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
 .anim .appr { transform: translateY(-14px) rotate(-2.5deg); }
 .anim .line.in, .anim .chan.in, .anim .reveal.in { opacity: 1; transform: none; }
 .anim .appr.in { opacity: 1; transform: rotate(-2.5deg); }

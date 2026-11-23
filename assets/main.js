@@ -102,10 +102,56 @@
   /* ---------- entrance: hero lines, then the Discord exhibit, played once ---------- */
   var exhibit = document.getElementById('exhibit');
   function approve() { if (exhibit) exhibit.classList.add('is-approved'); }
-  var lines = document.querySelectorAll('.display .line');
+  var lines = document.querySelectorAll('.display .line, .brand-title .line');
   var chan = document.querySelector('.chan');
   var appr = document.querySelector('.appr');
   var reveals = document.querySelectorAll('.reveal');
+
+  /* ---------- rotating provider name in the subhead ----------
+     Claude stays longest and is what shows when nothing runs (no JS, reduced motion, screenshots).
+     Others carry a "?" (untried / not recommended). Screen readers get a fixed sentence instead. */
+  var rot = document.getElementById('rot');
+  var rotToggle = document.getElementById('rot-toggle');
+  if (rot && !reduced) {
+    var words = rot.querySelectorAll('.rot-w');
+    var seq = [['claude', 3200], ['gemini', 1100], ['claude', 3200], ['codex', 1100]];
+    var si = 0, rotTimer = null, rotPaused = false, heroVisible = true;
+    var byName = {};
+    for (var w = 0; w < words.length; w++) byName[words[w].getAttribute('data-word')] = words[w];
+    function showWord(name) {
+      for (var k in byName) {
+        var el = byName[k];
+        if (k === name) { el.classList.remove('is-out'); el.classList.add('is-on'); }
+        else if (el.classList.contains('is-on')) { el.classList.remove('is-on'); el.classList.add('is-out'); }
+        else { el.classList.remove('is-out'); }
+      }
+    }
+    function tick() {
+      clearTimeout(rotTimer);
+      if (rotPaused || !heroVisible || document.hidden) return;
+      rotTimer = setTimeout(function () {
+        si = (si + 1) % seq.length;
+        showWord(seq[si][0]);
+        tick();
+      }, seq[si][1]);
+    }
+    if (rotToggle) {
+      rotToggle.hidden = false;
+      rotToggle.addEventListener('click', function () {
+        rotPaused = !rotPaused;
+        rotToggle.textContent = rotPaused ? 'Play names' : 'Pause names';
+        if (rotPaused) { si = 0; showWord('claude'); clearTimeout(rotTimer); } else { tick(); }
+      });
+    }
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { si = 0; showWord('claude'); }   // back to Claude when the tab is hidden, like scrolling away or pausing
+      tick();
+    });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (en) { heroVisible = en[0].isIntersecting; if (!heroVisible) { si = 0; showWord('claude'); } tick(); }).observe(rot);
+    }
+    setTimeout(tick, 2600);   // start after the hero entrance
+  }
 
   if (reduced) { approve(); return; }   // no .anim class: everything already visible, final state shown
 
