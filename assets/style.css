@@ -142,6 +142,15 @@ code { font-family: var(--mono); font-size: .88em; }
 .signal-bg .more ul { color: var(--ink); }
 .signal-bg a:hover { color: var(--ink); }
 
+/* launch film */
+.film { margin: 0; max-width: min(100%, calc((100vh - 200px) * 16 / 9)); } /* whole video + controls fit in one desktop screen */
+.film-video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: var(--paper); border: 2px solid var(--ink); border-radius: 8px; box-shadow: 6px 6px 0 var(--ink); }
+.film-cap { margin-top: 20px; color: var(--ink-2); }
+.credit { margin: 10px 0 0; max-width: 62em; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+.credit a { color: var(--signal-ink); }
+.foot-credit { max-width: 62em; font-size: 13px; line-height: 1.5; margin-top: 10px !important; }
+@media (max-width: 719px) { .film-video { box-shadow: 4px 4px 0 var(--ink); } .credit, .foot-credit { font-size: 12px; } }
+
 /* support table */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; min-width: 560px; border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }

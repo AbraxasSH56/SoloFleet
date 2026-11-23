@@ -71,10 +71,28 @@
       </div>
     </section>
 
+    <!-- 1b. Launch film (paper-2) -->
+    <section class="sec alt" id="watch" aria-labelledby="watch-title">
+      <div class="wrap">
+        <div class="sec-head mono"><span>01 — Watch it</span></div>
+        <h2 id="watch-title" class="reveal">The whole idea <span class="serif">in 48 seconds</span>.</h2>
+        <figure class="film">
+          <video class="film-video" controls playsinline preload="metadata" width="1920" height="1080"
+                 poster="assets/solofleet-launch-poster.jpg" aria-describedby="film-desc">
+            <source src="assets/solofleet-launch-48s.mp4" type="video/mp4">
+            Your browser can't play this video. <a href="assets/solofleet-launch-48s.mp4">Open the MP4 (13 MB)</a>.
+          </video>
+          <p id="film-desc" class="sr-only">A 48-second animated film with music and no voice-over, drawn in the same paper style as this page. A crowd of bot avatars gathers into one crew under the line “One Claude subscription. A whole crew.” In a redrawn Discord channel you ask for a one-page summary, the Controller asks “Start?” and you answer yes: “Say it once, in Discord.” A reply shows its usage card: model, pool, effort, files changed: “Every reply shows what it used.” A task card unlocks only after the Task auditor passes it: “Done means audited.” An approval card asks to click Submit and waits until you press Allow once: “It waits for your click.” The camera pulls back to a whole workspace of threads, and the film ends on the SoloFleet logo with “Search SoloFleet on GitHub” and the music credit.</p>
+          <figcaption class="film-cap mono">48 seconds · music, no voice-over · redrawn, not the real Discord UI · click to play</figcaption>
+          <p class="credit">Music: “Long Time Coming” by Kevin MacLeod (<a href="https://incompetech.com" target="_blank" rel="noopener">incompetech.com</a>), licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons: By Attribution 4.0</a>. Source: <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100173" target="_blank" rel="noopener">incompetech.com/music/royalty-free/index.html?isrc=USUAN1100173</a>. Changes: excerpted, re-edited at bar boundaries and faded out for this video. UI sounds: Kenney (<a href="https://kenney.nl" target="_blank" rel="noopener">kenney.nl</a>), CC0.</p>
+        </figure>
+      </div>
+    </section>
+
     <!-- 2. How a day goes (ink) -->
     <section class="sec dark" id="how" aria-labelledby="how-title">
       <div class="wrap">
-        <div class="sec-head mono"><span>01 — How a day goes</span></div>
+        <div class="sec-head mono"><span>02 — How a day goes</span></div>
         <h2 id="how-title" class="reveal">Say it once. <span class="serif">Hear back</span> rarely.</h2>
         <ol class="cols">
           <li class="reveal"><span class="num" aria-hidden="true">01</span><h3>Say it in Discord</h3><p class="muted">Type it in the Workshop. The Controller restates anything complex and waits for one yes.</p></li>
@@ -87,7 +105,7 @@
     <!-- 3. Why this way (paper) -->
     <section class="sec ruled" aria-labelledby="why-title">
       <div class="wrap">
-        <div class="sec-head mono"><span>02 — Why this way</span></div>
+        <div class="sec-head mono"><span>03 — Why this way</span></div>
         <h2 id="why-title" class="reveal">Built for <span class="serif">one person</span>, many bots.</h2>
         <div class="cols">
           <article class="reveal"><span class="num" aria-hidden="true">A</span><h3>One flat subscription</h3><p class="muted">One Claude subscription runs every bot. Each reply shows a usage card.</p></article>
@@ -112,7 +130,7 @@
     <!-- 4. Safety (signal orange) -->
     <section class="sec signal-bg" id="safety" aria-labelledby="safety-title">
       <div class="wrap">
-        <div class="sec-head mono"><span>03 — Safety</span></div>
+        <div class="sec-head mono"><span>04 — Safety</span></div>
         <h2 id="safety-title" class="reveal">The desktop bot <span class="serif">waits</span> for you.</h2>
         <ul class="safety-list">
           <li class="reveal"><strong>One bot on the screen</strong>, with a lock and queue.</li>
@@ -138,7 +156,7 @@
     <!-- 5. What it runs on (paper-2) -->
     <section class="sec alt" id="support" aria-labelledby="support-title">
       <div class="wrap">
-        <div class="sec-head mono"><span>04 — Support</span></div>
+        <div class="sec-head mono"><span>05 — Support</span></div>
         <h2 id="support-title" class="reveal">What it <span class="serif">runs on</span>.</h2>
         <div class="table-wrap" role="region" aria-labelledby="support-title" tabindex="0">
           <table>
@@ -156,7 +174,7 @@
     <!-- 6. Before you try (ink) -->
     <section class="sec dark" id="before" aria-labelledby="before-title">
       <div class="wrap">
-        <div class="sec-head mono"><span>05 — Before you try</span></div>
+        <div class="sec-head mono"><span>06 — Before you try</span></div>
         <h2 id="before-title" class="reveal">Before <span class="serif">you try</span>.</h2>
         <ul class="checklist">
           <li>An always-on Mac; desktop verified on macOS only.</li>
@@ -173,7 +191,7 @@
     <!-- 7. Close (paper) -->
     <section class="sec ruled" aria-labelledby="close-title">
       <div class="wrap">
-        <div class="sec-head mono"><span>06 — Read it</span></div>
+        <div class="sec-head mono"><span>07 — Read it</span></div>
         <h2 id="close-title" class="close-big reveal">Read the rules, the plugin <span class="serif">and the reasons</span><span class="dot">.</span></h2>
         <p class="lede">Questions, corrections and “we do this differently” are all welcome.</p>
         <div class="ctas">
@@ -188,6 +206,7 @@
     <div class="wrap">
       <p>SoloFleet · MIT licensed · A personal showcase project</p>
       <p>Not affiliated with or endorsed by OpenClaw, Discord or Anthropic.</p>
+      <p class="foot-credit">Launch film credits — Music: “Long Time Coming” by Kevin MacLeod (<a href="https://incompetech.com" target="_blank" rel="noopener">incompetech.com</a>), licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons: By Attribution 4.0</a>. Source: <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100173" target="_blank" rel="noopener">incompetech.com/music/royalty-free/index.html?isrc=USUAN1100173</a>. Changes: excerpted, re-edited at bar boundaries and faded out for this video. UI sounds: Kenney (<a href="https://kenney.nl" target="_blank" rel="noopener">kenney.nl</a>), CC0.</p>
       <ul class="foot-links">
         <li><a href="privacy.html">Privacy</a></li>
         <li><a href="terms.html">Terms</a></li>
