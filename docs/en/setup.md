@@ -7,7 +7,7 @@ This guide takes you from an empty Mac to a crew that answers in Discord. It is 
 Two things to know first:
 
 - The programs read one central file, `config/crew.json` (copy of `config/crew.example.json`). Every ID, path, time zone and language is set there. Nothing about your own deployment is written into the code.
-- The programs still match some **Chinese literal words** (progress-sentence openers, card labels, report headers, folder names). The English rule files quote those words as they are; `locale` (default `en`) only changes the reply-card text and a few language-dependent helpers. See [localization.md](localization.md) before you decide how to run it.
+- `locale` (default `en`, or `zh-CN`) decides the words the programs match and write (progress openers, card labels, report headers), the folder names under the data root and the texts the programs give the bots; the rule files, templates and job instructions come in a matching English and Chinese version. Choose it before you create the data root and do not change it later. See [localization.md](localization.md).
 
 ## 1. What you need
 
@@ -56,7 +56,7 @@ Create the applications and put the bot tokens in environment variables (`DISCOR
 1. `cp config/crew.example.json config/crew.json` and fill in the owner ID, server ID, channel IDs, bot user IDs, `timezone`, `paths` (`dataRoot`, `workspaceRoot`, `projectRoot`, `nodeBin`, `openclawBin`, `openclawInstallDir`). Field by field: [configuration.md](configuration.md). `config/crew.json` is git-ignored.
 2. Set `SOLOFLEET_CONFIG=<PROJECT_ROOT>/config/crew.json` in the gateway's environment. OpenClaw copies installed plugins to a temporary folder, so the plugin cannot find the file by its own location.
 3. Merge the fragments in `config/examples/` into your OpenClaw configuration (agents, Discord accounts and bindings, tool lists, approval routing). Check field names against your OpenClaw version; the examples follow 2026.10.x. `inbox-integration.example.json` loads and enables the plugin.
-4. Prepare the data root (`paths.dataRoot`): copy `templates/任务记录.md` and `templates/项目入口.md` into `<DATA_ROOT>/模板/` (the programs read them under those names), and create `INDEX.md` and `决定账本.md` from the `*-header` templates (`templates/index-header*.md`, `templates/decision-ledger-header*.md`).
+4. Prepare the data root (`paths.dataRoot`): copy `templates/task-record.md` and `templates/project-entry.md` into `<DATA_ROOT>/templates/` (the programs read them under those names), and create `INDEX.md` and `decision-ledger.md` from the `*-header` templates (`templates/index-header.md`, `templates/decision-ledger-header.md`). For `locale: zh-CN` copy `templates/任务记录.md` and `templates/项目入口.md` into `<DATA_ROOT>/模板/` and use `templates/index-header.zh-CN.md` and `templates/decision-ledger-header.zh-CN.md` (the file is `决定账本.md`).
 5. Generate each role's `AGENTS.md` from the repository rules:
 
    ```bash

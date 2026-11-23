@@ -1,71 +1,213 @@
-# Localization: what to change to run in another language
+# Changing the language
 
 English | [简体中文](../zh-CN/localization.md)
 
-The reference deployment was built in Chinese. The programs, the rule files and the folder layout therefore match some **Chinese literal words**. Translating the documents is not enough: this page lists every place that matches a literal, so you can decide.
+The reference deployment was built in Chinese. Today the **words the programs match, write and send follow the `locale` setting** (`en` by default, or `zh-CN`). The shared rules, the role heads, the templates and the job instructions come in two versions, one per language (`*.zh-CN.md` is the Chinese one); in each language all four and the programs use the same set of words.
 
-## Current state
+## What `locale` controls
 
-The shared rules, role heads, templates and job instructions are available in English and in Chinese (`*.zh-CN.md`). `locale` (`en` by default, or `zh-CN`) currently controls three things:
+- **Protocol words**: the openers of progress lines, the section titles and labels of task records, the labels on task cards, the first lines of submission sheets and audit reports, help markers, queue skip reasons, ledger status words, job names and so on. Section 1 lists every one of them, with the files that match them.
+- **Folder and file names under the data root**, and the names of the template files (`projects/<name>/{tasks,outputs,history}`, `decision-ledger.md`, `templates/`, `audit/...`, `run-logs/...`). Section 2 lists them.
+- **Placeholders in the templates** (`{{PROJECT_NAME}}` in en, `{{项目名}}` in zh-CN).
+- **Instruction texts** that the programs give the bots: the help request format, the desktop queue notices, the reminder inserted into the controller turn, the quota-resume wake text, the descriptions of the two ledger tools, and the completion records.
+- **Reply-card text** (model line, changed-files line, quota line) and the two fixed system sentences.
+- The **English-process-paragraph cleanup** runs only for `zh-CN` (it was written for deployments whose rules say "always reply in Chinese").
+- Which **language of the job snippets** the audit guard compares against.
 
-- the **text on the reply card** (model line, changed-files line, quota line) and the two replacement sentences for the fixed system messages, both fully in `lexicon.mjs` in English and Chinese;
-- the **English-process-paragraph cleanup** (deleting English "thinking out loud" paragraphs in front of a Chinese reply): it was written for deployments whose rules say "always reply in Chinese", so it runs only when `locale` is `zh-CN` and is off for `en`;
-- which language version of the **job-instruction snippets** the audit guard fingerprints (`jobs/*.md` or `jobs/*.zh-CN.md`).
+`locale` does not change: the desktop sensitive-word list (Chinese and English words are always both active, because the list guards payments, sends and deletions), the English error sentence of `claude -p` when the quota is used up (`quota-recovery.mjs` matches it as it is), command-line parameter names, and the list under "Remaining boundary" below.
 
-What `locale` does **not** change yet: the literal words listed in section 1 (progress openers, card labels, report headers, folder names). `lexicon.mjs` has a draft English set for those, but **the programs still match the Chinese words directly**, whatever `locale` says. So:
+**Choose `locale` before you create the data root, and do not change it later.** The ledgers and state files keep the words of the locale they were written in (for example the status `no-reply` or `没回`). Switching an existing data root from one locale to the other does not migrate anything; start a new data root for the other language. Existing zh-CN deployments keep working exactly as before.
 
-- keep the Chinese literals as they are (the English rule files quote them);
-- you can still have the bots talk to you in English: set `replyLanguage` (default `English`). The English rules tell the bots to reply in `{{REPLY_LANGUAGE}}` and to keep the literal Chinese words listed below when the programs need them (a progress sentence starts with `完成：`, for example);
-- or use the Chinese rule files and reply language and nothing needs translating.
+The sandbox trigger scripts (`scripts/automation/command-spot-check-trigger.js`, `scripts/automation/deep-review-trigger.js`) run inside OpenClaw's script sandbox and cannot read `config/crew.json`. Each has a hand-filled constant `const LOCALE = "en";` at the top (see [configuration.md](configuration.md), section 5): set it to the same value as `locale`. Each also carries a small table with the words it needs; `tests/trigger-literals-consistency.test.mjs` keeps those tables in step with `lexicon.mjs`. `scripts/automation/publish-self.py` reads `locale` from the config and carries its own table too (`tests/publish-table-consistency.test.mjs`).
 
-If you want a fully English deployment you must change the words in the code (list below) and in the rule/template/job files together, then update the tests. Each item names the file that matches it.
+## 1. Words the programs match or write
 
-## 1. Words the programs match
+The master list is `plugins/personal-inbox/lexicon.mjs` (one entry per word, the same keys for both languages). Words that take a colon are stored without it: zh-CN writes the full-width colon `：` and reads both colons; en writes `: ` and reads the half-width colon with optional spaces after it.
 
-| Group | Literal words (zh-CN) | Where matched |
+### 1.1 Progress sentences, task records, index
+
+| Key | zh-CN | en | Used by |
+|---|---|---|---|
+| `progressOpeners` | `完成：` / `进行中：` / `没跑成：` / `等主人：` / `卡住：` | `Done:` / `In progress:` / `Did not run:` / `Waiting on owner:` / `Stuck:` | scripts/automation/daily-format-check.mjs (status word of the record), rules |
+| `statusLabel` | `状态` | `Status` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/project-files.mjs, templates (label word; the colon is written by the program) |
+| `sectionCurrentStatus` | `当前状态` | `Current status` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/project-files.mjs, templates |
+| `sectionWaitingForOwner` | `等主人拍板` | `Waiting for the owner's decision` | scripts/automation/daily-format-check.mjs, templates, rules |
+| `sectionResults` | `当前成果` | `Current results` | plugins/personal-inbox/project-files.mjs, templates, rules |
+| `noneWord` | `无` | `None` | scripts/automation/daily-format-check.mjs |
+| `placeholderCell` | `暂无（待写）` | `None yet (to be written)` | plugins/personal-inbox/project-files.mjs, templates |
+| `indexProjectHeader` | `项目` | `Project` | plugins/personal-inbox/project-files.mjs (first column of the project table in INDEX.md) |
+| `idLabel` | `编号` | `ID` | plugins/personal-inbox/project-files.mjs, scripts/automation/lead-free.mjs (channel cell: name (ID digits)) |
+| `projectEntryLinkText` | `项目入口` | `Project entry` | plugins/personal-inbox/project-files.mjs (entry column of INDEX.md) |
+| `taskRecordTitle` | `任务记录` | `Task record` | plugins/personal-inbox/project-files.mjs, templates (title line of a task record) |
+| `noteStart` | `<!-- 模板说明开始 -->` | `<!-- template note begin -->` | plugins/personal-inbox/project-files.mjs, templates (usage note removed when a file is created) |
+
+The five openers are written at the start of a progress line in the thread, followed by a colon (`Done:`, `完成：`). In the status line of a task record the word comes after the label (`Status: Done`).
+
+### 1.2 Task cards, submission sheets, audit reports
+
+| Key | zh-CN | en | Used by |
+|---|---|---|---|
+| `auditLabelPrefix` | `审计:` | `audit:` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/audit-gate.mjs |
+| `auditLabelValues` | `单审任务审计` / `单审独立` / `串联` | `single-task` / `single-independent` / `chained` | plugins/personal-inbox/audit-gate.mjs, templates, rules |
+| `auditLevelWord` | `审计级别` | `Audit level` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/audit-gate.mjs (the tag [Audit level] and the comment label) |
+| `auditBodyValues` | `[object Object]` | `[object Object]` | plugins/personal-inbox/audit-gate.mjs (first line of the card body), templates |
+| `authorizationWord` | `授权范围` | `Authorization scope` | scripts/automation/daily-format-check.mjs (the tag [Authorization scope]), rules |
+| `authorizationLines` | `目标` / `允许做的` / `要主人确认的` / `停止条件` | `Goal` / `Allowed` / `Needs owner confirmation` / `Stop conditions` | scripts/automation/daily-format-check.mjs |
+| `ownerWord` | `主人` | `owner` | scripts/automation/daily-format-check.mjs (owner … confirmed / approved) |
+| `confirmWords` | `确认` / `批准` | `confirmed` / `approved` | scripts/automation/daily-format-check.mjs |
+| `submissionHead` | `[object Object]` | `[object Object]` | plugins/personal-inbox/audit-gate.mjs (first line of a submission sheet) |
+| `submissionCard` | `任务卡` | `Task card` | plugins/personal-inbox/audit-gate.mjs (second line) |
+| `submissionPaths` | `成果位置` | `Result location` | plugins/personal-inbox/audit-gate.mjs (the block that lists the result paths) |
+| `reportVerdict` | `[object Object]` | `[object Object]` | plugins/personal-inbox/audit-gate.mjs (first line of an audit report), task auditor rules |
+
+Other labels that the rules quote but no program matches (`Owner's words:`, `Acceptance criteria:`, `Task type:`, `Executor:`, `Previous report:`, `Checked against:`, `Evidence:`, `Severity:`) are written in the same language as the rest of the text.
+
+### 1.3 Help requests and the desktop queue
+
+| Key | zh-CN | en | Used by |
+|---|---|---|---|
+| `helpRequestMarker` | `【求助】` | `[Help request]` | plugins/personal-inbox/stuck-guard.mjs, plugins/personal-inbox/desktop-lock.mjs, rules |
+| `helpReplyMarker` | `【求助回复】` | `[Help reply]` | plugins/personal-inbox/stuck-guard.mjs, rules |
+| `queueSkipReasons` | `不用了` / `完成` / `被接手` | `not-needed` / `done` / `taken-over` | plugins/personal-inbox/desktop-lock.mjs (skip --why), rules |
+
+### 1.4 Pending-decision ledger and program-sent markers
+
+| Key | zh-CN | en | Used by |
+|---|---|---|---|
+| `ledgerStatus.received` | `收到` | `received` | plugins/personal-inbox/pending-ledger.mjs, plugins/personal-inbox/pending-tools.mjs, rules |
+| `ledgerStatus.decided` | `已定` | `decided` | same |
+| `ledgerStatus.revoked` | `撤销` | `revoked` | same |
+| `ledgerStatus.noReply` | `没回` | `no-reply` | same |
+| `ledgerStatus.judging` | `待判` | `to-judge` | plugins/personal-inbox/pending-ledger.mjs (internal state) |
+| `ledgerSources.approvalExpired` | `审批过期` | `approval-expired` | plugins/personal-inbox/pending-ledger.mjs, rules |
+| `ledgerKinds.closing` | `结案确认` | `closing-confirmation` | plugins/personal-inbox/audit-gate.mjs, plugins/personal-inbox/pending-ledger.mjs |
+| `ledgerKinds.desktop` | `桌面角色六类操作` | `desktop-six-actions` | plugins/personal-inbox/desktop-lock.mjs, plugins/personal-inbox/pending-ledger.mjs |
+| `autoRegisterPrefix` | `（程序补登记）` | `(auto-registered) ` | plugins/personal-inbox/request-watch.mjs, plugins/personal-inbox/pending-tools.mjs |
+| `noDeadline` | `没截止` | `no deadline` | plugins/personal-inbox/pending-ledger.mjs, plugins/personal-inbox/pending-tools.mjs, plugins/personal-inbox/request-watch.mjs |
+| `testMarker` | `【测试】` | `[test]` | plugins/personal-inbox/request-watch.mjs, scripts/automation/ledger-watch.mjs |
+| `approvalReminderMarker` | `【待批提醒——程序加的，不是主人说的话】` | `[Pending-approval reminder — added by the program, not the owner's words]` | plugins/personal-inbox/approval-reminder.mjs, rules |
+| `quotaResumePrefix` | `【额度恢复·程序代发】` | `[Quota restored · sent by program]` | scripts/automation/quota-resume.mjs, rules |
+
+### 1.5 Completion records, decision ledger, generated reports, names
+
+| Key | zh-CN | en | Used by |
+|---|---|---|---|
+| `reminderWord` | `提醒` | `Reminder` | plugins/personal-inbox/completion-notice.mjs (the reminder at the end of a completion record), rules |
+| `ledgerQuoteLabel` | `原话` | `Quote` | scripts/automation/daily-format-check.mjs, scripts/automation/ledger-watch.mjs, templates |
+| `ledgerDateLabel` | `日期` | `Date` | scripts/automation/daily-format-check.mjs, templates |
+| `ledgerSections` | `一、有效的决定` / `二、已被取代的决定` | `1. Active decisions` / `2. Superseded decisions` | scripts/automation/ledger-verify.mjs, templates |
+| `businessDateLabel` | `业务日期` | `Business date` | report files written by the checks; scripts/automation/day-watch.mjs reads them |
+| `reportComplete` | `完整` | `complete` | scripts/automation/day-watch.mjs (the line "Status: complete") |
+| `timedJobLabels.id` | `定时任务编号` | `Timed job ID` | scripts/automation/day-watch.mjs (card body) |
+| `timedJobLabels.due` | `到点时间` | `Due time` | scripts/automation/day-watch.mjs (card body) |
+| `waitingLabels` | `等确认` / `等主人确认` / `已取消` | `waiting-confirm` / `waiting-owner-confirm` / `cancelled` | scripts/automation/day-watch.mjs (card labels) |
+| `mainRoleDisplayName` | `总控` | `Controller` | scripts/automation/bot-roster.mjs, scripts/automation/lead-free.mjs |
+| `dataAlias` | `资料` | `dataroot` | plugins/personal-inbox/execution-record.mjs (changed-files list), rules |
+
+### 1.6 Job names, audit run records, anomaly flags, publish receipts
+
+| Key | zh-CN | en | Used by |
+|---|---|---|---|
+| `jobNames.daily` | `日审` | `daily-audit` | scripts/automation/quota-catchup.mjs, scripts/automation/api-quota-gate.mjs, plugins/personal-inbox/quota-recovery.mjs, jobs |
+| `jobNames.patrol` | `巡查` | `patrol` | same, scripts/automation/publish-self.py |
+| `jobNames.deepReview` | `异常深审` | `deep-review` | same |
+| `jobNames.weekly` | `周审` | `weekly-audit` | same |
+| `jobNames.quotaCatchup` | `额度补跑` | `quota-catchup` | scripts/automation/quota-catchup.mjs (its own cron job) |
+| `jobNames.deskQueue` | `桌面排队推进` | `desktop-queue-advance` | jobs/patrol.md |
+| `auditRecordKeys.execution` | `执行` | `execution` | round record written by the job; read by scripts/automation/daily-format-check.mjs, scripts/automation/quota-catchup.mjs, scripts/automation/publish-self.py |
+| `auditRecordValues.done` | `完成` | `done` | same |
+| `flagKeys.status` | `状态` | `status` | anomaly flags; scripts/automation/deep-review-trigger.js |
+| `flagStates.reviewed` | `已深审` | `reviewed` | same |
+| `receiptKeys.state` | `状态` | `state` | publish receipts; scripts/automation/publish-self.py, scripts/automation/quota-catchup.mjs |
+| `publishStates.delivered` | `已送达` | `delivered` | same |
+
+The job names are also the names of the cron jobs in OpenClaw: if you rename a cron job, change the matching word in `lexicon.mjs`. `jobs.publishSelf.effectiveFrom` in `config/crew.json` is keyed by the task names of your locale (`patrol`, `deep-review`, `weekly-audit` in en; `巡查`, `异常深审`, `周审` in zh-CN). The round records, anomaly flags and publish receipts are JSON files whose keys and values are written by the models (following the job instructions) or by `publish-self.py`; the keys and values are in `lexicon.mjs` (`auditRecordKeys`, `auditRecordValues`, `flagKeys`, `flagStates`, `receiptKeys`, `publishStates`, `publishFiles`).
+
+## 2. Folders and file names under the data root
+
+| Key | zh-CN | en |
 |---|---|---|
-| Progress-sentence openers | `完成：` `进行中：` `没跑成：` `等主人：` `卡住：` | `scripts/automation/daily-format-check.mjs` (`STATUS_HEADS`), rules |
-| Task record layout | the status line `状态：`, sections `当前状态`, `等主人拍板`, `当前成果`, `暂无（待写）` | `plugins/personal-inbox/project-files.mjs`, `daily-format-check.mjs`, `templates/任务记录.md`, `templates/项目入口.md` |
-| Task card labels | `【审计级别】`, `【授权范围】` and its four lines (`目标：` `允许做的：` `要主人确认的：` `停止条件：`), the comment form `审计级别：A → B`; the card's own label `审计:` (half-width colon) | `daily-format-check.mjs`, `audit-gate.mjs` |
-| Audit level values | on the card **label** after `审计:`: `单审任务审计`, `单审独立`, `串联`; in the **first line of the card body** (`【审计级别】…`): `单审（任务审计）`, `单审（独立审计）`, `串联` | `audit-gate.mjs`, `templates/任务记录.md`, rule files |
-| Submission sheet and report | first line `任务审计 <@id> 请审：…（第 N 次）`, `任务卡：`, `成果位置：`, `任务类型：`; report first line `我得：通过` / `我得：不通过（① N 项）` / `我得：审不了（这类内容审不了）`; audit thread title prefix `审计：` | `audit-gate.mjs`, `completion-notice.mjs`, rules |
-| Desktop help | `【求助】`, `【求助回复】` | `stuck-guard.mjs`, `desktop-lock.mjs` |
-| Ledger states | `收到` `已定` `撤销` `没回`, source `审批过期`, the auto-registration prefix `（程序补登记）`, `没截止` | `pending-ledger.mjs`, `pending-tools.mjs`, `request-watch.mjs` |
-| Desktop queue skip reasons | `不用了` `完成` `被接手` (argument of `desktop-lock.mjs skip --why`) | `desktop-lock.mjs` |
-| Quota resume | the opener `【额度恢复·程序代发】`, the closing-record tail `提醒：` | `quota-resume.mjs`, `completion-notice.mjs` |
-| Decision ledger | the word `原话` (quote), field names in the pending list | `ledger-watch.mjs`, `daily-format-check.mjs` |
-| Task names of the published summaries | `巡查` `异常深审` `周审` | `scripts/automation/publish-self.py`, `plugins/personal-inbox/audit-guard-rules.json` |
+| `layout.projects` | `项目` | `projects` |
+| `layout.tasks` | `任务` | `tasks` |
+| `layout.outputs` | `成果` | `outputs` |
+| `layout.history` | `历史` | `history` |
+| `layout.templates` | `模板` | `templates` |
+| `layout.trash` | `垃圾桶` | `trash` |
+| `layout.audit` | `审计` | `audit` |
+| `layout.auditDaily` | `日审` | `daily` |
+| `layout.auditWeekly` | `周审` | `weekly` |
+| `layout.auditPatrol` | `巡查` | `patrol` |
+| `layout.auditDeep` | `异常深审` | `deep-review` |
+| `layout.auditFlags` | `异常标记` | `anomaly-flags` |
+| `layout.auditAwaiting` | `等你定` | `awaiting-decision` |
+| `layout.awaitingLedgerFile` | `台账.json` | `ledger.json` |
+| `layout.auditChecksums` | `程序校验清单` | `program-checksums` |
+| `layout.auditQuota` | `额度读数` | `quota-readings` |
+| `layout.auditPublish` | `发布` | `publish` |
+| `layout.auditReceipts` | `凭据` | `receipts` |
+| `layout.runLogs` | `运行记录` | `run-logs` |
+| `layout.scratch` | `临时` | `scratch` |
+| `layout.diaryProject` | `日记` | `diary` |
+| `layout.ledgerFile` | `决定账本.md` | `decision-ledger.md` |
+| `layout.ownerStatusFile` | `主人现况.md` | `owner-status.md` |
+| `layout.ruleChangeSheet` | `规则改法单.md` | `rule-change-sheet.md` |
+| `layout.taskRecordTemplate` | `任务记录.md` | `task-record.md` |
+| `layout.projectEntryTemplate` | `项目入口.md` | `project-entry.md` |
+| `layout.diaryFilePrefix` | `日记_` | `diary_` |
+| `layout.diaryRerunSuffixes` | `重跑前副本` / `待合并` | `pre-rerun` / `to-merge` |
+| `layout.dailyFiles.formatCheck` | `格式抽查.md` | `format-check.md` |
+| `layout.dailyFiles.blindspot` | `盲区抽查.md` | `blindspot-check.md` |
+| `layout.dailyFiles.commandCheck` | `命令抽查.md` | `command-check.md` |
+| `layout.dailyFiles.fileReconcile` | `文件对账.md` | `file-reconcile.md` |
+| `layout.dailyFiles.botRoster` | `bot编号表.json` | `bot-roster.json` |
+| `layout.runLogDirs.closing` | `结案` | `closing` |
+| `layout.runLogDirs.gate` | `守门` | `gate` |
+| `layout.runLogDirs.cardThreads` | `卡线程` | `card-threads` |
+| `layout.runLogDirs.requestWatch` | `请示待核` | `request-watch` |
+| `layout.runLogDirs.ledgerBacklog` | `账本待补` | `ledger-backlog` |
+| `layout.runLogDirs.apiQuota` | `API额度` | `api-quota` |
+| `layout.runLogDirs.quota` | `额度` | `quota` |
+| `layout.runLogDirs.quotaResume` | `接续` | `resume` |
+| `layout.runLogDirs.quotaPlanArchive` | `计划存档` | `plan-archive` |
+| `layout.runLogDirs.watch` | `看护` | `watch` |
+| `layout.runLogDirs.formatCheck` | `格式抽查` | `format-check` |
+| `layout.runLogDirs.blindspot` | `盲区抽查` | `blindspot-check` |
+| `layout.runLogDirs.fileReconcile` | `文件对账` | `file-reconcile` |
+| `layout.runLogDirs.englishCleanupRaw` | `英文清理原文` | `english-cleanup-raw` |
+| `layout.runLogDirs.reminders` | `提醒` | `reminders` |
+| `layout.runLogDirs.catchup` | `补跑` | `catchup` |
+| `layout.runLogDirs.publish` | `发布` | `publish` |
 
-**Desktop sensitive words** (`plugins/personal-inbox/sensitive-words.json`) do not follow `locale`: Chinese and English words are always both active, because the list guards payments, sends, deletions and installs. Add words for your own interface language here; this is the item to review first when you change languages.
+`dataroot/` in the changed-files list (`rules/shared-tail.md`) is only a short alias of the data root: the program maps it to the real data-root path. **Do not create a folder called `dataroot`.** In zh-CN the alias is `资料/`.
 
-Not translated on purpose: the English error sentence of `claude -p` when a quota is used up (`quota-recovery.mjs` matches it as is).
+The master index `INDEX.md` and the project entry `PROJECT.md` keep their names. The project table in `INDEX.md` starts with the column `Project` (zh-CN: `项目`); the channel cell is written `<channel name> (ID <digits>)` (zh-CN: `（编号 <数字>）`) and the entry cell `[Project entry](projects/<name>/PROJECT.md)` (zh-CN: `[项目入口](项目/<名>/PROJECT.md)`).
 
-## 2. Folder and file names
+In an English deployment, copy `templates/task-record.md` and `templates/project-entry.md` into `<DATA_ROOT>/templates/`, and create `INDEX.md` and `decision-ledger.md` from the `*-header` templates. In a zh-CN deployment, copy `templates/任务记录.md` and `templates/项目入口.md` into `<DATA_ROOT>/模板/`.
 
-The data root uses Chinese names that the programs build paths from:
+## 3. Command-line parameters
 
-- project folders: `项目/<name>/{任务,成果,历史}`, entry `PROJECT.md`, task records in `任务/`; top files `INDEX.md`, `决定账本.md`, `模板/`, `垃圾桶/`;
-- audit reports: `审计/{日审,周审,巡查,异常深审,异常标记,等你定,程序校验清单,发布/凭据}`;
-- run records: `运行记录/{结案,守门,卡线程,请示待核,账本待补,API额度,额度,看护,格式抽查,盲区抽查,文件对账,英文清理原文,提醒}`;
-- JSON state files use Chinese keys (for example `日期`, `标题`, `原话`, `状态` in the ledger waiting list).
-
-They are created by the programs and the templates; you normally only meet them in the data root.
-
-## 3. Command-line parameter names
-
-Already English and not affected by `locale`: see [configuration.md](configuration.md), section 6.
+Already English; they do not change with `locale`. See [configuration.md](configuration.md), section 6.
 
 ## 4. Time zone and clock times
 
-Not a language question but the other place that was fixed in the original: all dates come from `timezone` in `config/crew.json`; clock times inside scripts are listed in [configuration.md](configuration.md), section 5.
+Not a language question, but also fixed in the reference deployment: all dates are computed in the `timezone` of `config/crew.json`; the clock times inside scripts are listed in [configuration.md](configuration.md), section 5.
 
-## 5. How the roles talk
+## 5. How the bots speak
 
-Personas are optional ([roles.md](roles.md)). The rule files say "if a persona is configured, follow it", so a persona's catchphrases and the language they speak belong to the persona, not to the rules. The `replyLanguage` setting only controls the default language of replies.
+Personas are optional (see [roles.md](roles.md)). The rule files only say "follow the persona if one is set", so catchphrases and the language of a persona belong to the persona, not to the rules. `replyLanguage` only sets the default language of replies.
 
-## 6. A suggested way to localize
+## 6. Remaining boundary (not translated on purpose)
 
-1. Pick the language of the bots' replies (`replyLanguage`); keep the Chinese literals as they are.
-2. Add your sensitive button words to `sensitive-words.json`.
-3. If you need the status words in your language, change them in the table in section 1 **together** in code, templates, rules and tests (search for the Chinese word; each word occurs in a small number of files), then run the whole test suite.
-4. Tell us (an issue or a pull request) which words you changed; a real `en` word set in `lexicon.mjs` is the next step of this project.
+These places still hold Chinese in an English deployment. None of them is a word that one program writes and another program or a rule matches.
+
+- **Machine-owned JSON keys and file names.** Files that only the programs read and write keep their Chinese names and keys: the state and ledger files inside the run-log folders (for example the quota-resume ledger, the catch-up ledger, `待补.json` of the ledger backlog, `状态.json` of the API-credit gate, `卡标签快照.json`, `基线.json`, the lock and log files), the keys of the roster file `bot-roster.json` (`人设bot`, `角色`, `显示名`, `Discord编号`, ...), and the internal states of the ledger notices. The rules and jobs quote such a name in backticks where a bot has to read it.
+- **Internal messages and logs.** Error messages, log lines, diagnostics and the reasons the audit guard gives when it refuses a command; the explanations inside the reports written by the format check, the blind-spot check, the command check and the file reconcile (the marks `Business date:` and `Status: complete` are translated); the output lines of `publish-self.py` (its exit code is what counts).
+- **Fixed notices that go to the owner on Discord** (the daily reset notice, the API-credit reminders, the login reminders, the approval-card notice and its title and source, the master list of matters waiting for a decision, the queue and help reminders for the owner, the daytime-watch alerts). Their wording is Chinese in every locale for now.
+- `builder-tools/` and `personas/` are not part of a deployment and are not translated.
+
+## 7. Suggested way to run it
+
+1. Pick the language of the bots' replies (`replyLanguage`) and set `locale` to match your rules. Create the data root after that.
+2. Put the sensitive button words of your interface language into `plugins/personal-inbox/sensitive-words.json` (English and Chinese are always both active).
+3. If you want a third language, copy one of the two sets in `lexicon.mjs`, add the locale to `LOCALES`, translate the rule, template and job files, and run the whole test suite (`tests/en/lexicon-parity.en.test.mjs` shows how the two sets are kept in step).
+4. Tell us (issue or pull request) which words you changed.

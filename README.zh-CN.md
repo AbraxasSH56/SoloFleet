@@ -92,7 +92,7 @@ flowchart LR
 
 照[搭建指南](docs/zh-CN/setup.md)做。简单说需要：一台常开的 Mac、OpenClaw、一个 Discord 服务器（每份职责一个 bot 账号）、一份 Claude 订阅，以及在这台机器上登录好的 `claude` 命令行。登录是你自己在自己机器上做的；这个仓库里没有任何东西经手或转发你的登录。
 
-然后看[可配置项](docs/zh-CN/configuration.md)，把它改成你自己的情况；小队用什么语言干活、程序按字面认哪些词，看[换语言](docs/zh-CN/localization.md)。
+然后看[可配置项](docs/zh-CN/configuration.md)，把它改成你自己的情况；小队用什么语言干活，看[换语言](docs/zh-CN/localization.md)：`locale` 决定程序按字面认和写的词，以及数据根里的文件夹名。
 
 ## 仓库里有什么
 
@@ -146,11 +146,10 @@ Claude Code 的子代理和团队功能也是共用一份订阅，用在一次�
 1. **桌面操作只在 macOS 上验过。** 桌面锁用的是 macOS 的文件锁。其余部分是普通的 Node 和 Python，没在别的系统上跑过。见[搭建指南](docs/zh-CN/setup.md)。
 2. **只在 Claude 订阅上测过。** 换别家没试过。撞额度后的接续、额度和登录的提醒、回复小卡里的几处，都是照 Claude 命令行写的。见[搭建指南](docs/zh-CN/setup.md)和[可配置项](docs/zh-CN/configuration.md)。
 3. **程序认不出用鼠标直接点按钮。** 这种情形靠桌面操作 bot 照规则先停，独占锁和审批卡在后面托着。见[安全设计](docs/zh-CN/safety.md)。
-4. **程序按字面认的固定词目前还是中文。** 进度句的开头、任务卡上的标签这几个协议词，程序认的是中文字面，英文规则里原样引用。英文词表是下一步要做的更新。见[换语言](docs/zh-CN/localization.md)。
-5. **没在一台全新的机器上从头搭过。** 配置示例是照作者自己的部署整理出来的，字段名请对照你的 OpenClaw 版本核一遍。见 [`config/examples/`](config/examples/README.zh-CN.md) 和[搭建指南](docs/zh-CN/setup.md)。
-6. **有几处钟点还写在脚本里。** 每日重置通知、审计的截止时间等几处，是脚本文件里的常量，还没做成配置。见[可配置项](docs/zh-CN/configuration.md)。
-7. **给 agent 改名目前只对规则生效。** 改了角色表，生成的规则文件会跟着变；插件和脚本认的仍是默认的 agent 编号。见[可配置项](docs/zh-CN/configuration.md)和[各职责说明](docs/zh-CN/roles.md)。
-8. **只有一个人在用。** 作者自己每天在用。多人、团队的场景没试过。
+4. **没在一台全新的机器上从头搭过。** 配置示例是照作者自己的部署整理出来的，字段名请对照你的 OpenClaw 版本核一遍。见 [`config/examples/`](config/examples/README.zh-CN.md) 和[搭建指南](docs/zh-CN/setup.md)。
+5. **有几处钟点还写在脚本里。** 每日重置通知、审计的截止时间等几处，是脚本文件里的常量，还没做成配置。见[可配置项](docs/zh-CN/configuration.md)。
+6. **给 agent 改名目前只对规则生效。** 改了角色表，生成的规则文件会跟着变；插件和脚本认的仍是默认的 agent 编号。见[可配置项](docs/zh-CN/configuration.md)和[各职责说明](docs/zh-CN/roles.md)。
+7. **只有一个人在用。** 作者自己每天在用。多人、团队的场景没试过。
 
 这是一个爱好者的个人项目：作者是轻度使用者，没有为重型开发场景调优过的经验，这次开源是一次尝试。非常欢迎反馈，之后会照着反馈继续改进。
 

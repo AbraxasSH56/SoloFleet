@@ -92,7 +92,7 @@ You say what you want in the Workshop. The Controller restates anything complica
 
 Follow the [Setup guide](docs/en/setup.md). In short you need a Mac that stays on, OpenClaw, a Discord server with one bot account per duty, a Claude subscription, and the `claude` command line signed in on that machine. You sign in yourself, on your own machine; nothing in this repository handles or forwards your login.
 
-Then see [Configuration](docs/en/configuration.md) for what to change to fit your own setup, and [Localization](docs/en/localization.md) for the language the crew works in and the fixed wording the programs recognize.
+Then see [Configuration](docs/en/configuration.md) for what to change to fit your own setup, and [Localization](docs/en/localization.md) for the language the crew works in: `locale` decides the fixed words the programs match and write, and the folder names under the data root.
 
 ## What is in the repository
 
@@ -146,11 +146,10 @@ What this setup has and has not been tried on.
 1. **Desktop operation is verified on macOS only.** The desktop lock relies on macOS file locking. The rest is plain Node and Python and has not been run elsewhere. See the [Setup guide](docs/en/setup.md).
 2. **Tested on a Claude subscription only.** Other providers have not been tried. The resume after a quota stop, the quota and login reminders and parts of the reply card are written against the Claude command line. See [Setup](docs/en/setup.md) and [Configuration](docs/en/configuration.md).
 3. **The program cannot recognize a mouse click on a button.** For that case the Desktop operator stops first by rule, and the exclusive lock and the approval card stand behind it. See [Safety](docs/en/safety.md).
-4. **The fixed words the programs match are still Chinese.** A few protocol words, such as the openers of progress lines and the labels on task cards, are matched literally in Chinese, and the English rules quote them as they are. An English word set is the next planned update. See [Localization](docs/en/localization.md).
-5. **It has not been built from scratch on a fresh machine.** The configuration examples were tidied up from the author's own deployment, so check the field names against your OpenClaw version. See [`config/examples/`](config/examples/README.md) and the [Setup guide](docs/en/setup.md).
-6. **Some clock times are still inside scripts.** The daily reset notice, the audit cut-off and a few others are constants in the script files and are not yet configuration. See [Configuration](docs/en/configuration.md).
-7. **Renaming the agents only reaches the rules for now.** A changed role table takes effect in the generated rule files; the plugin and the scripts still recognize the default agent IDs. See [Configuration](docs/en/configuration.md) and [Roles](docs/en/roles.md).
-8. **One person uses it.** The author runs it alone, day to day. Use by several people or a team has not been tried.
+4. **It has not been built from scratch on a fresh machine.** The configuration examples were tidied up from the author's own deployment, so check the field names against your OpenClaw version. See [`config/examples/`](config/examples/README.md) and the [Setup guide](docs/en/setup.md).
+5. **Some clock times are still inside scripts.** The daily reset notice, the audit cut-off and a few others are constants in the script files and are not yet configuration. See [Configuration](docs/en/configuration.md).
+6. **Renaming the agents only reaches the rules for now.** A changed role table takes effect in the generated rule files; the plugin and the scripts still recognize the default agent IDs. See [Configuration](docs/en/configuration.md) and [Roles](docs/en/roles.md).
+7. **One person uses it.** The author runs it alone, day to day. Use by several people or a team has not been tried.
 
 This is a hobbyist's project. The author is a light user with no experience of tuning systems for heavy development work, and sharing it is an experiment. Feedback is very welcome, and the setup will keep improving with it.
 

@@ -23,7 +23,7 @@ From here on you can ignore the threads. If you want to add something, say it in
 
 While a bot works, anything you send in its thread joins the turn it is in. If it is a correction to the current task, it is folded in. If it is a new matter, it is treated as a new matter.
 
-Bots leave a short progress line after each stretch of work. Each line starts with one of five fixed openers, so both you and the evening patrol can skim them: done, in progress, didn't run, waiting on the owner, stuck. The daily check currently matches the Chinese openers literally (`完成：` `进行中：` `没跑成：` `等主人：` `卡住：`), whatever language the rest of the reply is in; see [Localization](localization.md).
+Bots leave a short progress line after each stretch of work. Each line starts with one of five fixed openers, so both you and the evening patrol can skim them: done, in progress, didn't run, waiting on the owner, stuck. The openers follow `locale`: in an English deployment they are `Done:` `In progress:` `Did not run:` `Waiting on owner:` `Stuck:` (in zh-CN `完成：` `进行中：` `没跑成：` `等主人：` `卡住：`), and the daily check matches exactly those; see [Localization](localization.md).
 
 ## When a bot needs you
 

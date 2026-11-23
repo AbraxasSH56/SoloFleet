@@ -7,7 +7,7 @@
 先知道两件事：
 
 - 程序读同一份中心配置 `config/crew.json`（复制 `config/crew.example.json` 得到）。所有编号、路径、时区、语言都在这里设，代码里不写你自己的部署信息。
-- 程序目前还要认一些**中文字面词**（进度句开头、任务卡标签、报告首行、文件夹名）。英文版规则把这些词原样引出；配置里的 `locale`（默认 `en`）目前只管回复附卡的文字和几个跟语言有关的小功能。怎么处理见 [localization.md](localization.md)。
+- 配置里的 `locale`（默认 `en`，或 `zh-CN`）决定程序认和写的词（进度句开头、任务卡标签、报告首行）、数据根里的文件夹名，以及程序对 bot 说的指令句；规则、模板和任务指令有对应的中英文两个版本。建数据根之前先定好 `locale`，以后不要改。见 [localization.md](localization.md)。
 
 ## 1. 需要什么
 
@@ -56,7 +56,7 @@ OpenClaw 用非交互模式（`claude -p`）把对话交给 Claude 命令行，�
 1. `cp config/crew.example.json config/crew.json`，填主人编号、服务器编号、频道编号、各 bot 用户编号、`timezone`、`paths`（`dataRoot`、`workspaceRoot`、`projectRoot`、`nodeBin`、`openclawBin`、`openclawInstallDir`）。逐项说明见 [configuration.md](configuration.md)。`config/crew.json` 已被 git 忽略。
 2. 在网关的环境里设 `SOLOFLEET_CONFIG=<PROJECT_ROOT>/config/crew.json`。OpenClaw 会把装好的插件复制到临时目录加载，插件没法按自己的位置找到配置文件。
 3. 把 `config/examples/` 里的片段合并进你的 OpenClaw 配置（agent、Discord 账号和绑定、工具清单、审批路由）。字段名要照你的 OpenClaw 版本核对，示例按 2026.10.x 写的。`inbox-integration.example.json` 负责加载并启用插件。
-4. 准备数据根（`paths.dataRoot`）：把 `templates/任务记录.md` 和 `templates/项目入口.md` 复制到 `<DATA_ROOT>/模板/`（程序按这两个名字读），再用 `templates/*-header*` 建出 `INDEX.md` 和 `决定账本.md`。
+4. 准备数据根（`paths.dataRoot`）：（`locale: zh-CN`）把 `templates/任务记录.md` 和 `templates/项目入口.md` 复制到 `<DATA_ROOT>/模板/`（程序按这两个名字读），再用 `templates/*-header.zh-CN.md` 建出 `INDEX.md` 和 `决定账本.md`。英文部署（`locale: en`）：把 `templates/task-record.md` 和 `templates/project-entry.md` 复制到 `<DATA_ROOT>/templates/`，用 `templates/index-header.md` 和 `templates/decision-ledger-header.md` 建出 `INDEX.md` 和 `decision-ledger.md`。
 5. 从仓库里的规则生成各角色的 `AGENTS.md`：
 
    ```bash
