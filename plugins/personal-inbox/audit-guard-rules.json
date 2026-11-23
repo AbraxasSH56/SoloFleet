@@ -29,6 +29,29 @@
     "项目/*/PROJECT.md",
     "项目/*/任务/*.md"
   ],
+  "localeOverrides": {
+    "note": "Rules above are the zh-CN ones. With locale en the audit guard reads the same four settings from here instead (it never edits this object; see effectiveRules in audit-guard.mjs).",
+    "en": {
+      "writeDirs": [
+        "audit/daily",
+        "audit/quota-readings",
+        "audit/deep-review",
+        "audit/weekly",
+        "audit/anomaly-flags"
+      ],
+      "denyWriteDirs": [
+        "audit/publish/receipts"
+      ],
+      "editExtra": [
+        "projects/*/PROJECT.md",
+        "projects/*/tasks/*.md"
+      ],
+      "publishTasks": [
+        "deep-review",
+        "weekly-audit"
+      ]
+    }
+  },
   "snippets": [
     {
       "name": "业务日期片段",

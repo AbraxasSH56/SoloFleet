@@ -9,9 +9,10 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFile, execFileSync } from 'node:child_process';
+import { locale } from '../plugins/personal-inbox/lexicon.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SRC = readFileSync(join(ROOT, 'scripts/automation/command-spot-check-trigger.js'), 'utf8').replace(/const TIMEZONE = "[^"]*";/, 'const TIMEZONE = "Asia/Kolkata";'); // fixed UTC+5:30 test zone
+const SRC = readFileSync(join(ROOT, 'scripts/automation/command-spot-check-trigger.js'), 'utf8').replace(/const TIMEZONE = "[^"]*";/, 'const TIMEZONE = "Asia/Kolkata";').replace(/const LOCALE = "[^"]*";/, `const LOCALE = ${JSON.stringify(locale())};`); // fixed UTC+5:30 test zone; the trigger cannot import the config, so the test hands it the test config's locale
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const NOW = '2026-11-12T12:35:00Z'; // 业务日期 2026-11-12，窗口 2026-11-11T12:35:00Z → 2026-11-12T12:35:00Z
 const T = (i) => new Date(Date.parse('2026-11-11T16:30:00Z') + i * 1000).toISOString();

@@ -7,13 +7,14 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crew } from '../plugins/personal-inbox/crew-config.mjs';
 import { buildScanCommand } from '../scripts/automation/file-scan-manual.mjs';
+import { locale } from '../plugins/personal-inbox/lexicon.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const STAGED = join(ROOT, 'scripts', 'automation', 'command-spot-check-trigger.js');
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 let src = readFileSync(join(ROOT, 'scripts/automation/command-spot-check-trigger.js'), 'utf8');
 if (!src.includes('scanCmd') && existsSync(STAGED)) src = readFileSync(STAGED, 'utf8'); // 触发脚本还没上线时，用待上线那份
-src = src.replace(/const TIMEZONE = "[^"]*";/, 'const TIMEZONE = "Asia/Kolkata";').replace(/const NODE_BIN = "[^"]*";/, `const NODE_BIN = ${JSON.stringify(crew.paths.nodeBin)};`).replace(/const CONFIG_FILE = "[^"]*";/, `const CONFIG_FILE = ${JSON.stringify(join(crew.paths.openclawHome, 'openclaw.json'))};`); // the trigger's constants must match config/crew.json
+src = src.replace(/const TIMEZONE = "[^"]*";/, 'const TIMEZONE = "Asia/Kolkata";').replace(/const NODE_BIN = "[^"]*";/, `const NODE_BIN = ${JSON.stringify(crew.paths.nodeBin)};`).replace(/const CONFIG_FILE = "[^"]*";/, `const CONFIG_FILE = ${JSON.stringify(join(crew.paths.openclawHome, 'openclaw.json'))};`).replace(/const LOCALE = "[^"]*";/, `const LOCALE = ${JSON.stringify(locale())};`); // the trigger's constants must match config/crew.json
 const cfgOut = 'main\t/opt/solofleet/runtime/main\n=====ROUNDS\n=====END\n';
 
 test('手动对账命令 === 触发脚本发出的对账命令（同一个业务日期）', async () => {

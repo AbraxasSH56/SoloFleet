@@ -4,8 +4,13 @@
 const DATA_ROOT = "/opt/solofleet-data";
 const TIMEZONE = "UTC"; // config timezone (IANA name)
 const CUT_HOUR = 19; // scheduled time 19:00 local (config jobs.deepReview.time)
-const MARK_DIR = DATA_ROOT + "/审计/异常标记";
-const RUN_DIR = DATA_ROOT + "/审计/异常深审";
+const LOCALE = "en"; // config "locale": "en" or "zh-CN". This trigger cannot import lexicon.mjs, so the words it needs are in the table below (keep it in step with lexicon.mjs: tests/trigger-literals-consistency.test.mjs checks it).
+const LX = ({
+  "zh-CN": { audit: "审计", flags: "异常标记", deep: "异常深审" },
+  "en": { audit: "audit", flags: "anomaly-flags", deep: "deep-review" },
+})[LOCALE];
+const MARK_DIR = DATA_ROOT + "/" + LX.audit + "/" + LX.flags;
+const RUN_DIR = DATA_ROOT + "/" + LX.audit + "/" + LX.deep;
 const q = (s) => "'" + String(s).replace(/'/g, "'\\''") + "'";
 
 // 业务日期和截止点：往前最近的一个 19:00（含当刻）所在的本地日期

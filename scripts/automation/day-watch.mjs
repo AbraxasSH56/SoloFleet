@@ -15,6 +15,10 @@ import { CALL_STATES, ledgerLookup, managedByResume } from './quota-resume-lib.m
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, renameSync, rmSync, openSync, closeSync, statSync, appendFileSync } from 'node:fs';
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
+import { lexicon, labelRe, escapeRe, locale } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // words, report markers and folder names follow config "locale" (zh-CN: the literals this script always used)
+// the "complete" line the format check and the blind-spot check write at the top of their files: zh-CN `状态：完整`, en `Status: complete`
+const COMPLETE_RE = new RegExp(`^${locale() === 'en' ? `${escapeRe(W.statusLabel)}:\\s*` : `${W.statusLabel}：`}${escapeRe(W.reportComplete)}`, 'm');
 const DATA_ROOT = process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot; // env var first (offline smoke tests), then config
 const WATCH_DIR = join(DATA_ROOT, '运行记录', '看护');
 // 常量（起草定，可改；STALE 可用环境变量缩短做测试，正式不设）
@@ -23,7 +27,7 @@ export const LOCK_STALE_MS = 10 * 60 * 1000;
 export const UNKNOWN_WAIT_MS = 10 * 60 * 1000;
 export const REPEAT_MAX_DAYS = 3;
 const DONE = ['done'];
-const WAITING_LABELS = ['等确认', '等主人确认', '已取消'];
+const WAITING_LABELS = W.waitingLabels;
 
 const sha = (s) => createHash('sha256').update(s).digest('hex').slice(0, 12);
 const jread = (p, fb = null) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fb; } };
@@ -42,7 +46,7 @@ export function realDeps(env = process.env) {
     listRuns: (jobId) => js(run(['automations', 'runs', jobId, '--json', '--limit', '50'])).entries ?? [],
     addJob: (message, name) => js(run(['automations', 'add', '--name', name, '--at', '1m', '--agent', 'main', '--session', 'isolated', '--message', message, '--no-deliver', '--delete-after-run', '--json'])),
     deskWaitingCard: () => { const l = jread(join(crew.paths.workspaceRoot, 'desktop', 'screen.lock'), null); return l?.state === 'waiting' ? l.cardId ?? null : null; },
-    pendingLedgerPath: join(DATA_ROOT, '审计', '等你定', '台账.json'),
+    pendingLedgerPath: join(DATA_ROOT, W.layout.audit, W.layout.auditAwaiting, W.layout.awaitingLedgerFile),
     closingBaselinePath: join(WATCH_DIR, '结案基线.json'),
     closingLedgerPath: join(DATA_ROOT, '运行记录', '结案', '账.json'),
     collectCatchupFlags: () => collectCatchupFlags(DATA_ROOT, Date.now(), WATCH_DIR),
@@ -161,8 +165,8 @@ export function collectAnomalies(d) {
   for (const x of d.collectDiscordHealthFlags?.() ?? []) out.push(x);
   // 3.13 到点任务：卡上有定时任务编号、时间已过、任务还在或运行记录不是 ok；运行 ok 但事没做成
   for (const c of cards) {
-    const m = /定时任务编号[：:]\s*(\S+)/.exec(c.notes ?? '');
-    const tm = /到点时间[：:]\s*(\S+)/.exec(c.notes ?? '');
+    const m = new RegExp(`${labelRe(W.timedJobLabels.id)}(\\S+)`).exec(c.notes ?? '');
+    const tm = new RegExp(`${labelRe(W.timedJobLabels.due)}(\\S+)`).exec(c.notes ?? '');
     if (!m || !tm || DONE.includes(String(c.status)) || isArchived(c)) continue;
     const due = Date.parse(tm[1]);
     if (Number.isNaN(due) || due > t - 10 * 60 * 1000) continue;
@@ -274,7 +278,7 @@ export function formatCheckDue(nowMs, dataRoot = DATA_ROOT) {
   const minutes = localMinutes(nowMs);
   if (minutes < 17 * 60 + 30 || minutes >= 18 * 60 + 5) return false;
   const bizDate = localDate(nowMs);
-  try { if (/^状态：完整/m.test(readFileSync(join(dataRoot, '审计', '日审', `${bizDate}-格式抽查.md`), 'utf8'))) return false; } catch { /* 还没有：该跑 */ }
+  try { if (COMPLETE_RE.test(readFileSync(join(dataRoot, W.layout.audit, W.layout.auditDaily, `${bizDate}-${W.layout.dailyFiles.formatCheck}`), 'utf8'))) return false; } catch { /* 还没有：该跑 */ }
   return true;
 }
 export function startFormatCheck({ nowMs = Date.now(), dataRoot = DATA_ROOT, script = FORMAT_CHECK_SCRIPT, spawnFn = spawn, execPath = process.execPath, log = null } = {}) {
@@ -295,7 +299,7 @@ export function blindspotsDue(nowMs, dataRoot = DATA_ROOT) {
   const minutes = localMinutes(nowMs);
   if (minutes < 17 * 60 + 30) return false; // 看护只在白天跑，没有上限也行；17:30 以后第一遍就跑，没写完整的下一遍再试
   const bizDate = localDate(nowMs);
-  try { if (/^状态：完整/m.test(readFileSync(join(dataRoot, '审计', '日审', `${bizDate}-盲区抽查.md`), 'utf8'))) return false; } catch { /* 还没有：该跑 */ }
+  try { if (COMPLETE_RE.test(readFileSync(join(dataRoot, W.layout.audit, W.layout.auditDaily, `${bizDate}-${W.layout.dailyFiles.blindspot}`), 'utf8'))) return false; } catch { /* 还没有：该跑 */ }
   return true;
 }
 export function startBlindspots({ nowMs = Date.now(), dataRoot = DATA_ROOT, script = BLINDSPOTS_SCRIPT, spawnFn = spawn, execPath = process.execPath, log = null } = {}) {

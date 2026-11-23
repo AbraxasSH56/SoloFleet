@@ -18,6 +18,8 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { bizDateOf, localStamp, windowOf } from './daily-format-check.mjs';
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
+import { lexicon, labelText } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // folder and file names and report markers follow config "locale" (zh-CN: the literals this script always used)
 import { locale } from '../../plugins/personal-inbox/lexicon.mjs';
 const execFileAsync = promisify(execFile);
 export const DATA_ROOT = process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot; // env var first (offline tests), then config
@@ -276,7 +278,7 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), nowMs = nul
   clues.push(...bk.clues);
   const text = [
     `# 盲区抽查 · ${bizDate}`, '',
-    `业务日期：${bizDate}`, `窗口：${localStamp(startMs)} → ${localStamp(endMs)}（本地时区）`, `生成时间：${new Date(now).toISOString()}`,
+    `${labelText(W.businessDateLabel)}${bizDate}`, `窗口：${localStamp(startMs)} → ${localStamp(endMs)}（本地时区）`, `生成时间：${new Date(now).toISOString()}`,
     '说明：脚本自己生成，只读；只放数量和文件夹分组，不放内容；日审只读本文件，周审也只读这份。读不到的写“未能检查”，不写“没有”。', '',
     '## 线索汇总', '', clues.length ? clues.map((c) => `- ${c}`).join('\n') : '无', '',
     '## 一、返工次数', '', reworkSection(result.rework), '',
@@ -284,9 +286,9 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), nowMs = nul
     '### B2 桌面角色提交类点击识别的运行情况（来自屏幕锁日志）', '', screenLockSection(lockStats), '',
     '### C ~/OpenClaw 以外的地方', '', '不扫描（全局规矩不扫描个人文件夹、照片、云同步目录）。这些地方只能靠命令抽查里 bot 的命令指向它们来发现——**这是一个明确的看不到的地方**。', '',
     '## 三、备份状态', '', ...bk.lines.map((l) => `- ${l}`), '',
-    incomplete.length ? `状态：不完整（未能检查：${incomplete.join('、')}）` : '状态：完整', '',
+    incomplete.length ? `${labelText(W.statusLabel)}${W.reportIncomplete}（未能检查：${incomplete.join('、')}）` : `${labelText(W.statusLabel)}${W.reportComplete}`, '',
   ].join('\n');
-  atomicWrite(join(dataRoot, '审计', '日审', `${bizDate}-盲区抽查.md`), text);
+  atomicWrite(join(dataRoot, W.layout.audit, W.layout.auditDaily, `${bizDate}-${W.layout.dailyFiles.blindspot}`), text);
   try { result.rules?.commit?.(); } catch { /* 基线更新失败不影响报告 */ }
   return { bizDate, incomplete, clues: clues.length, summary: { rework: result.rework?.hit?.length ?? null, rulesChanged: result.rules?.changed?.length ?? null } };
 }

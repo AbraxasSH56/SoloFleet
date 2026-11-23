@@ -422,7 +422,7 @@ function checkPublish(argv, rules, paths = {}) {
   const [prog, flag, script, task, date] = argv;
   if (prog !== '/usr/bin/python3' || flag !== '-I' || argv.length !== 5) throw new Reject('python3 只认固定发布脚本', 'python3');
   if (script !== expandPaths(rules.script, paths)) throw new Reject('python3 只能跑固定发布脚本', 'python3');
-  if (!rules.tasks.includes(task)) throw new Reject('发布脚本的任务名不在 异常深审／周审 之内', 'python3');
+  if (!rules.tasks.includes(task)) throw new Reject(`发布脚本的任务名不在 ${rules.tasks.join('／')} 之内`, 'python3');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Reject('发布脚本的业务日期格式不对', 'python3');
 }
 
@@ -529,7 +529,22 @@ export function identifyTrigger({ role, sessionKey, runId, rules }) {
 }
 
 // ---------- 总判断 ----------
+// Per-locale overlay: rules.localeOverrides.<locale> replaces the data-root folder lists and the publish task names.
+// Returns a NEW object and never changes the rules object it is given (tests and the plugin share one rules object).
+// zh-CN (and any rules object without an overlay) is returned as it is.
+export function effectiveRules(rules) {
+  const o = rules?.localeOverrides?.[locale()];
+  if (!o || typeof o !== 'object') return rules;
+  const out = { ...rules };
+  for (const k of ['writeDirs', 'denyWriteDirs', 'editExtra']) if (Array.isArray(o[k])) out[k] = o[k];
+  if (Array.isArray(o.publishTasks) && rules.roles) {
+    out.roles = Object.fromEntries(Object.entries(rules.roles).map(([r, v]) => [r, v?.publish ? { ...v, publish: { ...v.publish, tasks: o.publishTasks } } : v]));
+  }
+  return out;
+}
+
 export function judgeCommand({ role, command, params = {}, rules, snippets = [], env = {}, trigger = null }) {
+  rules = effectiveRules(rules);
   try {
     // exec 的额外参数：只拦会改变执行环境或位置的几个（env、elevated、background、node、host 不是 auto／gateway）；
     // title、description、timeoutSeconds、yieldMs、workdir、pty、ask 这类只影响显示或时限，不拦（07:5x 真实测试里任务审计带 title 被误挡，已改）。
@@ -626,6 +641,7 @@ const under = (target, dir) => target === dir || target.startsWith(dir.endsWith(
 const safeReal = (p) => { try { return realpathSync(p); } catch { return null; } };
 
 export function judgeWrite({ role, toolName, params, rules }) {
+  rules = effectiveRules(rules);
   try {
     if (role !== 'system-auditor') throw new Reject('这个角色没有任何写入权限', '写入位置');
     const raw = params?.path ?? params?.file_path ?? params?.filePath ?? params?.file;

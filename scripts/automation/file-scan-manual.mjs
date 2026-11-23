@@ -11,6 +11,8 @@ import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
+import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // folder and file names follow config "locale"
 import { join } from 'node:path';
 const DATA_ROOT = crew.paths.dataRoot;
 const PROJECT_ROOT = crew.paths.projectRoot;
@@ -20,7 +22,7 @@ const q = (s) => "'" + String(s).replace(/'/g, "'\\''") + "'";
 
 // 必须和 command-spot-check-trigger.js 里的 scanCmd 逐字相同（tests/file-scan-manual.test.mjs 核这一点）
 export function buildScanCommand({ dataRoot = DATA_ROOT, projectRoot = PROJECT_ROOT, configFile = CONFIG_FILE, nodeBin = NODE_BIN, bizDate }) {
-  const out = dataRoot + '/审计/日审/' + bizDate + '-文件对账.md';
+  const out = `${dataRoot}/${W.layout.audit}/${W.layout.auditDaily}/${bizDate}-${W.layout.dailyFiles.fileReconcile}`;
   const jqWs = `jq -r '.agents.entries | to_entries | map("\\(.key)=\\(.value.workspace)") | join(",")' ${q(configFile)} 2>/dev/null`;
   return `WS=$(${jqWs}); OPENCLAW_DATA_ROOT=${q(dataRoot)} OPENCLAW_RUNTIME_ROOT=${q(projectRoot + '/runtime')} ${q(nodeBin)} ${q(projectRoot + '/scripts/automation/project-files.mjs')} scan --date ${bizDate} --out ${q(out)} --workspaces "$WS" >/dev/null 2>&1 && echo SCANOK || echo SCANFAIL`;
 }
@@ -32,7 +34,7 @@ function main(argv) {
   const cmd = buildScanCommand({ bizDate: date });
   const r = execFileSync('/bin/bash', ['-c', cmd], { encoding: 'utf8' });
   const ok = /SCANOK/.test(r);
-  const file = `${DATA_ROOT}/审计/日审/${date}-文件对账.md`;
+  const file = `${DATA_ROOT}/${W.layout.audit}/${W.layout.auditDaily}/${date}-${W.layout.dailyFiles.fileReconcile}`;
   let head = null;
   if (ok) { try { head = readFileSync(file, 'utf8').split('\n').slice(0, 3); } catch { /* 读不到就不带 */ } }
   console.log(JSON.stringify({ ok, 结果: ok ? 'SCANOK' : 'SCANFAIL', 文件: file, 头三行: head }, null, 1));

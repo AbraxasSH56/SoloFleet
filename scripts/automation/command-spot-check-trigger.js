@@ -12,6 +12,13 @@ const CLAUDE_ROOT = "/home/example/.claude/projects";
 const CONFIG_FILE = "/home/example/.openclaw/openclaw.json";
 const AGENTS_ROOT = "/home/example/.openclaw/agents"; // API 通路角色的会话在 <AGENTS_ROOT>/<角色>/agent/openclaw-agent.sqlite
 
+const LOCALE = "en"; // config "locale": "en" or "zh-CN". This trigger cannot import lexicon.mjs, so the words it needs are in the table below (keep it in step with lexicon.mjs: tests/trigger-literals-consistency.test.mjs checks it).
+const LX = ({
+  "zh-CN": { audit: "审计", daily: "日审", cmdFile: "命令抽查.md", reconFile: "文件对账.md", scanMade: "已生成", scanNot: "没生成", title: "命令抽查", bizDate: "业务日期：", fileEq: "命令抽查文件=", reconEq: "文件对账=", sep: "；",
+    failMsg: (out, brief, tail) => `命令抽查脚本：结果文件没能写出（${out}）；${brief}；${tail}；日审写"命令抽查：记录不足（脚本没有生成）"` },
+  "en": { audit: "audit", daily: "daily", cmdFile: "command-check.md", reconFile: "file-reconcile.md", scanMade: "generated", scanNot: "not generated", title: "Command check", bizDate: "Business date: ", fileEq: "command-check file=", reconEq: "file-reconcile=", sep: "; ",
+    failMsg: (out, brief, tail) => `Command spot-check script: the result file could not be written (${out}); ${brief}; ${tail}; in the daily audit write "command check: records insufficient (the script did not generate it)"` },
+})[LOCALE];
 const CUT_H = 18, CUT_M = 5; // daily audit scheduled time 18:05 local (config jobs.dailyAudit.time)
 // 目录白名单：配置里除 desktop（桌面角色本来就要动桌面）和 system-auditor（审计自己）以外的每个角色都抽。
 // 每个角色的工作区必须正好是下面算出来的固定位置；有一个对不上、编号写法不对、角色数不在 1～MAX_ROLES 之间，整份停，不读任何会话记录。
@@ -60,7 +67,7 @@ const offMin = Math.round(tzOffset(cutMs) / 60000);
 const offSuffix = `${offMin < 0 ? "-" : "+"}${pad(Math.floor(Math.abs(offMin) / 60))}:${pad(Math.abs(offMin) % 60)}`;
 const cutIso = `${bizDate}T${pad(CUT_H)}:${pad(CUT_M)}:00${offSuffix}`;
 const utc = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, ".000Z");
-const OUT = `${DATA_ROOT}/审计/日审/${bizDate}-命令抽查.md`;
+const OUT = `${DATA_ROOT}/${LX.audit}/${LX.daily}/${bizDate}-${LX.cmdFile}`;
 
 // 不依赖 Buffer、btoa 等环境提供的函数：自己把文字按 UTF-8 编成 base64
 const toBase64 = (str) => {
@@ -84,7 +91,7 @@ const NODE_BIN = "/usr/local/bin/node"; // 官方运行时自带的 Node（固�
 // 命令抽查文件写完之后，在同一次 exec 里顺带跑文件对账脚本（只读扫描，写 <资料根>/审计/日审/<业务日期>-文件对账.md）。
 // 不增加工具调用次数；对账脚本失败不影响命令抽查文件（两段命令用换行隔开，各自报各自的标记：WROTE、SCANOK／SCANFAIL）。
 const scanCmd = () => {
-  const out = DATA_ROOT + "/审计/日审/" + bizDate + "-文件对账.md";
+  const out = DATA_ROOT + "/" + LX.audit + "/" + LX.daily + "/" + bizDate + "-" + LX.reconFile;
   const jqWs = `jq -r '.agents.entries | to_entries | map("\\(.key)=\\(.value.workspace)") | join(",")' ${q(CONFIG_FILE)} 2>/dev/null`;
   return `WS=$(${jqWs}); OPENCLAW_DATA_ROOT=${q(DATA_ROOT)} OPENCLAW_RUNTIME_ROOT=${q(WORKSPACE_ROOT)} ${q(NODE_BIN)} ${q(PROJECT_ROOT + "/scripts/automation/project-files.mjs")} scan --date ${bizDate} --out ${q(out)} --workspaces "$WS" >/dev/null 2>&1 && echo SCANOK || echo SCANFAIL`;
 };
@@ -93,12 +100,12 @@ const writeFile = async (text) => {
   const cmd = `printf %s ${q(b64)} | { base64 -D 2>/dev/null || base64 -d; } > ${q(OUT + ".tmp")} && mv -f ${q(OUT + ".tmp")} ${q(OUT)} && echo WROTE\n${scanCmd()}`;
   const r = await exec({ command: cmd });
   const agg = String((r && r.aggregated) ?? "");
-  return { ok: !!r && !r.isError && /WROTE/.test(agg), scan: /SCANOK/.test(agg) ? "已生成" : "没生成" };
+  return { ok: !!r && !r.isError && /WROTE/.test(agg), scan: /SCANOK/.test(agg) ? LX.scanMade : LX.scanNot };
 };
 const done = async (text, brief) => {
   const w = await writeFile(text);
-  const tail = `文件对账=${w.scan}`;
-  return json({ fire: true, message: w.ok ? `命令抽查文件=${OUT}；${brief}；${tail}` : `命令抽查脚本：结果文件没能写出（${OUT}）；${brief}；${tail}；日审写"命令抽查：记录不足（脚本没有生成）"` });
+  const tail = `${LX.reconEq}${w.scan}`;
+  return json({ fire: true, message: w.ok ? `${LX.fileEq}${OUT}${LX.sep}${brief}${LX.sep}${tail}` : LX.failMsg(OUT, brief, tail) });
 };
 
 const readExtra = async ({ A, B, startMs, cutMs, ws, apiJobs, roleApi, jqCmdsFor }) => {
@@ -185,7 +192,7 @@ const readExtra = async ({ A, B, startMs, cutMs, ws, apiJobs, roleApi, jqCmdsFor
 };
 
 const main = async () => {
-  const headOf = (scope) => `# 命令抽查 · ${bizDate}\n\n业务日期：${bizDate}\n窗口：见下（上一个执行完成的日审的截止点 → 本轮截止点 ${cutIso}）\n生成时间：${now.toISOString()}\n范围：${scope}\n说明：只放命令正文（已遮蔽、截到 ${CMD_OUT} 个字符），不放对话内容；脚本自己生成，日审只读本文件。\n`;
+  const headOf = (scope) => `# ${LX.title} · ${bizDate}\n\n${LX.bizDate}${bizDate}\n窗口：见下（上一个执行完成的日审的截止点 → 本轮截止点 ${cutIso}）\n生成时间：${now.toISOString()}\n范围：${scope}\n说明：只放命令正文（已遮蔽、截到 ${CMD_OUT} 个字符），不放对话内容；脚本自己生成，日审只读本文件。\n`;
   let head = headOf("读不了配置");
   try {
     // 第 1 次工具调用：从配置列出所有角色和 workspace；读上一个执行完成的日审的截止点
@@ -193,7 +200,7 @@ const main = async () => {
     const jqCfg = `jq -r '(.agents.defaults.models // {}) as $dm | .agents.entries | to_entries[] | ((.value.model | if type=="object" then .primary else . end) // "" | tostring | sub("@.*$"; "")) as $ref | "\\(.key)\\t\\(.value.workspace // "无")\\t\\(.value.models[$ref].agentRuntime.id // $dm[$ref].agentRuntime.id // "")"' ${q(CONFIG_FILE)}`;
     const jqApiRefs = `jq -r '(.agents.defaults.models // {}) | to_entries[] | select(.value.agentRuntime.id=="openclaw") | .key' ${q(CONFIG_FILE)} 2>/dev/null || true`;
     const cronJobs = `openclaw cron list --all --json 2>/dev/null | sed -n '/^{/,$p' | jq -r '.jobs[]? | select(.payload.kind=="agentTurn" and ((.payload.model // "") != "")) | "\\(.id)\\t\\(.agentId // "main")\\t\\(.payload.model)"' 2>/dev/null || true`;
-    const jqRounds = `jq -r 'select(.["执行"]=="完成") | .["截止点"]' ${q(DATA_ROOT + "/审计/日审")}/*.json 2>/dev/null`;
+    const jqRounds = `jq -r 'select(.["执行"]=="完成") | .["截止点"]' ${q(DATA_ROOT + "/" + LX.audit + "/" + LX.daily)}/*.json 2>/dev/null`;
     const r1 = await exec({ command: `${jqCfg}\necho '=====ROUNDS'\n${jqRounds}\necho '=====APIREFS'\n${jqApiRefs}\necho '=====CRONJOBS'\n${cronJobs}\necho '=====END'` });
     const o1 = String(r1?.aggregated ?? "");
     if (!r1 || r1.isError || !/^=====END\s*$/m.test(o1) || !/=====ROUNDS/.test(o1)) {

@@ -4,6 +4,7 @@
 // 结果只当"本轮期间发现变化（归属未确认）"的候选，不当作归属证据。
 import { opendir, lstat, readlink, realpath } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { lexicon } from './lexicon.mjs';
 
 // 明确的系统路径：完全排除（不按后缀一概排除：*.log、*.tmp、*.lock 照常比对）。
 const EXCLUDED_DIRS = new Set(['.git', 'node_modules', '__pycache__']);
@@ -123,7 +124,7 @@ export async function describeChanges(changed, roots, { deadline, clock = Date.n
     if (!rel) { out.outside++; continue; }
     const segments = rel.split(sep);
     if (info.root === 'workspace' && segments[0] === 'memory' && segments.length > 1) { out.memory++; continue; }
-    if (info.root === 'ziliao' && segments[0] === '垃圾桶' && segments.length > 1) { out.trash++; continue; }
+    if (info.root === 'ziliao' && segments[0] === lexicon().layout.trash && segments.length > 1) { out.trash++; continue; }
     if (segments.some(isPrivateSegment)) { out.hidden++; continue; }
     if (info.link && !info.deleted) {
       let link;

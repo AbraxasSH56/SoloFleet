@@ -10,6 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { createAuditGuard, judgeCommand, judgeWrite, identifyTrigger, loadSnippets, parseCommand, extractSnippet, sha256, maskSecrets, EXEC_LOG_CHARS, SEMICOLON_SNIPPET_HINT } from '../plugins/personal-inbox/audit-guard.mjs';
 
 import { crew } from '../plugins/personal-inbox/crew-config.mjs';
+import { locale } from '../plugins/personal-inbox/lexicon.mjs';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const RULES_PATH = join(ROOT, 'plugins/personal-inbox/audit-guard-rules.json');
 const rules = JSON.parse(readFileSync(RULES_PATH, 'utf8'));
@@ -600,7 +601,7 @@ test('触发脚本：S8 分支和规则文件不可用时的记录行也带会�
 // 按“触发脚本身份”过守门应全放行，按“模型身份”过守门应照挡。以后改触发脚本，这条会先坏。
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 async function runTrigger(file, fakeOutputs) {
-  const src = readFileSync(join(ROOT, 'scripts/automation', file), 'utf8');
+  const src = readFileSync(join(ROOT, 'scripts/automation', file), 'utf8').replace(/const LOCALE = "[^"]*";/, `const LOCALE = ${JSON.stringify(locale())};`); // the trigger cannot import the config: hand it the test config's locale
   const cmds = [];
   let result;
   const exec = async ({ command }) => { cmds.push(command); return { isError: false, aggregated: fakeOutputs(command) }; };

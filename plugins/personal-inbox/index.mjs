@@ -4,6 +4,8 @@ import { applySyncObligation, registerSyncObligation, verifySyncCard } from './s
 import { blockControllerNativeDelegation } from './delegation.mjs';
 import { dirname, join } from 'node:path';
 import { crew } from './crew-config.mjs';
+import { lexicon } from './lexicon.mjs';
+const W = lexicon(); // folder names follow config "locale"
 import { registerQuotaRecovery } from './quota-recovery.mjs';
 import { registerExecutionRecord } from './execution-record.mjs';
 import { registerDesktopScreenLock } from './desktop-lock.mjs';
@@ -120,7 +122,7 @@ export default {
     const dataRoot = syncRoot ? (crew.paths.dataRoot || null) : null; // project folders, ledgers and run records live here
     const desktopDir = join(crew.paths.workspaceRoot || join(syncRoot ?? '', 'runtime'), 'desktop');
 // 审批卡过期（超时／取消）登记进“等你定”台账；同一件事重新申请出新卡时把旧的过期条目改已定。台账路径用项目根目录拼，失败由调用方吞掉只记日志。
-    const pendingLedgerPath = dataRoot ? join(dataRoot, '审计', '等你定', '台账.json') : null;
+    const pendingLedgerPath = dataRoot ? join(dataRoot, W.layout.audit, W.layout.auditAwaiting, W.layout.awaitingLedgerFile) : null;
     const approvalLedger = pendingLedgerPath ? { expired: (info) => recordApprovalExpiry(pendingLedgerPath, info), reissued: (info) => recordApprovalReissue(pendingLedgerPath, info) } : null;
     registerApprovalReminder(api, { ledgerPath: pendingLedgerPath, syncRoot, log: (row) => { try { api.logger?.info?.(`approval-reminder: ${JSON.stringify(row)}`); } catch { /* 只是记录 */ } } });
     registerQuotaRecovery(api, syncRoot);
@@ -226,7 +228,7 @@ export default {
     );
     // “等你定”两个工具：放在最后注册，顺序和 openclaw.plugin.json 的 contracts.tools 一致；读不到资料根时工具会如实回“没有资料根”。
     registerPendingTools(api, dataRoot
-      ? { ledgerPath: join(dataRoot, '审计', '等你定', '台账.json'), readMessage: makeMessageReader(), watchDir: join(dataRoot, '运行记录', '看护') }
+      ? { ledgerPath: join(dataRoot, W.layout.audit, W.layout.auditAwaiting, W.layout.awaitingLedgerFile), readMessage: makeMessageReader(), watchDir: join(dataRoot, '运行记录', '看护') }
       : { ledgerPath: null, readMessage: async () => null });
   },
 };
