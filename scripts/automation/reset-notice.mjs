@@ -18,6 +18,8 @@ import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 import { basename } from 'node:path';
 import { DEFAULT_DATA_ROOT, WORKSHOP_CHANNEL, localParts, localIso, join, readJson, realSend, withLock } from './gap-common.mjs';
+import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
 
 export const PRE_FROM = 17 * 60 + 30; // 17:30
 export const RESET_AT = 18 * 60; // 18:00
@@ -29,7 +31,7 @@ export const TEXT_PRE = '【每日重置提醒】18:00 整，工坊和各项目�
 export const TEXT_POST = '【每日重置】18:00 已过。从现在起各 bot 在主区域的下一句话会用新会话；做到一半的活靠任务记录接着做。如果哪个 bot 不记得上文，叫它先读任务记录。';
 
 export function paths(dataRoot, test = false) {
-  const dir = join(dataRoot, '运行记录', '提醒');
+  const dir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.reminders);
   return { dir, state: join(dir, test ? '重置通知.测试.json' : '重置通知.json'), lock: join(dir, test ? '.重置通知.测试.lock' : '.重置通知.lock') };
 }
 // 644 原子写（gap-common 的 atomicWriteJson 写死 600，本批不改它，这里自己实现）

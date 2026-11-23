@@ -1153,7 +1153,7 @@ function sharedTrailing(api) {
 // 存档一行到 <资料>/运行记录/英文清理原文/<本地日期>.jsonl（只追加，不删不改）。
 export function writeEnglishArchive(ziliaoRoot, row, nowMs = Date.now()) {
   const day = new Date(nowMs).toLocaleDateString('sv-SE', { timeZone: tzName() });
-  const dir = join(ziliaoRoot, '运行记录', '英文清理原文');
+  const dir = join(ziliaoRoot, lexicon().layout.runLogs, lexicon().layout.runLogDirs.englishCleanupRaw);
   mkdirSync(dir, { recursive: true });
   appendFileSync(join(dir, `${day}.jsonl`), `${JSON.stringify(row)}\n`);
 }

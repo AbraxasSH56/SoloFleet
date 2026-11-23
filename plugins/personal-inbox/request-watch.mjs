@@ -32,7 +32,7 @@ export const INFO_KEEP_MS = 30 * 24 * 3600 * 1000; // 频道信息缓存里 30 �
 export const DONE_KEEP_MS = 3 * 24 * 3600 * 1000; // 已核记录只留 3 天（读流水只扫今天和昨天）
 export const AUTO_PREFIX = W.autoRegisterPrefix;
 const dayOf = (ms) => localDate(ms);
-export const requestDir = (dataRoot) => join(dataRoot, '运行记录', '请示待核');
+export const requestDir = (dataRoot) => join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.requestWatch);
 
 // ---------- ① 从工具调用里认出“带按钮、只许主人点”的请示 ----------
 const normTool = (name) => String(name ?? '').replace(/^mcp__openclaw__/, '');

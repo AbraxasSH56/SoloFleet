@@ -14,6 +14,8 @@ import { fileURLToPath } from 'node:url';
 import { DAY_MS, DEFAULT_DATA_ROOT, OWNER_MENTION, addDays, atomicWriteJson, localParts, localDayStart, localIso, cnDate, cnDateTime, join, parseJsonLoose, readJson, realRunner, realSend, withLock } from './gap-common.mjs';
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
+import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
 export const DEFAULT_CONFIG = {
   提醒小时: 9, // reminders go out from 09:00 local time (config timezone)
   到期前天数: [7, 1],
@@ -26,8 +28,8 @@ export const DEFAULT_CONFIG = {
 export const CLAUDE_BIN = crew.paths.claudeBin || `${homedir()}/.local/bin/claude`; // config paths.claudeBin (default: the usual install location)
 
 export function paths(dataRoot) {
-  const dir = join(dataRoot, '运行记录', '提醒');
-  return { dir, state: join(dir, '已发.json'), config: join(dir, '配置.json'), lock: join(dir, '.提醒.lock'), gate: join(dataRoot, '运行记录', 'API额度', '状态.json') };
+  const dir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.reminders);
+  return { dir, state: join(dir, '已发.json'), config: join(dir, '配置.json'), lock: join(dir, '.提醒.lock'), gate: join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.apiQuota, '状态.json') };
 }
 const ms = (s) => { const v = Date.parse(s ?? ''); return Number.isFinite(v) ? v : null; };
 const dayMinus = (dateStr, n) => addDays(dateStr, -n);

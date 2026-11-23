@@ -12,6 +12,8 @@
 
 import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { lexicon } from './lexicon.mjs';
+const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
 
 const UUID_G = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
 const UUID_1 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -23,7 +25,7 @@ export const LINK_TOOLS = new Set([
   'workboard_specify', 'workboard_worker_log', 'workboard_attachment_add', 'workboard_release', 'workboard_complete', 'workboard_move',
 ]);
 
-export const mapPath = (dataRoot) => join(dataRoot, '运行记录', '卡线程', '对应.json');
+export const mapPath = (dataRoot) => join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.cardThreads, '对应.json');
 export const normTool = (name) => String(name ?? '').replace(/^mcp__openclaw__/, '');
 
 // 会话键 → Discord 线程（或频道）编号。官方线程会话也写成 discord:channel:<编号>，所以拿到的可能是频道编号，查的时候靠“多张就不挑”兜底。

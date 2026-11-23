@@ -61,7 +61,7 @@ export function readyAt(chain) { return (Number.isFinite(chain.恢复时间毫�
 export function expireAt(chain) { return (Number.isFinite(chain.恢复时间毫秒) ? chain.恢复时间毫秒 : chain.最新失败时间毫秒 + FALLBACK_AFTER_MS) + EXPIRE_AFTER_MS; }
 // ---------- 文件 ----------
 export function paths(dataRoot) {
-  const quotaDir = join(dataRoot, '运行记录', '额度');
+  const quotaDir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota);
   const dir = join(quotaDir, '接续');
   return { quotaDir, dir, ledger: join(dir, '账.json'), lock: join(dir, '.接续.lock'), logs: join(dir, '发起日志') };
 }

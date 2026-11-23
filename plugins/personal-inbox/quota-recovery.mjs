@@ -7,6 +7,8 @@
 // 补跑由命令型定时任务“额度补跑”（scripts/automation/quota-catchup.mjs）做；它只读这里写的登记和存档。
 import { linkSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { lexicon } from './lexicon.mjs';
+const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
 
 export const AUDIT_TASK_NAMES = ['日审', '巡查', '异常深审', '周审'];
 // 订阅额度句（新旧两版）：5-hour／session／weekly／Opus／Sonnet／Fable 限额。usage credit 不算订阅额度。
@@ -163,7 +165,7 @@ const readJson = (path) => { try { return JSON.parse(readFileSync(path, 'utf8'))
 
 // ---------- 登记 ----------
 export function createQuotaRegistry({ dataRoot, modelFor = () => null, now = Date.now }) {
-  const dir = join(dataRoot, '运行记录', '额度');
+  const dir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota);
   const archiveDir = join(dir, '计划存档');
   const actions = new Map();
   const jobIdOf = (sessionKey) => /^agent:[^:]+:cron:([^:]+):run:/.exec(sessionKey ?? '')?.[1] ?? null;

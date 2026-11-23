@@ -20,7 +20,7 @@ const W = lexicon(); // words, report markers and folder names follow config "lo
 // the "complete" line the format check and the blind-spot check write at the top of their files: zh-CN `状态：完整`, en `Status: complete`
 const COMPLETE_RE = new RegExp(`^${locale() === 'en' ? `${escapeRe(W.statusLabel)}:\\s*` : `${W.statusLabel}：`}${escapeRe(W.reportComplete)}`, 'm');
 const DATA_ROOT = process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot; // env var first (offline smoke tests), then config
-const WATCH_DIR = join(DATA_ROOT, '运行记录', '看护');
+const WATCH_DIR = join(DATA_ROOT, W.layout.runLogs, W.layout.runLogDirs.watch);
 // 常量（起草定，可改；STALE 可用环境变量缩短做测试，正式不设）
 export const STALE_MS = Number(process.env.OPENCLAW_DAYWATCH_STALE_MS) || 2 * 3600 * 1000;
 export const LOCK_STALE_MS = 10 * 60 * 1000;
@@ -48,7 +48,7 @@ export function realDeps(env = process.env) {
     deskWaitingCard: () => { const l = jread(join(crew.paths.workspaceRoot, 'desktop', 'screen.lock'), null); return l?.state === 'waiting' ? l.cardId ?? null : null; },
     pendingLedgerPath: join(DATA_ROOT, W.layout.audit, W.layout.auditAwaiting, W.layout.awaitingLedgerFile),
     closingBaselinePath: join(WATCH_DIR, '结案基线.json'),
-    closingLedgerPath: join(DATA_ROOT, '运行记录', '结案', '账.json'),
+    closingLedgerPath: join(DATA_ROOT, W.layout.runLogs, W.layout.runLogDirs.closing, '账.json'),
     collectCatchupFlags: () => collectCatchupFlags(DATA_ROOT, Date.now(), WATCH_DIR),
     collectDiscordHealthFlags: () => collectDiscordHealthFlags(process.env.OPENCLAW_GATEWAY_LOG_DIR || '/tmp/openclaw', Date.now()),
   };
@@ -90,19 +90,19 @@ const RESUME_GRACE_MS = 30 * 60 * 1000; // 登记出现后 30 分钟内，账里
 // 停用了或连续出错就会变旧）＝undefined，看护照旧不让路——免得账里一条“待发起”让看护永远让路、谁也不叫
 const RESUME_LEDGER_STALE_MS = 45 * 60 * 1000;
 function readResumeLedger(dataRoot, nowMs) {
-  const f = join(dataRoot, '运行记录', '额度', '接续', '账.json');
+  const f = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota, W.layout.runLogDirs.quotaResume, '账.json');
   if (!existsSync(f)) return { 链: {}, 运行: {} };
   try {
     if (nowMs - statSync(f).mtimeMs > RESUME_LEDGER_STALE_MS) return undefined;
     return JSON.parse(readFileSync(f, 'utf8'));
   } catch { return undefined; }
 }
-export function collectCatchupFlags(dataRoot, nowMs, watchDir = join(dataRoot, '运行记录', '看护')) {
+export function collectCatchupFlags(dataRoot, nowMs, watchDir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.watch)) {
   const out = [];
   const day = Math.floor(nowMs / 86400000) * 86400000;
   const listJson = (dir) => { try { return readdirSync(dir).filter((n) => n.endsWith('.json')).map((n) => [n, join(dir, n)]); } catch { return []; } };
   // 补跑账里的“待核”“补跑结果待核”“通知未送达”
-  const base = join(dataRoot, '运行记录', '补跑');
+  const base = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.catchup);
   for (const [n, f] of listJson(base)) {
     const d = jread(f, null); if (!d) continue;
     const st = String(d.状态 ?? '').split('（')[0];
@@ -115,7 +115,7 @@ export function collectCatchupFlags(dataRoot, nowMs, watchDir = join(dataRoot, '
   if (stuck?.日期) out.push({ type: 'catchup-flag', object: '补跑检查卡住', startedAt: localDayStart(stuck.日期) || day, text: `补跑检查卡住过（${stuck.日期}，锁比时限的两倍还老，没有抢锁）` });
   // 没接住的撞额度：额度登记里不属于补跑四个任务、失败时间在近 48 小时内、终态已确认的
   const resumeLedger = readResumeLedger(dataRoot, nowMs);
-  for (const [n, f] of listJson(join(dataRoot, '运行记录', '额度'))) {
+  for (const [n, f] of listJson(join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota))) {
     const q = jread(f, null); if (!q || !q.失败时间毫秒) continue;
     if (nowMs - q.失败时间毫秒 > QUOTA_LOOKBACK_MS || !q.终态已确认) continue;
     if (q.是定时任务 && CATCHUP_JOB_IDS.has(String(q.任务编号))) continue;
@@ -283,7 +283,7 @@ export function formatCheckDue(nowMs, dataRoot = DATA_ROOT) {
 }
 export function startFormatCheck({ nowMs = Date.now(), dataRoot = DATA_ROOT, script = FORMAT_CHECK_SCRIPT, spawnFn = spawn, execPath = process.execPath, log = null } = {}) {
   // 出错日志写在传进来的数据根下面（不再写死全局 WATCH_DIR：测试传临时目录时不会碰真实的看护目录）
-  const note = (t) => { try { (log ?? ((x) => { const d = join(dataRoot, '运行记录', '看护'); mkdirSync(d, { recursive: true }); appendFileSync(join(d, '格式抽查启动.log'), `${new Date().toISOString()} ${x}\n`); }))(t); } catch { /* 只是日志 */ } };
+  const note = (t) => { try { (log ?? ((x) => { const d = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.watch); mkdirSync(d, { recursive: true }); appendFileSync(join(d, '格式抽查启动.log'), `${new Date().toISOString()} ${x}\n`); }))(t); } catch { /* 只是日志 */ } };
   try {
     if (!formatCheckDue(nowMs, dataRoot)) return { started: false };
     const child = spawnFn(execPath, [script], { detached: true, stdio: 'ignore', env: process.env });
@@ -303,7 +303,7 @@ export function blindspotsDue(nowMs, dataRoot = DATA_ROOT) {
   return true;
 }
 export function startBlindspots({ nowMs = Date.now(), dataRoot = DATA_ROOT, script = BLINDSPOTS_SCRIPT, spawnFn = spawn, execPath = process.execPath, log = null } = {}) {
-  const note = (t) => { try { (log ?? ((x) => { const d = join(dataRoot, '运行记录', '看护'); mkdirSync(d, { recursive: true }); appendFileSync(join(d, '盲区抽查启动.log'), `${new Date().toISOString()} ${x}\n`); }))(t); } catch { /* 只是日志 */ } };
+  const note = (t) => { try { (log ?? ((x) => { const d = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.watch); mkdirSync(d, { recursive: true }); appendFileSync(join(d, '盲区抽查启动.log'), `${new Date().toISOString()} ${x}\n`); }))(t); } catch { /* 只是日志 */ } };
   try {
     if (!blindspotsDue(nowMs, dataRoot)) return { started: false };
     const child = spawnFn(execPath, [script], { detached: true, stdio: 'ignore', env: process.env });

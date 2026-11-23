@@ -225,7 +225,7 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), limits = LI
   const now = nowMs ?? t0;
   const { bizDate, cutMs, startMs, endMs } = windowOf(now, dataRoot);
   const out = join(dataRoot, W.layout.audit, W.layout.auditDaily, `${bizDate}-${W.layout.dailyFiles.formatCheck}`);
-  const stateDir = join(dataRoot, '运行记录', '格式抽查');
+  const stateDir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.formatCheck);
   const notes = []; // 未能检查
   let complete = true;
   const budgetLeft = () => limits.discordMs - (deps.now() - discordT0);
@@ -323,7 +323,7 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), limits = LI
 
 // ---------- 入口：锁＋总时限 ----------
 export async function main(argv = process.argv.slice(2)) {
-  const stateDir = join(DATA_ROOT, '运行记录', '格式抽查');
+  const stateDir = join(DATA_ROOT, W.layout.runLogs, W.layout.runLogDirs.formatCheck);
   mkdirSync(stateDir, { recursive: true });
   const lock = join(stateDir, '运行.lock');
   const log = (s) => { try { appendFileSync(join(stateDir, '运行.log'), `${new Date().toISOString()} ${s}\n`); } catch { /* 只是日志 */ } };

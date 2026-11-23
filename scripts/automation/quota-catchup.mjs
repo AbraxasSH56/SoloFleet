@@ -15,6 +15,8 @@ import { join } from 'node:path';
 import { isQuotaSentence, nextOccurrence, previousOccurrence, resetAt, writeReplace } from '../../plugins/personal-inbox/quota-recovery.mjs';
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
+import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
 export const DEFAULT_DATA_ROOT = process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot; // env var first, then config
 // 4-12 原设计：这四个任务有本轮记录接着做、发布脚本防重发。近线小时＝离下一轮不到这么久就跳过（周审 24 小时）。
 export const TASKS = {
@@ -58,14 +60,14 @@ export function realDeps(env = process.env) {
 
 // ---------- 账本 ----------
 function paths(dataRoot) {
-  const base = join(dataRoot, '运行记录', '补跑');
+  const base = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.catchup);
   return {
     base,
     lock: join(base, '.lock'),
     stuck: join(base, '.stuck-notified'),
     account: (task, date) => join(base, `${task}-${date}.json`),
-    quotaDir: join(dataRoot, '运行记录', '额度'),
-    archiveDir: join(dataRoot, '运行记录', '额度', '计划存档'),
+    quotaDir: join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota),
+    archiveDir: join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota, W.layout.runLogDirs.quotaPlanArchive),
     round: (task, date) => join(dataRoot, '审计', TASKS[task].目录, `${date}.json`),
     credential: (task, date) => join(dataRoot, '审计', '发布', '凭据', `${task}-${date}.json`),
     receipt: (task, date) => join(dataRoot, '审计', '发布', '凭据', `${task}-${date}.回执.txt`),

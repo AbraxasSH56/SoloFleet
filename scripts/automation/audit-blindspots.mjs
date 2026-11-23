@@ -259,7 +259,7 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), nowMs = nul
   const { bizDate, startMs, endMs } = windowOf(now, dataRoot);
   const result = {};
   try { result.rework = reworkReport(await deps.listCards(), startMs, endMs); } catch (e) { result.rework = { error: String(e?.message ?? e).slice(0, 80) }; }
-  try { result.rules = await ruleFileReport({ projectRoot, workspaceRoot, baselinePath: join(dataRoot, '运行记录', '盲区抽查', '规则文件基线.json'), startMs, endMs, git: deps.git }); } catch (e) { result.rules = { error: String(e?.message ?? e).slice(0, 80) }; }
+  try { result.rules = await ruleFileReport({ projectRoot, workspaceRoot, baselinePath: join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.blindspot, '规则文件基线.json'), startMs, endMs, git: deps.git }); } catch (e) { result.rules = { error: String(e?.message ?? e).slice(0, 80) }; }
   const outside = await outsideSection(deps.runFind, startMs, endMs, areas);
   const lockStats = screenLockStats(join(workspaceRoot, 'desktop', 'screen-lock.log'), startMs, endMs);
   const bk = backupStatus({ backups: areas.backup, nowMs: now });
@@ -294,7 +294,7 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), nowMs = nul
 }
 
 export async function main() {
-  const stateDir = join(DATA_ROOT, '运行记录', '盲区抽查');
+  const stateDir = join(DATA_ROOT, W.layout.runLogs, W.layout.runLogDirs.blindspot);
   mkdirSync(stateDir, { recursive: true });
   const lock = join(stateDir, '运行.lock');
   const log = (s) => { try { appendFileSync(join(stateDir, '运行.log'), `${new Date().toISOString()} ${s}\n`); } catch { /* 只是日志 */ } };

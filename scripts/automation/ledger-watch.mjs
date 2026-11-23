@@ -24,7 +24,7 @@ export const STALE_NOTICE_MS = 3 * DAY_MS;
 const SCRIPT = join(crew.paths.projectRoot, 'scripts', 'automation', 'ledger-watch.mjs');
 
 export function paths(dataRoot) {
-  const dir = join(dataRoot, '运行记录', '账本待补');
+  const dir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.ledgerBacklog);
   return { dir, data: join(dir, '待补.json'), view: join(dir, '待补清单.md'), lock: join(dir, '.待补.lock'), ledger: join(dataRoot, W.layout.ledgerFile) };
 }
 const ms = (s) => { const v = Date.parse(s ?? ''); return Number.isFinite(v) ? v : null; };

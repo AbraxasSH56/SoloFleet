@@ -14,6 +14,8 @@ import { localIsoAt } from '../../plugins/personal-inbox/tz.mjs';
 export const EXPIRY_HOUR = 7; // local hour at which an API credit period ends (edit to match your plan's period end)
 import { fileURLToPath } from 'node:url';
 import { DAY_MS, DEFAULT_DATA_ROOT, atomicWriteJson, localParts, localDayStart, localIso, cnDate, cnDateTime, isRealDate, join, parseJsonLoose, readJson, realRunner, realSend, withLock } from './gap-common.mjs';
+import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
 
 export const TASK_NAMES = ['日审', '巡查', '异常深审', '周审'];
 export const PROBE_AFTER_MIN = 17 * 60 + 30; // 正常状态：17:30 之后才试探（赶在 18:05 日审之前，不是之后）
@@ -35,7 +37,7 @@ export function classifyFailure(text) {
 }
 
 export function paths(dataRoot) {
-  const dir = join(dataRoot, '运行记录', 'API额度');
+  const dir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.apiQuota);
   return { dir, state: join(dir, '状态.json'), lock: join(dir, '.额度闸.lock') };
 }
 

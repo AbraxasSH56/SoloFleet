@@ -1583,7 +1583,7 @@ export function findCardByThread(threadId, { dataRoot = `${process.env.HOME}/Ope
     const path = process.getBuiltinModule('node:path');
     // 第一层：程序自动记的对应。同一线程可能对着好几张卡（旧的已归档或已完成的不算），剩下恰好一张才用，多张不挑
     try {
-      const doc = JSON.parse(fs.readFileSync(path.join(dataRoot, '运行记录', '卡线程', '对应.json'), 'utf8'));
+      const doc = JSON.parse(fs.readFileSync(path.join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.cardThreads, '对应.json'), 'utf8'));
       // 会话键里线程和频道长得一样：只认“已知是 thread-create 开出来的线程”（对应表 threads 里有，或这条是开线程时记的），不把项目频道主区域挂到卡上
       const knownThread = !!doc.threads?.[tid];
       const ids = [...new Set((doc.links ?? []).filter((l) => l.threadId === tid && (knownThread || (l.via ?? []).some((v) => String(v).startsWith('开线程') || String(v).startsWith('同一轮建卡再开线程')))).map((l) => l.cardId))];

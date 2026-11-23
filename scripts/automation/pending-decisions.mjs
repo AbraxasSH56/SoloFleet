@@ -15,7 +15,7 @@ import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
 const W = lexicon(); // folder and file names and report markers follow config "locale" (zh-CN: the literals this script always used)
 const DATA_ROOT = process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot; // env var first (offline smoke tests), then config
 const DEFAULT_LEDGER = join(DATA_ROOT, W.layout.audit, W.layout.auditAwaiting, W.layout.awaitingLedgerFile);
-const WATCH_DIR = join(DATA_ROOT, '运行记录', '看护');
+const WATCH_DIR = join(DATA_ROOT, W.layout.runLogs, W.layout.runLogDirs.watch);
 export const RUN_DEADLINE_MS = 180 * 1000; // 整轮总时限（补登记修改·①-3）：定时任务上限 300 秒；到这个点 runTick 不再起新的读和发送，最坏再多 60 秒（已经开始的那一条命令）＝240 秒，不会在持锁时被强杀
 
 export function realDiscord(env = process.env) {

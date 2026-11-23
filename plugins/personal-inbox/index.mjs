@@ -135,7 +135,7 @@ export default {
     registerAuditGuard(api, syncRoot
       ? {
           rulesPath: join(syncRoot, 'plugins', 'personal-inbox', 'audit-guard-rules.json'),
-          logDir: join(dataRoot ?? syncRoot, '运行记录', '守门'),
+          logDir: join(dataRoot ?? syncRoot, W.layout.runLogs, W.layout.runLogDirs.gate),
         }
       : {});
     // 结案关口和“等你定”两个工具（3.9）：账本和记录放在资料根下；规则文件改动后重启才生效。
@@ -145,7 +145,7 @@ export default {
     // “等你定”登记兜底：bot 用 message 工具发出“带按钮、只许主人点”的请示时，记一行流水；台账由“等你定”脚本核账补登记，这里不碰台账。
     if (dataRoot) registerRequestWatch(api, createRequestWatch({ dataRoot, log: (row) => { try { api.logger?.info?.(`request-watch: ${JSON.stringify(row)}`); } catch { /* 只是记录 */ } } }));
     if (dataRoot) {
-      const closeDir = join(dataRoot, '运行记录', '结案');
+      const closeDir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.closing);
       registerAuditGate(api, {
         ledgerPath: join(closeDir, '账.json'),
         sendApprovalNotice: realApprovalSend,
@@ -174,7 +174,7 @@ export default {
     }
     // 卡↔线程对应（小补三）：工具调用和开线程时自动记“哪个线程对着哪张卡”，只记不改卡；桌面角色的六类审批卡先查它。
     if (dataRoot) {
-      const linkDir = join(dataRoot, '运行记录', '卡线程');
+      const linkDir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.cardThreads);
       registerCardThreadLinks(api, {
         dataRoot,
         log: (row) => { try { mkdirSync(linkDir, { recursive: true }); appendFileSync(join(linkDir, `${new Date().toISOString().slice(0, 10)}.jsonl`), `${JSON.stringify({ 时间: new Date().toISOString(), ...row })}\n`); } catch { /* 记日志失败不影响 */ } },
@@ -228,7 +228,7 @@ export default {
     );
     // “等你定”两个工具：放在最后注册，顺序和 openclaw.plugin.json 的 contracts.tools 一致；读不到资料根时工具会如实回“没有资料根”。
     registerPendingTools(api, dataRoot
-      ? { ledgerPath: join(dataRoot, W.layout.audit, W.layout.auditAwaiting, W.layout.awaitingLedgerFile), readMessage: makeMessageReader(), watchDir: join(dataRoot, '运行记录', '看护') }
+      ? { ledgerPath: join(dataRoot, W.layout.audit, W.layout.auditAwaiting, W.layout.awaitingLedgerFile), readMessage: makeMessageReader(), watchDir: join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.watch) }
       : { ledgerPath: null, readMessage: async () => null });
   },
 };
