@@ -19,11 +19,14 @@ import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
 const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
 export const DEFAULT_DATA_ROOT = process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot; // env var first, then config
 // 4-12 原设计：这四个任务有本轮记录接着做、发布脚本防重发。近线小时＝离下一轮不到这么久就跳过（周审 24 小时）。
+const J = W.jobNames;
+const AK = W.auditRecordKeys; // keys and values of the round record the audit job writes
+const RK = W.receiptKeys; // keys and states of the publish receipt
 export const TASKS = {
-  日审: { 目录: '日审', 近线小时: 6, 要发布: false },
-  巡查: { 目录: '巡查', 近线小时: 6, 要发布: true },
-  异常深审: { 目录: '异常深审', 近线小时: 6, 要发布: true },
-  周审: { 目录: '周审', 近线小时: 24, 要发布: true },
+  [J.daily]: { 目录: W.layout.auditDaily, 近线小时: 6, 要发布: false },
+  [J.patrol]: { 目录: W.layout.auditPatrol, 近线小时: 6, 要发布: true },
+  [J.deepReview]: { 目录: W.layout.auditDeep, 近线小时: 6, 要发布: true },
+  [J.weekly]: { 目录: W.layout.auditWeekly, 近线小时: 24, 要发布: true },
 };
 const MAX_TRIES = 2;
 const GAP_MS = 30 * 60000; // 两次之间至少隔 30 分钟（起草定，可改）
@@ -68,9 +71,9 @@ function paths(dataRoot) {
     account: (task, date) => join(base, `${task}-${date}.json`),
     quotaDir: join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota),
     archiveDir: join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota, W.layout.runLogDirs.quotaPlanArchive),
-    round: (task, date) => join(dataRoot, '审计', TASKS[task].目录, `${date}.json`),
-    credential: (task, date) => join(dataRoot, '审计', '发布', '凭据', `${task}-${date}.json`),
-    receipt: (task, date) => join(dataRoot, '审计', '发布', '凭据', `${task}-${date}.回执.txt`),
+    round: (task, date) => join(dataRoot, W.layout.audit, TASKS[task].目录, `${date}.json`),
+    credential: (task, date) => join(dataRoot, W.layout.audit, W.layout.auditPublish, W.layout.auditReceipts, `${task}-${date}.json`),
+    receipt: (task, date) => join(dataRoot, W.layout.audit, W.layout.auditPublish, W.layout.auditReceipts, `${task}-${date}${W.publishFiles.receipt}`),
   };
 }
 const readJson = (p) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return null; } };
@@ -84,7 +87,7 @@ const saveAccount = (file, data, now) => writeReplace(file, { ...data, 更新时
 // ---------- 本轮记录和发送凭据 ----------
 export function roundDone(P, task, date) {
   const rec = readJson(P.round(task, date));
-  if (!rec || rec.执行 !== '完成' || rec.业务日期 !== date) return false;
+  if (!rec || rec[AK.execution] !== W.auditRecordValues.done || rec[AK.businessDate] !== date) return false;
   if (!TASKS[task].要发布) return true;
   return credentialTrusted(P, task, date);
 }
@@ -92,8 +95,8 @@ export function roundDone(P, task, date) {
 export function credentialTrusted(P, task, date) {
   const c = readJson(P.credential(task, date));
   if (!c) return false;
-  return c.任务 === task && c.业务日期 === date && c.账号 === 'default' && c.频道 === 'discord' && c.目标 === CHANNEL_TARGET
-    && c.状态 === '已送达' && /^\d{17,20}$/.test(String(c.消息编号 ?? '')) && existsSync(P.receipt(task, date));
+  return c[RK.task] === task && c[RK.businessDate] === date && c[RK.account] === 'default' && c[RK.channel] === 'discord' && c[RK.target] === CHANNEL_TARGET
+    && c[RK.state] === W.publishStates.delivered && /^\d{17,20}$/.test(String(c[RK.messageId] ?? '')) && existsSync(P.receipt(task, date));
 }
 
 // ---------- 运行记录的归类 ----------
@@ -156,7 +159,7 @@ export function runCatchup({ dataRoot = DEFAULT_DATA_ROOT, deps = realDeps(), be
 
 function run(P, deps, now, gapMs, bench, lines, log) {
   const jobs = deps.listJobs();
-  const ownJob = jobs.find((j) => j.name === '额度补跑');
+  const ownJob = jobs.find((j) => j.name === W.jobNames.quotaCatchup);
   settleNotices(P, deps, ownJob, now);
 
   for (const task of Object.keys(TASKS)) {
@@ -179,7 +182,7 @@ function run(P, deps, now, gapMs, bench, lines, log) {
     if (touched) continue;
 
     // 4. 没有待收尾的账：找最近这一两轮里因订阅额度失败的运行（补跑自己的运行不算新的一轮失败）
-    const horizon = task === '周审' ? 8 * 86400000 : 30 * 3600000;
+    const horizon = task === W.jobNames.weekly ? 8 * 86400000 : 30 * 3600000;
     const own = new Set(listAccounts(P, task).flatMap((a) => (a.data.尝试 ?? []).map((x) => x.运行编号)));
     const quotaRuns = runs.filter((e) => e.runAtMs >= now() - horizon && !own.has(e.runId) && classify(e, bench).kind === 'quota');
     if (quotaRuns.length === 0) continue;

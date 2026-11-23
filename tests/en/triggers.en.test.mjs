@@ -39,6 +39,7 @@ test('command spot-check trigger: result file under audit/daily with English nam
   });
   assert.equal(result.fire, true);
   assert.ok(calls.some((c) => c.includes(`${DR}/audit/daily`) && c.includes('=====ROUNDS')), 'the daily-audit record folder is read from audit/daily');
+  assert.ok(calls.some((c) => c.includes(`jq -r 'select(.["execution"]=="done") | .["cutoff"]'`)), 'the round records are read with the English keys');
   const text = decodeWrite(written);
   assert.ok(text.startsWith('# Command check · 2026-11-12\n\nBusiness date: 2026-11-12\n'), text.slice(0, 80));
   assert.ok(written.includes(`${DR}/audit/daily/2026-11-12-command-check.md`));
@@ -59,14 +60,25 @@ test('command spot-check trigger: when the result file cannot be written the mes
   assert.ok(result.message.endsWith('file-reconcile=not generated; in the daily audit write "command check: records insufficient (the script did not generate it)"'), result.message);
 });
 
-test('deep-review trigger: reads audit/anomaly-flags and audit/deep-review', async () => {
+test('deep-review trigger: English folders, flag keys and states, round record keys, and an English message', async () => {
   const src = load('deep-review-trigger.js');
   const none = await run(src, () => ({ isError: false, aggregated: 'TOTAL=0\nNONDONE=0\n=====END\n' }));
   assert.deepEqual(none.result, { fire: false });
   assert.ok(none.calls[0].includes('/opt/solofleet-data/audit/anomaly-flags'), none.calls[0]);
-  const carry = await run(src, ({ command }) => ({ isError: false, aggregated: command.includes('=====REC') ? '=====REC 2026-11-10\n{"执行":"完成"}\n=====END\n' : 'TOTAL=1\nNONDONE=1\n=====FILE a.json\n{"状态":"深审中 2026-11-10"}\n\n=====END\n' }));
+  assert.ok(none.calls[0].includes(`"status"[[:space:]]*:[[:space:]]*"reviewed`), 'the flag key and the reviewed state are the English ones');
+  const flags = (body) => 'TOTAL=2\nNONDONE=2\n=====FILE a.json\n' + body[0] + '\n\n=====FILE b.json\n' + body[1] + '\n\n=====END\n';
+  const carry = await run(src, ({ command }) => ({ isError: false, aggregated: command.includes('=====REC')
+    ? '=====REC 2026-11-10\n{"execution":"done"}\n=====END\n'
+    : flags(['{"status":"reviewing 2026-11-10"}', '{"status":"to-review","found_at":"2026-11-10T08:00:00+05:30"}']) }));
   assert.equal(carry.result.fire, true);
+  assert.equal(carry.calls.length, 2);
   assert.ok(carry.calls[1].includes('/opt/solofleet-data/audit/deep-review/2026-11-10.json'), carry.calls[1]);
+  assert.equal(carry.result.message, 'business_date=2026-11-11; cutoff=2026-11-11T19:00:00+05:30; to_review=b.json; to_continue=a.json (finish-up only (this round is already done; do not re-review the content))');
+  const inprog = await run(src, ({ command }) => ({ isError: false, aggregated: command.includes('=====REC') ? '=====REC 2026-11-10\n{"execution":"in-progress"}\n=====END\n' : flags(['{"status":"reviewing 2026-11-10"}', '{"status":"reviewing 2026-11-10"}']) }));
+  assert.ok(inprog.result.message.includes('continue the review (this round record is not done)'), inprog.result.message);
+  assert.ok(!HAN.test(inprog.result.message), inprog.result.message);
+  const chinese = await run(src, () => ({ isError: false, aggregated: 'TOTAL=1\nNONDONE=1\n=====FILE a.json\n{"状态":"深审中 2026-11-10"}\n\n=====END\n' }));
+  assert.match(chinese.result.message, /^Condition check read incomplete|条件检查读取不完整/, 'the Chinese flag is not understood in en');
 });
 
 test('manual file-scan command: the English path and file name', () => {

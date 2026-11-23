@@ -6,8 +6,10 @@ const TIMEZONE = "UTC"; // config timezone (IANA name)
 const CUT_HOUR = 19; // scheduled time 19:00 local (config jobs.deepReview.time)
 const LOCALE = "en"; // config "locale": "en" or "zh-CN". This trigger cannot import lexicon.mjs, so the words it needs are in the table below (keep it in step with lexicon.mjs: tests/trigger-literals-consistency.test.mjs checks it).
 const LX = ({
-  "zh-CN": { audit: "审计", flags: "异常标记", deep: "异常深审" },
-  "en": { audit: "audit", flags: "anomaly-flags", deep: "deep-review" },
+  "zh-CN": { audit: "审计", flags: "异常标记", deep: "异常深审", kStatus: "状态", kFound: "发现时间", sToReview: "待深审", sReviewing: "深审中", sReviewed: "已深审", kExec: "执行", vDone: "完成",
+    bizEq: "业务日期=", cutEq: "截止点=", toReviewEq: "待审=", toContinueEq: "待接=", none: "无", sep: "；", listSep: "，", wrap: (s) => `（${s}）`, finishOnly: "只补收尾（本轮已完成，不重审内容）", continueReview: "接着审（本轮记录不是完成）", cannotTell: "未能判断（读不到那一天的本轮记录，请深审自己查）" },
+  "en": { audit: "audit", flags: "anomaly-flags", deep: "deep-review", kStatus: "status", kFound: "found_at", sToReview: "to-review", sReviewing: "reviewing", sReviewed: "reviewed", kExec: "execution", vDone: "done",
+    bizEq: "business_date=", cutEq: "cutoff=", toReviewEq: "to_review=", toContinueEq: "to_continue=", none: "none", sep: "; ", listSep: ", ", wrap: (s) => ` (${s})`, finishOnly: "finish-up only (this round is already done; do not re-review the content)", continueReview: "continue the review (this round record is not done)", cannotTell: "cannot tell (the round record of that day cannot be read; please check it yourself)" },
 })[LOCALE];
 const MARK_DIR = DATA_ROOT + "/" + LX.audit + "/" + LX.flags;
 const RUN_DIR = DATA_ROOT + "/" + LX.audit + "/" + LX.deep;
@@ -29,7 +31,7 @@ const bizDate = `${bd.y}-${pad(bd.m)}-${pad(bd.d)}`;
 const offMin = Math.round(tzOffset(cutMs) / 60000);
 const offSuffix = `${offMin < 0 ? "-" : "+"}${pad(Math.floor(Math.abs(offMin) / 60))}:${pad(Math.abs(offMin) % 60)}`;
 const cutoff = `${bizDate}T${pad(CUT_HOUR)}:00:00${offSuffix}`;
-const head = `业务日期=${bizDate}；截止点=${cutoff}`;
+const head = `${LX.bizEq}${bizDate}${LX.sep}${LX.cutEq}${cutoff}`;
 const incomplete = (why) => json({ fire: true, message: `条件检查读取不完整：${why}；${head}；请自己去查标记目录 ${MARK_DIR}` });
 
 const main = async () => {
@@ -39,7 +41,7 @@ try {
     `cd ${q(MARK_DIR)} 2>/dev/null || { echo 'ERR=cd'; exit 0; }`,
     `ls -1 -- *.json >/dev/null 2>&1 || { echo 'TOTAL=0'; echo 'NONDONE=0'; echo '=====END'; exit 0; }`,
     `echo "TOTAL=$(ls -1 -- *.json | wc -l | tr -d ' ')"`,
-    `LIST=$(grep -L -E '"状态"[[:space:]]*:[[:space:]]*"已深审' -- *.json 2>/dev/null)`,
+    `LIST=$(grep -L -E '"${LX.kStatus}"[[:space:]]*:[[:space:]]*"${LX.sReviewed}' -- *.json 2>/dev/null)`,
     `if [ -z "$LIST" ]; then echo 'NONDONE=0'; else echo "NONDONE=$(printf '%s\\n' "$LIST" | wc -l | tr -d ' ')"; printf '%s\\n' "$LIST" | while IFS= read -r f; do echo "=====FILE $f"; cat -- "$f"; echo; done; fi`,
     `echo '=====END'`,
   ].join("\n");
@@ -61,12 +63,12 @@ try {
   for (const b of blocks) {
     let j;
     try { j = JSON.parse(b.body); } catch { return incomplete(`文件 ${b.name} 解析不了`); }
-    const st = String(j["状态"] ?? "");
-    if (st === "待深审") {
-      const t = Date.parse(String(j["发现时间"] ?? ""));
+    const st = String(j[LX.kStatus] ?? "");
+    if (st === LX.sToReview) {
+      const t = Date.parse(String(j[LX.kFound] ?? ""));
       if (Number.isNaN(t)) return incomplete(`文件 ${b.name} 的发现时间读不出`);
       if (t < Date.parse(cutoff)) pending.push(b.name);
-    } else if (st.startsWith("深审中")) {
+    } else if (st.startsWith(LX.sReviewing)) {
       const m = st.match(/(\d{4}-\d{2}-\d{2})/);
       carry.push({ name: b.name, date: m ? m[1] : null });
     } else {
@@ -82,22 +84,22 @@ try {
     const r2 = dates.length ? await exec({ command: cmd2 }) : null;
     const o2 = r2 && !r2.isError ? String(r2.aggregated ?? "") : "";
     for (const c of carry) {
-      let how = "未能判断（读不到那一天的本轮记录，请深审自己查）";
+      let how = LX.cannotTell;
       if (c.date && /^=====END\s*$/m.test(o2)) {
         const seg = o2.split(new RegExp(`^=====REC ${c.date}\\s*$`, "m"))[1];
         if (seg !== undefined) {
           const body = seg.split(/^=====(?:REC|END)/m)[0];
           if (!/=====MISSING/.test(body)) {
-            try { how = JSON.parse(body.trim())["执行"] === "完成" ? "只补收尾（本轮已完成，不重审内容）" : "接着审（本轮记录不是完成）"; } catch { /* 保持"未能判断" */ }
+            try { how = JSON.parse(body.trim())[LX.kExec] === LX.vDone ? LX.finishOnly : LX.continueReview; } catch { /* 保持"未能判断" */ }
           }
         }
       }
-      carryTxt.push(`${c.name}（${how}）`);
+      carryTxt.push(`${c.name}${LX.wrap(how)}`);
     }
   }
 
   if (!pending.length && !carry.length) return json({ fire: false });
-  return json({ fire: true, message: `${head}；待审=${pending.join("，") || "无"}；待接=${carryTxt.join("，") || "无"}` });
+  return json({ fire: true, message: `${head}${LX.sep}${LX.toReviewEq}${pending.join(LX.listSep) || LX.none}${LX.sep}${LX.toContinueEq}${carryTxt.join(LX.listSep) || LX.none}` });
 } catch (e) {
   return incomplete(`脚本出错：${String(e && e.message || e).slice(0, 80)}`);
 }

@@ -14,9 +14,9 @@ const AGENTS_ROOT = "/home/example/.openclaw/agents"; // API 通路角色的会�
 
 const LOCALE = "en"; // config "locale": "en" or "zh-CN". This trigger cannot import lexicon.mjs, so the words it needs are in the table below (keep it in step with lexicon.mjs: tests/trigger-literals-consistency.test.mjs checks it).
 const LX = ({
-  "zh-CN": { audit: "审计", daily: "日审", cmdFile: "命令抽查.md", reconFile: "文件对账.md", scanMade: "已生成", scanNot: "没生成", title: "命令抽查", bizDate: "业务日期：", fileEq: "命令抽查文件=", reconEq: "文件对账=", sep: "；",
+  "zh-CN": { audit: "审计", daily: "日审", execKey: "执行", doneVal: "完成", cutoffKey: "截止点", cmdFile: "命令抽查.md", reconFile: "文件对账.md", scanMade: "已生成", scanNot: "没生成", title: "命令抽查", bizDate: "业务日期：", fileEq: "命令抽查文件=", reconEq: "文件对账=", sep: "；",
     failMsg: (out, brief, tail) => `命令抽查脚本：结果文件没能写出（${out}）；${brief}；${tail}；日审写"命令抽查：记录不足（脚本没有生成）"` },
-  "en": { audit: "audit", daily: "daily", cmdFile: "command-check.md", reconFile: "file-reconcile.md", scanMade: "generated", scanNot: "not generated", title: "Command check", bizDate: "Business date: ", fileEq: "command-check file=", reconEq: "file-reconcile=", sep: "; ",
+  "en": { audit: "audit", daily: "daily", execKey: "execution", doneVal: "done", cutoffKey: "cutoff", cmdFile: "command-check.md", reconFile: "file-reconcile.md", scanMade: "generated", scanNot: "not generated", title: "Command check", bizDate: "Business date: ", fileEq: "command-check file=", reconEq: "file-reconcile=", sep: "; ",
     failMsg: (out, brief, tail) => `Command spot-check script: the result file could not be written (${out}); ${brief}; ${tail}; in the daily audit write "command check: records insufficient (the script did not generate it)"` },
 })[LOCALE];
 const CUT_H = 18, CUT_M = 5; // daily audit scheduled time 18:05 local (config jobs.dailyAudit.time)
@@ -200,7 +200,7 @@ const main = async () => {
     const jqCfg = `jq -r '(.agents.defaults.models // {}) as $dm | .agents.entries | to_entries[] | ((.value.model | if type=="object" then .primary else . end) // "" | tostring | sub("@.*$"; "")) as $ref | "\\(.key)\\t\\(.value.workspace // "无")\\t\\(.value.models[$ref].agentRuntime.id // $dm[$ref].agentRuntime.id // "")"' ${q(CONFIG_FILE)}`;
     const jqApiRefs = `jq -r '(.agents.defaults.models // {}) | to_entries[] | select(.value.agentRuntime.id=="openclaw") | .key' ${q(CONFIG_FILE)} 2>/dev/null || true`;
     const cronJobs = `openclaw cron list --all --json 2>/dev/null | sed -n '/^{/,$p' | jq -r '.jobs[]? | select(.payload.kind=="agentTurn" and ((.payload.model // "") != "")) | "\\(.id)\\t\\(.agentId // "main")\\t\\(.payload.model)"' 2>/dev/null || true`;
-    const jqRounds = `jq -r 'select(.["执行"]=="完成") | .["截止点"]' ${q(DATA_ROOT + "/" + LX.audit + "/" + LX.daily)}/*.json 2>/dev/null`;
+    const jqRounds = `jq -r 'select(.["${LX.execKey}"]=="${LX.doneVal}") | .["${LX.cutoffKey}"]' ${q(DATA_ROOT + "/" + LX.audit + "/" + LX.daily)}/*.json 2>/dev/null`;
     const r1 = await exec({ command: `${jqCfg}\necho '=====ROUNDS'\n${jqRounds}\necho '=====APIREFS'\n${jqApiRefs}\necho '=====CRONJOBS'\n${cronJobs}\necho '=====END'` });
     const o1 = String(r1?.aggregated ?? "");
     if (!r1 || r1.isError || !/^=====END\s*$/m.test(o1) || !/=====ROUNDS/.test(o1)) {

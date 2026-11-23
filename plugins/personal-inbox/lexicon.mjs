@@ -181,6 +181,20 @@ const ZH = {
     commitWithIds: (date, ids) => `决定账本：程序自动提交（总控补写，${date}，待补编号 ${ids}）`,
     commitFallback: (date) => `决定账本：程序自动提交（${date}，定时兜底）`,
   },
+  // ---- audit job records, anomaly flags and publish receipts (files the job instructions have the models write and the scripts read) ----
+  auditRecordKeys: { task: '任务', businessDate: '业务日期', cutoff: '截止点', previousCutoff: '上一截止点', execution: '执行', done: '已做', updatedAt: '更新时间' },
+  auditRecordValues: { inProgress: '进行中', done: '完成', finished: '已完成' },
+  flagKeys: { status: '状态', foundAt: '发现时间' },
+  flagStates: { toReview: '待深审', reviewing: '深审中', reviewed: '已深审' },
+  publishTasks: {
+    patrol: { label: '【巡查 · {d}】', reportLine: '完整报告：资料/审计/巡查/{d}-报告.md', reportFile: '{d}-报告.md' },
+    deepReview: { label: '【审计 · 异常深审 · {d}】', reportLine: '完整报告：资料/审计/异常深审/{d}.md', reportFile: '{d}.md' },
+    weekly: { label: '【审计 · 周审 · {d}】', reportLine: '完整报告：资料/审计/周审/{d}.md', reportFile: '{d}.md' },
+  },
+  publishFiles: { summary: '-摘要.txt', receipt: '.回执.txt', failed: '.校验失败.json' },
+  publishStates: { sending: '发送中', delivered: '已送达', toVerify: '待核', deliveryToVerify: '送达待核' },
+  receiptKeys: { task: '任务', businessDate: '业务日期', account: '账号', channel: '频道', target: '目标', state: '状态', messageId: '消息编号', digest: '摘要指纹', receiptFile: '回执文件', receiptTime: '回执时间', reason: '原因', time: '时间', unconfirmedId: '回执里的编号_未确认' },
+  deepTrigger: { businessDate: '业务日期=', cutoff: '截止点=', toReview: '待审=', toContinue: '待接=', none: '无', finishOnly: '只补收尾（本轮已完成，不重审内容）', continueReview: '接着审（本轮记录不是完成）', cannotTell: '未能判断（读不到那一天的本轮记录，请深审自己查）' },
   // ---- data-root folder and file names ----
   layout: {
     projects: '项目', tasks: '任务', outputs: '成果', history: '历史', templates: '模板', trash: '垃圾桶',
@@ -343,6 +357,19 @@ const EN = {
     commitWithIds: (date, ids) => `Decision ledger: automatic commit (written up by the Controller, ${date}, backlog IDs ${ids})`,
     commitFallback: (date) => `Decision ledger: automatic commit (${date}, scheduled fallback)`,
   },
+  auditRecordKeys: { task: 'task', businessDate: 'business_date', cutoff: 'cutoff', previousCutoff: 'previous_cutoff', execution: 'execution', done: 'done', updatedAt: 'updated_at' },
+  auditRecordValues: { inProgress: 'in-progress', done: 'done', finished: 'finished' },
+  flagKeys: { status: 'status', foundAt: 'found_at' },
+  flagStates: { toReview: 'to-review', reviewing: 'reviewing', reviewed: 'reviewed' },
+  publishTasks: {
+    patrol: { label: '[Patrol · {d}]', reportLine: 'Full report: dataroot/audit/patrol/{d}-report.md', reportFile: '{d}-report.md' },
+    deepReview: { label: '[Audit · Deep review · {d}]', reportLine: 'Full report: dataroot/audit/deep-review/{d}.md', reportFile: '{d}.md' },
+    weekly: { label: '[Audit · Weekly audit · {d}]', reportLine: 'Full report: dataroot/audit/weekly/{d}.md', reportFile: '{d}.md' },
+  },
+  publishFiles: { summary: '-summary.txt', receipt: '.receipt.txt', failed: '.validation-failed.json' },
+  publishStates: { sending: 'sending', delivered: 'delivered', toVerify: 'to-verify', deliveryToVerify: 'delivery-to-verify' },
+  receiptKeys: { task: 'task', businessDate: 'business_date', account: 'account', channel: 'channel', target: 'target', state: 'state', messageId: 'message_id', digest: 'digest', receiptFile: 'receipt_file', receiptTime: 'receipt_time', reason: 'reason', time: 'time', unconfirmedId: 'receipt_message_id_unconfirmed' },
+  deepTrigger: { businessDate: 'business_date=', cutoff: 'cutoff=', toReview: 'to_review=', toContinue: 'to_continue=', none: 'none', finishOnly: 'finish-up only (this round is already done; do not re-review the content)', continueReview: 'continue the review (this round record is not done)', cannotTell: 'cannot tell (the round record of that day cannot be read; please check it yourself)' },
   layout: {
     projects: 'projects', tasks: 'tasks', outputs: 'outputs', history: 'history', templates: 'templates', trash: 'trash',
     audit: 'audit', auditDaily: 'daily', auditWeekly: 'weekly', auditPatrol: 'patrol', auditDeep: 'deep-review', auditFlags: 'anomaly-flags',

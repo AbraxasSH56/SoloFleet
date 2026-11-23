@@ -27,12 +27,24 @@ for (const loc of ['zh-CN', 'en']) {
     assert.equal(T.cmdFile, L.layout.dailyFiles.commandCheck);
     assert.equal(T.reconFile, L.layout.dailyFiles.fileReconcile);
     assert.equal(T.bizDate, labelText(L.businessDateLabel, loc));
+    assert.equal(T.execKey, L.auditRecordKeys.execution);
+    assert.equal(T.doneVal, L.auditRecordValues.done);
+    assert.equal(T.cutoffKey, L.auditRecordKeys.cutoff);
   });
   test(`deep-review trigger table equals the lexicon (${loc})`, () => {
     const T = tableOf('deep-review-trigger.js')[loc];
     assert.equal(T.audit, L.layout.audit);
     assert.equal(T.flags, L.layout.auditFlags);
     assert.equal(T.deep, L.layout.auditDeep);
+    assert.equal(T.kStatus, L.flagKeys.status);
+    assert.equal(T.kFound, L.flagKeys.foundAt);
+    assert.equal(T.sToReview, L.flagStates.toReview);
+    assert.equal(T.sReviewing, L.flagStates.reviewing);
+    assert.equal(T.sReviewed, L.flagStates.reviewed);
+    assert.equal(T.kExec, L.auditRecordKeys.execution);
+    assert.equal(T.vDone, L.auditRecordValues.done);
+    const D = L.deepTrigger;
+    assert.deepEqual([T.bizEq, T.cutEq, T.toReviewEq, T.toContinueEq, T.none, T.finishOnly, T.continueReview, T.cannotTell], [D.businessDate, D.cutoff, D.toReview, D.toContinue, D.none, D.finishOnly, D.continueReview, D.cannotTell]);
   });
 }
 

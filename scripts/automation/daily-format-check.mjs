@@ -48,8 +48,8 @@ function pickStart(nowMs, dataRoot, cutMs) {
       if (!/^\d{4}-\d{2}-\d{2}\.json$/.test(f)) continue;
       try {
         const j = JSON.parse(readFileSync(join(dir, f), 'utf8'));
-        const t = Date.parse(j['截止点']);
-        if (j['执行'] === '完成' && !Number.isNaN(t) && t < cutMs) rounds.push(t);
+        const t = Date.parse(j[W.auditRecordKeys.cutoff]);
+        if (j[W.auditRecordKeys.execution] === W.auditRecordValues.done && !Number.isNaN(t) && t < cutMs) rounds.push(t);
       } catch { /* 读不懂的跳过 */ }
     }
   } catch { /* 目录不在 */ }
@@ -296,7 +296,7 @@ export async function run({ dataRoot = DATA_ROOT, deps = realDeps(), limits = LI
   const badCards = cardRows.filter((c) => c.miss.length).length;
   const flagged = rows.filter((r) => r.n >= limits.handoffAt);
   L.push(`# 格式抽查 · ${bizDate}`, '', `${labelText(W.businessDateLabel)}${bizDate}`, `${labelText(W.statusLabel)}${complete ? W.reportComplete : `${W.reportUnfinished}（有没读成的，18:05 前下一遍会再试）`}`,
-    `窗口：${localStamp(startMs)} → ${stopAt}（本地时区；起点是上一份“执行: 完成”的日审的截止点，没有就取本轮截止点前 24 小时；统计到 ${stopAt.slice(11, 16)}，之后的新消息这份文件没统计）`,
+    `窗口：${localStamp(startMs)} → ${stopAt}（本地时区；起点是上一份“${W.auditRecordKeys.execution}: ${W.auditRecordValues.done}”的日审的截止点，没有就取本轮截止点前 24 小时；统计到 ${stopAt.slice(11, 16)}，之后的新消息这份文件没统计）`,
     `本轮截止点：${bizDate} ${pad(CUT_H)}:${pad(CUT_M)}`, `生成时间：${localStamp(deps.now())}（用时 ${Math.round((deps.now() - t0) / 1000)} 秒）`,
     '说明：本文件由固定脚本生成，不调模型；日审只读本文件，不自己再数、再查。脚本只列事实：不判违规，不判“原地打转”，不写异常标记。', '',
     `汇总：任务记录读了 ${rec.checked.length} 份、有问题 ${badRec} 份（旧记录 ${rec.oldCount} 份只计数）；任务卡看了 ${cardRows.length} 张、有问题 ${badCards} 张；账本${led.skipped ? (led.unreadable ? '未能检查' : '没改过，没查') : `查了 ${led.total} 条、有问题 ${led.bad.length} 条`}；线程读了 ${threadsRead}／${threadsTotal} 个、点名 ${limits.handoffAt} 条以上 ${flagged.length} 个。`, '');

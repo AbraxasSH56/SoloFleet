@@ -17,7 +17,7 @@ import { DAY_MS, DEFAULT_DATA_ROOT, atomicWriteJson, localParts, localDayStart, 
 import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
 const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
 
-export const TASK_NAMES = ['日审', '巡查', '异常深审', '周审'];
+export const TASK_NAMES = [W.jobNames.daily, W.jobNames.patrol, W.jobNames.deepReview, W.jobNames.weekly];
 export const PROBE_AFTER_MIN = 17 * 60 + 30; // 正常状态：17:30 之后才试探（赶在 18:05 日审之前，不是之后）
 export const NORMAL_PROBES_PER_DAY = 2;
 export const NORMAL_PROBE_GAP_MS = 30 * 60000;

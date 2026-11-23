@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path';
 import { lexicon } from './lexicon.mjs';
 const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
 
-export const AUDIT_TASK_NAMES = ['日审', '巡查', '异常深审', '周审'];
+export const AUDIT_TASK_NAMES = [W.jobNames.daily, W.jobNames.patrol, W.jobNames.deepReview, W.jobNames.weekly];
 // 订阅额度句（新旧两版）：5-hour／session／weekly／Opus／Sonnet／Fable 限额。usage credit 不算订阅额度。
 export const QUOTA_SENTENCE = /you['’]ve hit your (?:session|5-hour|weekly|opus|sonnet|fable) limit/i;
 export const isQuotaSentence = (text) => QUOTA_SENTENCE.test(String(text ?? ''));
