@@ -56,7 +56,7 @@ How to wire this up is in the [Setup guide](setup.md).
 
 ## Rule layer and program layer
 
-The system is built on one sentence: **the program layer keeps the basics; it does not rely on the model to remember.**
+The system is built on one sentence: **the program layer keeps the basics; it does not rely on the model to remember.** That also leaves the model's attention free for what needs judgement.
 
 Things are sorted into two kinds.
 

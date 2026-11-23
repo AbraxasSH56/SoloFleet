@@ -15,7 +15,7 @@ This repository holds everything needed to set the same thing up: the rules the 
 | **What it is** | Open-source rules, one OpenClaw plugin and a set of scheduled scripts for a multi-agent crew that works in Discord |
 | **Built on** | [OpenClaw](https://github.com/openclaw/openclaw) (gateway and plugin interface), Discord, and the Claude Code command line (`claude -p`) |
 | **What you need** | A Mac that stays on (desktop operation is verified on macOS only), OpenClaw, Node.js 24.16 or later, Python 3, a Discord application and bot account for each bot, a Claude subscription, and the `claude` command line signed in |
-| **Main features** | A reply card under every reply; requests to the owner in three tiers with a pending-decisions ledger; task completion gated by an independent audit; write-through records with a daily session reset; one desktop operator with a lock, a queue and owner-only approval cards |
+| **Main features** | A reply card under every reply; requests to the owner in three tiers with a pending-decisions ledger; a program layer that takes over the chores and gates completion on an independent audit, so the model keeps its attention for judgement; write-through records with a daily session reset; one desktop operator with a lock, a queue and owner-only approval cards |
 | **License** | MIT |
 | **Status** | A personal showcase. The author uses it day to day |
 
@@ -65,7 +65,7 @@ flowchart LR
 - **How you talk to it**: the owner talks to the crew in Discord, the way you would lead a small team in a group chat; all the bots run inside one OpenClaw gateway.
 - **Who does what**: each bot has one duty. The Controller takes requests, records decisions, hands work out and reports back; workers do the work in task threads; one Desktop operator is the only bot allowed to touch the screen; a Task auditor checks finished work and a System auditor checks the system itself.
 - **How the subscription is used**: one Claude subscription, used to the full. Everyday conversation runs on the subscription itself, through the official `claude` command line (`claude -p` is its non-interactive form). If your plan also comes with API credits, they carry the scheduled audits and the standby bots, each with its own key, and stop when the credits run out, with no switch to paid usage.
-- **What backs it up**: beside the gateway sits a program layer, one OpenClaw plugin plus scheduled scripts, that gates, checks every day and back-fills what must happen.
+- **What backs it up**: beside the gateway sits a program layer, one OpenClaw plugin plus scheduled scripts. It takes over the chores (gating, daily checks, back-filling what was missed) so the model's attention stays on judgement.
 
 More in [Overview](docs/en/overview.md).
 
@@ -75,7 +75,7 @@ Most of the individual ideas here have been done by someone else, and [Why this 
 
 - **One subscription for the whole crew, and every reply states what it cost.** Everyday work runs on the subscription; the API credits that come with it run the audits and the standby bots. Every reply carries a small reply card by default: which model, which pool, the reasoning effort and the files changed. To see how much of the subscription is left, install the macOS tool [CodexBar](https://github.com/steipete/CodexBar) and set two options (see the [Setup guide](docs/en/setup.md#6-external-dependencies-and-what-happens-without-them)).
 - **Designed around one person's attention.** Bots that were not addressed stay quiet. Anything that needs a decision arrives merged, with a recommendation and numbered options, and is kept on a ledger so it cannot be lost. One report a day.
-- **The program layer keeps the basics, without relying on the model to remember.** A task card cannot be marked done until an independent audit has passed and the result has not changed since. Auditors are held read-only. Judgement calls stay in the rules.
+- **Programs carry the chores, so the model keeps its attention.** Formats, filing, bookkeeping, checks and the completion gate run in a program layer instead of the model's memory: a task card cannot be marked done until an independent audit has passed and the result has not changed since, and auditors are held read-only. The model's attention goes to the judgement calls, which stay with it and in the rules.
 - **Write-through, then reset every day.** What the owner says is written into the records in the same turn, so sessions can be cleared daily and nothing needs explaining twice.
 - **One bot on the desktop, with a lock, a queue and approval cards.** Payments, sending, deleting, submitting, uploading and installing wait for the owner's own click, one click per action. The safety document says plainly which cases the program can recognize and which it cannot.
 - **No patches to OpenClaw.** This repository uses only official settings, the official plugin interface and one plugin of its own. It carries nothing that modifies the OpenClaw program itself.

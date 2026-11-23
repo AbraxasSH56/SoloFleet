@@ -79,13 +79,15 @@ The owner's attention is treated as the scarcest resource in the system, and the
 
 **Where to look.** The "Sparing the owner's attention" section of `rules/shared-rules.md`; `plugins/personal-inbox/pending-ledger.mjs` and `request-watch.mjs`; `scripts/automation/pending-decisions.mjs`.
 
-### 4. The program layer keeps the basics
+### 4. Programs carry the chores, so the model keeps its attention
 
 *Done elsewhere, taken a step further. Daily model-free reconciliation: not seen elsewhere.*
 
-In most agent setups, roles, reviews and handoffs are written into prompts and the model is trusted to follow them. That works until the day it does not.
+Section 3 guards the owner's attention. This one guards the model's. A model has only so much attention in a turn, and every format check, filing step, ledger entry or "did it really happen?" check it does from memory takes attention away from the one thing only it can do: judge. So the chores that must come out the same way every time are walled off into a program layer, and the model's attention goes to what needs judgement.
 
-Here, the things that must happen are listed and each is given to a program:
+In most agent setups, roles, reviews and handoffs are written into prompts and the model is trusted to follow them. That works until the day it does not, and even on a good day it spends the model's attention on bookkeeping.
+
+Here, the chores that must happen are listed and each is given to a program:
 
 - A task card cannot become "done" unless an independent audit passed and the result is unchanged since submission.
 - Auditors can only read, and can only write their own reports.
@@ -93,11 +95,11 @@ Here, the things that must happen are listed and each is given to a program:
 - A request to the owner that was not logged gets logged.
 - Every day, scripts that call no model check formats, reconcile project folders against their entries and the index, fingerprint the rule files, and list the commands the bots ran.
 
-Things that need judgement stay in the rules. The rules given to the bots say, for each step, whether it is backed by a hard block, a daily check, or the rule alone. Programs are kept to "remind once" and "check that it happened". They do not judge; a program that judges ends up blocking normal work.
+Things that need judgement stay with the model and in the rules. The rules given to the bots say, for each step, whether it is backed by a hard block, a daily check, or the rule alone. Programs are kept to "remind once" and "check that it happened". They do not judge; a program that judges ends up blocking normal work.
 
 **Others.** The stance is not new. [12-factor agents](https://github.com/humanlayer/12-factor-agents) argues for keeping control flow in your own code. Claude Code has hooks that can stop a task from being marked complete, and you write what they check. What we did is go through the "must happen" list item by item, attach a program to each, and say in the rules which kind of backing each step has.
 
-**In daily use.** "Done" from a bot is not the end of it; whether the card turns over is decided by a program. The rules do not stop working because a model had an off day.
+**In daily use.** "Done" from a bot is not the end of it; whether the card turns over is decided by a program. The rules do not stop working because a model had an off day, and the model's turn is not spent on filing and checking.
 
 **Where to look.** `plugins/personal-inbox/index.mjs` registers every gate; `scripts/automation/`; the tests in `tests/`. The step-by-step map is in [Development process](development-process.md).
 
