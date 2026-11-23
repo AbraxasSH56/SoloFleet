@@ -7,10 +7,12 @@ Every test class runs twice, once per rule language (en, zh-CN).
 Run from the repo root: python3 -I -m unittest discover -s tests -p "test_sync_shared_rules.py"
 """
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import tempfile
 import unittest
@@ -696,6 +698,88 @@ class TestRegister(Base):
         with self.assertRaises(SystemExit):
             run(self.args("--register", "worker-c", "--apply"))
 
+
+
+# ---- The English rule files use only English protocol words; the Chinese files are the reference and stay as they were. ----
+HAN = re.compile("[\u3400-\u9fff\uff00-\uffef\u3000-\u303f]+")
+# The only Han text allowed in the generated English AGENTS.md: the Chinese sensitive button words of the desktop role
+# (the sensitive-word list works in both languages at once, whatever the locale is).
+ALLOWED_HAN = ("提交", "发送", "支付", "购买", "删除", "安装", "上传", "转账", "订阅", "授权", "、", "状态")
+
+# sha256 of the Chinese rule, template and job files as they were in the first public release (56f2faf).
+ZH_FILE_HASHES = {
+    "rules/shared-rules.zh-CN.md": "4974f78af607b74f6b4f201ee3aa5c35c6e9e11864387abfcacc3e7fb4dcef86",
+    "rules/shared-tail.zh-CN.md": "993eaedc6e5e8d5ce5ad3bfaa8ac104fcd91b0c20ad1a5760e8b6a158761f2a6",
+    "rules/shared-rules-overrides.json": "502d3f8e71750a854245a7e547958899b9f3dfa7fac57e0357dae310f4140acd",
+    "rules/roles/desktop/AGENTS.head.zh-CN.md": "3ebaaf7659515aa9a3669fea0be9c2f45ff1b42a622f8f4bbb4f41abf658037b",
+    "rules/roles/diary/AGENTS.head.zh-CN.md": "f5a5b75daee612963552aabdab222c62dc9a724e8bffacbf0307eef6ec52939b",
+    "rules/roles/main/AGENTS.head.zh-CN.md": "8064a46f2dd272177d311622acebfd745435cda676687fa5ca1f6aeeab56c380",
+    "rules/roles/system-auditor/AGENTS.head.zh-CN.md": "dcc477708379dac103ebc2a9be27234ee9d86a367a66ff44b279bd712f4afe01",
+    "rules/roles/task-auditor/AGENTS.head.zh-CN.md": "42076a15b0020c9921811a31daf9844613eb3e9db1626498d9902b949c88278b",
+    "rules/roles/worker/AGENTS.head.zh-CN.md": "cd7d639254b75b5395688f8be8ca7fa28e719170850c57a294f7669388ac2cc1",
+    "templates/任务记录.md": "97b2781182bb761a2e0b9730ffa6f6daaf701053e3eab3f4880c201a42dd4321",
+    "templates/项目入口.md": "6634c52d60df710aa3e2bf273debbf56ac010ceac8af709504fd3edbc23bcc0f",
+    "templates/task-record.zh-CN.md": "97b2781182bb761a2e0b9730ffa6f6daaf701053e3eab3f4880c201a42dd4321",
+    "templates/project-entry.zh-CN.md": "6634c52d60df710aa3e2bf273debbf56ac010ceac8af709504fd3edbc23bcc0f",
+    "templates/decision-ledger-header.zh-CN.md": "e0dd382ad5f93afe6bd96dae96e30108787d86f6051fbc18ec61fc0af99dc0c9",
+    "templates/index-header.zh-CN.md": "b847ac9f51e84c0c9457ced3bd9d6e42172a1398226ed1f9538c5f134f3e94f6",
+    "templates/rule-change-sheet-header.zh-CN.md": "fc2d91218a3c08dd41f3ded44d7932dfc68f32c56906b30db57cacbaa50aaa2b",
+    "jobs/daily-audit.zh-CN.md": "01b44582fae0da1d77ebbeb506c445027102082b30b407ad570eda0e221d329d",
+    "jobs/weekly-audit.zh-CN.md": "5ccc3c679020e4bf08678d1ac471c333bacafd75ac103f61eab2ee9e5856cd27",
+    "jobs/patrol.zh-CN.md": "66b45c6dbbb8ba48845e8ddaf4d9a9ed38f2d77b7da48acba77549aab83fc3bb",
+    "jobs/deep-review.zh-CN.md": "6bb254778771eea37a130f3b6f8d55e720bb149b9640d5489a626c6b61856f21",
+    "jobs/diary.zh-CN.md": "d9003a55a9d7d2aabd36e93d0f2b44b9c8ee72b67ab71e2a5e3e01cd138555f2",
+    "jobs/README.zh-CN.md": "c363151d69a56a494f0881149ac6dc8bde4859e907d56c545d6989feffcbb158",
+}
+
+
+class TestEnglishRulesHaveNoChinese(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="sync-en-han-")
+        self.ws = os.path.join(self.tmp, "ws")
+        with open(os.path.join(ROOT, "config", "crew.example.json"), encoding="utf-8") as f:
+            cfg = json.load(f)
+        cfg["paths"]["workspaceRoot"] = self.ws
+        self.config = os.path.join(self.tmp, "cfg.json")
+        with open(self.config, "w", encoding="utf-8") as f:
+            json.dump(cfg, f)
+        self.roles = list(cfg["bots"])
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def gen(self, lang):
+        code, out = run(["--generate", "--lang", lang, "--config", self.config])
+        self.assertEqual(code, 0, out)
+        code, out = run(["--check", "--lang", lang, "--config", self.config])
+        self.assertEqual(code, 0, out)
+        return {r: S.read(os.path.join(self.ws, r, "AGENTS.md")) for r in self.roles}
+
+    def han_left(self, text):
+        for w in ALLOWED_HAN:
+            text = text.replace(w, "")
+        return HAN.findall(text)
+
+    def test_every_english_agents_file_is_generated_without_chinese(self):
+        files = self.gen("en")
+        self.assertEqual(sorted(files), sorted(self.roles))
+        for rid, text in files.items():
+            self.assertEqual(self.han_left(text), [], rid)
+
+    def test_the_english_rules_name_the_english_words(self):
+        shared = S.read(os.path.join(ROOT, "rules", "shared-rules.md"))
+        for word in ("Done:", "In progress:", "Did not run:", "Waiting on owner:", "Stuck:", "Current status", "Current results",
+                     "Waiting for the owner's decision", "[Authorization scope]", "Audit:", "Reminder:", "[Quota restored \u00b7 sent by program]"):
+            self.assertIn(word, shared, word)
+        tail = S.read(os.path.join(ROOT, "rules", "shared-tail.md"))
+        self.assertIn("dataroot/", tail)
+
+    def test_the_chinese_generation_still_works_and_the_chinese_files_are_unchanged(self):
+        files = self.gen("zh-CN")
+        self.assertEqual(sorted(files), sorted(self.roles))
+        for p, h in ZH_FILE_HASHES.items():
+            with open(os.path.join(ROOT, p), "rb") as f:
+                self.assertEqual(hashlib.sha256(f.read()).hexdigest(), h, p)
 
 # Run every test class once for each rule language.
 _BASES = [TestMarkersAndConfig, TestGenerate, TestFirstApply, TestHalts, TestAuditorDeclaration,

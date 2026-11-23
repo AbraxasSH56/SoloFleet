@@ -1,32 +1,32 @@
-# {{项目名}}：项目入口
+# {{PROJECT_NAME}}: Project entry
 
-<!-- 模板说明开始 -->
-Project entry (English guide; the headings stay Chinese on purpose). Usage: the Controller creates a new project with the fixed command (`new-project`, written in the Controller's rules). One command creates the project folder, this page and one row in the master index, so you never copy this template by hand. One project channel maps to one project folder. The project's lead bot keeps this page; a worker bot registers the results of its task at close-out with the `add-result` command (which changes only the "当前成果" table and the "当前状态" line below). This page holds only the current goal, status and next step; evidence, investigations and old decisions go in the project's `历史/` (history) folder, and only links to them are kept here.
-This template is used with its Chinese literals unchanged: the section titles and the placeholder cell "暂无（待写）" are matched by the programs word for word. Do not translate or rename them.
-<!-- 模板说明结束 -->
+<!-- template note begin -->
+Usage: the Controller creates a new project with the fixed command (`new-project`, written in the Controller's rules). One command creates the project folder, this page and one row in the master index, so you never copy this template by hand. One project channel maps to one project folder. The project's lead bot keeps this page; a worker bot registers the results of its task at close-out with the `add-result` command (which changes only the "Current results" table and the "Current status" line below). This page holds only the current goal, status and next step; evidence, investigations and old decisions go in the project's `history/` folder, and only links to them are kept here.
+Use the English words of this template exactly as written. The section titles and the placeholder cell "None yet (to be written)" are the exact words the programs match. Do not rename them.
+<!-- template note end -->
 
-## 当前目标
+## Current goal
 
-{{一句话目标}}
+{{ONE_LINE_GOAL}}
 
-## 对应关系
+## Mapping
 
-- Discord 频道：{{频道}}
-- 主责 bot：{{主责bot}}
-- 任务记录：`任务/`
-- 成果：`成果/`
-- 历史：`历史/`
+- Discord channel: {{CHANNEL}}
+- Lead bot: {{LEAD_BOT}}
+- Task records: `tasks/`
+- Results: `outputs/`
+- History: `history/`
 
-## 当前状态
+## Current status
 
-{{日期}}：项目刚建好。
+{{DATE}}: The project was just created.
 
-## 下一步
+## Next step
 
-<English hint (next step): what is done next, and by whom.>
+<What is done next, and by whom.>
 
-## 当前成果
+## Current results
 
-| 成果 | 当前位置 | 说明 |
+| Result | Location | Note |
 | --- | --- | --- |
-| 暂无（待写） | — | — |
+| None yet (to be written) | — | — |
