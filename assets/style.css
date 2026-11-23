@@ -112,15 +112,17 @@ code { font-family: var(--mono); font-size: .88em; }
 .receipt { margin-top: 8px !important; color: var(--ink-2); border-left: 2px solid var(--ink); padding-left: 8px; font-size: 11px; }
 .appr { position: relative; width: min(420px, 100%); margin: 0 0 0 auto; border-radius: 8px; padding: 14px 16px 16px; transform: rotate(-2.5deg); box-shadow: 6px 6px 0 var(--ink); }
 .appr-head { color: var(--ink-2); margin: 0 0 6px; }
-.appr-state { display: flex; align-items: center; gap: 8px; color: var(--signal-ink); margin-bottom: 8px; }
-.appr-state::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--signal); border: 1.5px solid var(--ink); flex: none; }
-.appr .appr-text { margin: 0 0 12px; font-size: 17px; }
+/* round 15: the second card is the desktop lock and queue */
+.q-list { list-style: none; margin: 0 0 12px; padding: 0; }
+.q-list li { display: grid; grid-template-columns: 108px 1fr; gap: 10px; align-items: baseline; padding: 7px 0; border-top: 1px solid rgba(18,18,18,.15); font-size: 16px; }
+.q-list li:first-child { border-top: 0; }
+.q-pos { font-size: var(--fs-mono); color: var(--ink-2); white-space: nowrap; }
+.q-now .q-pos { color: var(--signal-ink); display: flex; align-items: center; gap: 6px; }
+.q-now .q-pos::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--signal); border: 1.5px solid var(--ink); flex: none; }
+.q-now span:last-child { font-weight: 600; }
+.appr p.q-foot { margin: 0; color: var(--ink-2); font-size: 12px; line-height: 1.4; }
 .appr p.mono, .msg p.mono { font-size: var(--fs-mono); }
 .msg p.receipt { font-size: 11px; letter-spacing: .03em; }
-.chips { display: flex; gap: 8px; }
-.chip { font: 600 14px/1 var(--sans); padding: 9px 14px; border-radius: 6px; border: 1.5px solid var(--ink); }
-.chip-allow { background: var(--signal); }
-.chip-deny { background: var(--card); }
 .ex-cap { margin-top: 18px; color: var(--ink-2); text-align: right; }
 
 /* ---------- sections ---------- */
@@ -134,6 +136,7 @@ code { font-family: var(--mono); font-size: .88em; }
 .signal-bg { background: var(--signal); color: var(--ink); }
 
 .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; list-style: none; padding: 0; margin: 0; }
+.cols-2 { grid-template-columns: repeat(2, 1fr); gap: 32px 48px; } /* round 15: A/B on top, the attention pair C/D below */
 .cols > li, .cols > article { border-top: 1.5px solid currentColor; padding-top: 18px; }
 .num { display: block; font: 500 48px/1 var(--mono); letter-spacing: -.02em; margin-bottom: 24px; }
 .dark .num { color: var(--signal); }

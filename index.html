@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SoloFleet: one Claude subscription, a crew of bots in Discord</title>
-  <meta name="description" content="SoloFleet is an open-source setup for OpenClaw that runs a crew of Discord bots on one Claude subscription, with a usage card on every reply, owner-only approval cards and an audit gate. MIT licensed.">
+  <meta name="description" content="SoloFleet is an open-source setup for OpenClaw that runs a crew of Discord bots on one Claude subscription, with a usage card on every reply, a desktop lock with a queue, and an audit gate. MIT licensed.">
   <link rel="canonical" href="https://abraxassh56.github.io/SoloFleet/">
   <meta name="theme-color" content="#efece4">
   <meta property="og:type" content="website">
   <meta property="og:title" content="SoloFleet: one Claude subscription, a crew of bots in Discord">
-  <meta property="og:description" content="Open-source rules, one OpenClaw plugin and scheduled scripts for a Discord bot crew. Usage card on every reply, owner-only approval cards, an audit gate. MIT.">
+  <meta property="og:description" content="Open-source rules, one OpenClaw plugin and scheduled scripts for a Discord bot crew. Usage card on every reply, a desktop lock with a queue, an audit gate. MIT.">
   <meta property="og:url" content="https://abraxassh56.github.io/SoloFleet/">
   <meta property="og:image" content="https://abraxassh56.github.io/SoloFleet/assets/og.png">
   <meta property="og:image:width" content="1200">
@@ -49,7 +49,7 @@
             <p class="rot-note mono"><span><span class="nw">Not tied to one vendor</span> · <span class="nw">tested on Claude so far</span></span> <button type="button" class="rot-toggle" id="rot-toggle" hidden>Pause names</button></p>
             <div class="ctas">
               <a class="btn" href="https://github.com/AbraxasSH56/SoloFleet" target="_blank" rel="noopener" data-cta="hero">View on GitHub<span class="sr-only"> (opens in a new tab)</span></a>
-              <a class="btn btn-ghost" href="#safety">How it stays safe</a>
+              <a class="btn btn-ghost" href="#safety">How bots share the screen</a>
             </div>
             <p class="footnote mono">Runs daily in the author's own setup</p>
           </div>
@@ -58,18 +58,21 @@
             <div aria-hidden="true">
               <div class="chan">
                 <p class="chan-head mono"># workshop</p>
-                <div class="msg"><span class="av av-you">Y</span><div><p class="who">You</p><p>Sign me up for Friday's meetup.</p></div></div>
-                <div class="msg"><span class="av av-bot">C</span><div><p class="who">Controller<span class="tag">BOT</span></p><p>Desktop operator will fill in the form. It stops before Submit.</p><p class="receipt mono">Claude Sonnet · subscription · effort medium · 1 file changed</p></div></div>
+                <div class="msg"><span class="av av-you">Y</span><div><p class="who">You</p><p>Fill in Friday's meetup form. And export the slides.</p></div></div>
+                <div class="msg"><span class="av av-bot">C</span><div><p class="who">Controller<span class="tag">BOT</span></p><p>Both need the screen, so they take turns. Submit still waits for your click.</p><p class="receipt mono">Claude Sonnet · subscription · effort medium · 1 file changed</p></div></div>
               </div>
-              <p class="ex-note mono">↓ It stops here and waits for you</p>
-              <div class="appr">
-                <p class="appr-head mono"># approvals · Desktop operator</p>
-                <p class="appr-state mono">Waiting for the owner</p>
-                <p class="appr-text">Wants to click <b>Submit</b> on the meetup sign-up form.</p>
-                <div class="chips"><span class="chip chip-allow">Allow once</span><span class="chip chip-deny">Deny</span></div>
+              <p class="ex-note mono">↓ One screen. Everyone else queues.</p>
+              <div class="appr qcard">
+                <p class="appr-head mono"># desktop · lock and queue</p>
+                <ol class="q-list">
+                  <li class="q-now"><span class="q-pos mono">On screen</span><span>Worker B · meetup form</span></li>
+                  <li><span class="q-pos mono">Next</span><span>Worker A · export slides</span></li>
+                  <li><span class="q-pos mono">Then</span><span>Worker C · check calendar</span></li>
+                </ol>
+                <p class="q-foot mono">Queue kept in a file · survives session resets · called in turn</p>
               </div>
             </div>
-            <p id="ex-desc" class="sr-only">In the Workshop channel you ask the bots to sign you up for Friday's meetup. The Controller bot replies that the Desktop operator will fill in the form and stop before Submit; under its reply a usage card reads: Claude Sonnet, subscription, effort medium, one file changed. Below, an approval card from the Desktop operator says it wants to click Submit on the meetup sign-up form and is waiting for the owner, with two buttons: Allow once and Deny.</p>
+            <p id="ex-desc" class="sr-only">In the Workshop channel you ask the bots to fill in Friday's meetup form and export the slides. The Controller bot replies that both jobs need the screen, so they take turns, and that Submit still waits for your click; under its reply a usage card reads: Claude Sonnet, subscription, effort medium, one file changed. Below, a desktop lock and queue card: Worker B is on the screen with the meetup form, Worker A is next with the slides, then Worker C with the calendar. The queue is kept in a file, survives session resets, and each bot is called in turn.</p>
             <figcaption id="ex-cap" class="ex-cap mono">Redrawn, not the real Discord UI</figcaption>
           </figure>
         </div>
@@ -112,10 +115,11 @@
       <div class="wrap">
         <div class="sec-head mono"><span>03 — Why this way</span></div>
         <h2 id="why-title" class="reveal">Not the usual <span class="serif">multi-agent</span> setup.</h2>
-        <div class="cols">
-          <article class="reveal"><span class="num" aria-hidden="true">A</span><h3>Not a key per agent</h3><p class="muted">Frameworks often give each agent its own API key. Here one Claude subscription runs the whole crew.</p></article>
-          <article class="reveal"><span class="num" aria-hidden="true">B</span><h3>Not one coding session</h3><p class="muted">Claude Code's subagents live inside one coding session. This crew stays on, with fixed duties, in Discord.</p></article>
-          <article class="reveal"><span class="num" aria-hidden="true">C</span><h3>Attention, held by program</h3><p class="muted">Three tiers: just do it, ask once then default, always wait. A ledger keeps what's open.</p></article>
+        <div class="cols cols-2">
+          <article class="reveal"><span class="num" aria-hidden="true">A</span><h3>Not a key per agent</h3><p class="muted">One Claude subscription runs the crew. Frameworks often give each agent an API key.</p></article>
+          <article class="reveal"><span class="num" aria-hidden="true">B</span><h3>Not one coding session</h3><p class="muted">A standing crew in Discord, not subagents inside one coding session.</p></article>
+          <article class="reveal"><span class="num" aria-hidden="true">C</span><h3>Your attention, guarded</h3><p class="muted">Bots ask in three tiers: just do it, ask once, always wait. A ledger keeps what's open.</p></article>
+          <article class="reveal"><span class="num" aria-hidden="true">D</span><h3>The model's, too</h3><p class="muted">Code does the checking: formats, project files, missed requests, handoffs, the done gate. The model does the thinking.</p></article>
         </div>
         <p class="note">Subscription use is Anthropic's call; see <a href="https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan" target="_blank" rel="noopener">their help page<span class="sr-only"> (opens in a new tab)</span></a>.</p>
         <details class="more">
@@ -124,7 +128,8 @@
             <li>Every regular bot runs through the official <code>claude</code> command line (<code>claude -p</code>). No per-token meter per agent.</li>
             <li>The usage card is on by default: model, pool, reasoning effort, files changed. The remaining-quota line needs the CodexBar command line (macOS) and two plugin options.</li>
             <li>Included API credits, if your plan has them, run the scheduled audits and standby bots, and stop when they run out. No switch to paid usage.</li>
-            <li>The ledger spares you remembering; it can't make you look. Small jobs done in one turn get no card and no audit.</li>
+            <li>What must happen is checked by a program: the done gate, read-only auditors, handoffs only through OpenClaw's tools, requests to you that weren't logged get logged, and daily model-free checks of formats, project folders and rule files. Bots still write their own records and file their own work. Programs remind once and check it happened; they don't judge.</li>
+            <li>The middle tier asks once, then goes with the default. The ledger spares you remembering; it can't make you look. Small jobs done in one turn get no card and no audit.</li>
             <li>A task card can't be marked done until an audit passed and the result hasn't changed since. What you say is written down that turn, so sessions reset daily.</li>
             <li>No patches to OpenClaw: official settings, the plugin interface, one plugin.</li>
           </ul>
@@ -140,8 +145,8 @@
         <div class="repo-grid">
           <dl class="tree mono reveal">
             <div><dt>rules/</dt><dd>shared rules, one part per duty</dd></div>
-            <div><dt>plugins/personal-inbox/</dt><dd>gates, desktop lock, approval cards, reply card, ledgers</dd></div>
-            <div><dt>scripts/</dt><dd>scheduled checks that call no model</dd></div>
+            <div><dt>plugins/personal-inbox/</dt><dd>desktop lock and queue, done gate, ledgers, reply card, approval cards</dd></div>
+            <div><dt>scripts/</dt><dd>the checking: daily jobs that call no model</dd></div>
             <div><dt>jobs/</dt><dd>audit, patrol and diary prompts</dd></div>
             <div><dt>tests/</dt><dd>offline tests</dd></div>
           </dl>
@@ -158,20 +163,21 @@
     <!-- 4. Safety (signal orange) -->
     <section class="sec signal-bg" id="safety" aria-labelledby="safety-title">
       <div class="wrap">
-        <div class="sec-head mono"><span>04 — Safety</span></div>
-        <h2 id="safety-title" class="reveal">The desktop bot <span class="serif">waits</span> for you.</h2>
+        <div class="sec-head mono"><span>04 — Desktop and safety</span></div>
+        <h2 id="safety-title" class="reveal">One screen. <span class="serif">Everyone takes turns</span>.</h2>
         <ul class="safety-list">
-          <li class="reveal"><strong>One bot on the screen</strong>, with a lock and queue.</li>
-          <li class="reveal"><strong>Six actions need your click:</strong> paying, sending, deleting, submitting, uploading, installing. One click each.</li>
-          <li class="reveal"><strong>Screen-driving shell commands are blocked</strong> by text match, and sampled nightly.</li>
-          <li class="reveal"><strong>Auditors only read</strong>, apart from their own reports.</li>
+          <li class="reveal"><strong>One lock on the screen:</strong> one job at a time.</li>
+          <li class="reveal"><strong>The rest queue</strong> in a file that survives session resets, and get called in turn.</li>
+          <li class="reveal"><strong>A step past Claude Code</strong>, whose computer use turns a second session away.</li>
+          <li class="reveal"><strong>Payments and submits</strong> still wait for your click.</li>
         </ul>
         <div class="boundary"><p><strong>Not a sandbox:</strong> some blocks match text, and button clicks aren't recognized yet. <a href="https://github.com/AbraxasSH56/SoloFleet/blob/main/docs/en/safety.md" target="_blank" rel="noopener">Safety doc<span class="sr-only"> (opens in a new tab)</span></a></p></div>
         <details class="more more-card">
           <summary class="mono">More</summary>
           <ul>
-            <li>Only the Desktop operator has screen tools. An exclusive lock and a queue mean one thread uses the screen at a time.</li>
-            <li>The six: payment, sending to outside parties, permanent deletion, submitting a form, uploading a file, installing software. Only the owner's own Discord account clicking the card counts; one approval releases one action.</li>
+            <li>Only the Desktop operator has screen tools; other bots hand it their screen jobs. A fixed job that calls no model moves the queue every couple of minutes and skips anyone who doesn't show up in time. The lock uses macOS file locking, so the desktop is verified on macOS only.</li>
+            <li>Shell commands that would drive the screen are blocked for the Desktop operator by text match, and sampled nightly. Auditors only read, apart from their own reports.</li>
+            <li>The six that wait for you: payment, sending to outside parties, permanent deletion, submitting a form, uploading a file, installing software. Only the owner's own Discord account clicking the card counts; one approval releases one action.</li>
             <li>If a card is denied, times out or is cancelled, that thread's screen tools can only look and close windows.</li>
             <li>The shell and auditor blocks match command text, so an indirect enough command could slip past; the nightly sample is there for that.</li>
             <li>A mouse click on a button relies on the bot's rule to stop first, backed by the lock and the card.</li>
