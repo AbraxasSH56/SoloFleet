@@ -25,6 +25,7 @@ import { isQuotaSentence } from '../../plugins/personal-inbox/quota-recovery.mjs
 import { CALL_STATES, SESSION_KEY_RE, SKIP_ROLES, ledgerLookup, managedByResume } from './quota-resume-lib.mjs';
 import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
 const W = lexicon(); // words follow config "locale" (zh-CN: the literals this script always used)
+const QR = W.notices.quotaResume; // fixed notices for the owner follow config "locale"
 export { CALL_STATES, SESSION_KEY_RE, SKIP_ROLES, ledgerLookup, managedByResume };
 
 export const CHAT_CHANNEL = crew.channels.lounge; // 闲聊茶会
@@ -282,9 +283,9 @@ export function summaryText(events) {
   const link = (e) => `https://discord.com/channels/${GUILD_ID}/${e.线程}`;
   const by = (t) => events.filter((e) => e.类型 === t);
   const lines = [];
-  if (by('已叫醒').length) lines.push(`额度恢复，已让 ${by('已叫醒').length} 件停在半路的活接着做：${by('已叫醒').map(link).join('、')}`);
+  if (by('已叫醒').length) lines.push(QR.resumed(by('已叫醒').length, by('已叫醒').map(link).join(QR.jn)));
   const bad = [...by('没接上'), ...by('结果待核'), ...by('读不出'), ...by('过期')];
-  if (bad.length) lines.push(`有 ${bad.length} 件没接上或没法确认，请你在这些线程里说“继续”：${bad.map((e) => `${link(e)}（${e.类型}）`).join('、')}`);
+  if (bad.length) lines.push(QR.stuck(bad.length, bad.map((e) => QR.item(link(e), QR.typeWord(e.类型))).join(QR.jn)));
   return lines.join('\n');
 }
 

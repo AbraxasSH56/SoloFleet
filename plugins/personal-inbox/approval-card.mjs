@@ -8,6 +8,8 @@ import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 import { crew } from './crew-config.mjs';
+import { lexicon } from './lexicon.mjs';
+const N = lexicon().notices; // fixed sentences for the owner follow config "locale"
 export const APPROVAL_CHANNEL_ID = crew.channels.approval; // “审批”频道（openclaw.json approvals.plugin.targets）
 export const OWNER_MENTION = `<@${crew.owner.userId}>`; // 与 pending-ledger.mjs 的 OWNER_ID 同一个编号（测试里有断言）
 export const APPROVAL_DESC_BUDGET = 480; // 实际拒绝线是清理后 512 码点，留余量
@@ -57,8 +59,8 @@ export function composeApprovalDescription(segments, budget = APPROVAL_DESC_BUDG
 const recent = new Map(); // dedupKey -> 发出时刻
 export function resetApprovalNoticeState() { recent.clear(); }
 export function approvalNoticeText({ what, cardId, source }) {
-  const one = cutCodePoints(plainApprovalText(String(what ?? '（没写事由）')).replace(/\s+/g, ' ').trim(), 80);
-  return `${OWNER_MENTION} 审批频道有一张新审批卡：${source}${cardId ? `（任务卡 ${cardId}）` : ''}——${one}`;
+  const one = cutCodePoints(plainApprovalText(String(what ?? N.approvalCard.noReason)).replace(/\s+/g, ' ').trim(), 80);
+  return N.approvalCard.newCard(OWNER_MENTION, source, cardId, one);
 }
 // 异步发，不等结果，发失败只记日志、不影响卡；不发私信；同一张卡 10 分钟内只发一次；P4 测试分支不发（调用方不调用即可）。
 // send 默认用 openclaw 命令行（异步 execFile，不堵 Gateway 的事件循环）；测试时换成假的。

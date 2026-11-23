@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { crew } from './crew-config.mjs';
+import { lexicon } from './lexicon.mjs';
 export const OBSERVATION_KEEP = 3; // 每个线程只留最近 3 次观察
 export const OBSERVATION_TTL_MS = 30 * 60 * 1000; // 30 分钟过期
 export const ENTER_WINDOW_MS = 60 * 1000; // Return／Enter 只看最近 60 秒的观察
@@ -217,10 +218,10 @@ export function classifyCall({ toolName, params, observations = [], cfg, now = D
   if (!action) return String(toolName ?? '').toLowerCase() === 'browser' ? { hit: false, unrecognized: true } : { hit: false };
   const isBrowser = String(toolName ?? '').toLowerCase() === 'browser';
   // 一律要卡：上传文件、点掉“确定要……吗”的确认框
-  if (action === 'browser_set_input_files') return { hit: true, always: true, via: 'upload', word: '上传文件', what: '（程序认出）选择要上传的文件' };
+  if (action === 'browser_set_input_files') return { hit: true, always: true, via: 'upload', word: '上传文件', what: lexicon().notices.desktopApproval.recognized.upload };
   if (action === 'browser_dialog') {
     const accept = p.accept === true || ['accept', 'decision', 'response', 'dialogAction', 'mode', 'result'].some((k) => /^(accept|ok|yes|confirm|true)$/i.test(String(p[k] ?? '')));
-    if (accept) return { hit: true, always: true, via: 'dialog', word: '确认框', what: '（程序认出）在网页弹出的确认框里点“确定”' };
+    if (accept) return { hit: true, always: true, via: 'dialog', word: '确认框', what: lexicon().notices.desktopApproval.recognized.dialog };
     return { hit: false };
   }
   if (CLICK_ACTIONS.has(action)) {
@@ -230,13 +231,13 @@ export function classifyCall({ toolName, params, observations = [], cfg, now = D
     if (!isClickableRole(el.role, cfg)) return { hit: false };
     const word = labelHit(el.label, cfg);
     if (!word) return { hit: false };
-    return { hit: true, via: 'click', word, label: el.label, window: obs.window ?? null, what: `（程序认出）点击「${shorten(el.label)}」${el.role ? `（${shorten(el.role, 12)}）` : ''}${obs.window ? `，窗口《${shorten(obs.window, 30)}》` : ''}` };
+    return { hit: true, via: 'click', word, label: el.label, window: obs.window ?? null, what: lexicon().notices.desktopApproval.recognized.click(shorten(el.label), el.role ? shorten(el.role, 12) : '', obs.window ? shorten(obs.window, 30) : '') };
   }
   if (action === 'invoke_menu') {
     const path = Array.isArray(p.path) ? p.path : [];
     const last = String(path.at(-1) ?? '');
     const word = labelHit(last, cfg);
-    return word ? { hit: true, via: 'menu', word, label: last, what: `（程序认出）选择菜单「${shorten(path.join(' ▸ '), 50)}」` } : { hit: false };
+    return word ? { hit: true, via: 'menu', word, label: last, what: lexicon().notices.desktopApproval.recognized.menu(shorten(path.join(' ▸ '), 50)) } : { hit: false };
   }
   // 回车类：key 的 Return／Enter（含 cmd／ctrl 组合）、browser 的按键动作、type／browser_type 的文字以换行结尾或带 submit
   const keyed = action === 'key' || (isBrowser && /^browser_(press_key|key|press)$/.test(action));
@@ -247,7 +248,7 @@ export function classifyCall({ toolName, params, observations = [], cfg, now = D
     for (const o of [...recent].reverse()) {
       for (const el of Object.values(o.elements)) {
         if (isClickableRole(el.role, cfg) && labelHit(el.label, cfg)) {
-          return { hit: true, via: 'enter', word: labelHit(el.label, cfg), label: el.label, window: o.window ?? null, what: `（程序认出）按回车键（或带换行的输入）；屏幕上有「${shorten(el.label)}」按钮，可能就是在点它${o.window ? `，窗口《${shorten(o.window, 30)}》` : ''}` };
+          return { hit: true, via: 'enter', word: labelHit(el.label, cfg), label: el.label, window: o.window ?? null, what: lexicon().notices.desktopApproval.recognized.enter(shorten(el.label), o.window ? shorten(o.window, 30) : '') };
         }
       }
     }
@@ -257,7 +258,7 @@ export function classifyCall({ toolName, params, observations = [], cfg, now = D
   return { hit: false };
 }
 
-export const PROGRAM_NOTE = '这一项是程序认出来的，不是桌面角色自己报的。';
+export const PROGRAM_NOTE = lexicon().notices.desktopApproval.programNote;
 
 // 只描述结构（键名和类型），不带任何值：用来在真机上抓一次 after_tool_call 里 result 的真实形状。
 export const SHAPE_MAX_DEPTH = 7; // 只读形状诊断把深度从 4 提到 7，才看得到 elements[0] 里面的键名

@@ -80,7 +80,7 @@ test('master table text uses the English status word', async () => {
   const { r } = await reg(t, { requestMessageId: 'M1', threadId: 'T1' });
   await withLedger(t.path, (L) => { const res = updateItem(L, { id: r.item.id, status: 'received', recheckDate: '2026-11-19', source: 'm' }, { id: 'm', authorId: OWNER_ID, replyToId: 'M1', channelId: 'T1', content: 'ok' }, T0); return res.error ? { noWrite: true } : { item: res.item }; });
   const text = JSON.stringify(buildTable(readLedgerFile(t.path), T0));
-  assert.ok(text.includes('received (2026-11-19 再看)') || text.includes('received（'), text.slice(0, 300));
+  assert.ok(text.includes('received (look again on 2026-11-19)'), text.slice(0, 300));
   t.cleanup();
 });
 

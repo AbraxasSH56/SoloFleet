@@ -11,11 +11,12 @@
 import { spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { DAY_MS, DEFAULT_DATA_ROOT, OWNER_MENTION, addDays, atomicWriteJson, localParts, localDayStart, localIso, cnDate, cnDateTime, join, parseJsonLoose, readJson, realRunner, realSend, withLock } from './gap-common.mjs';
+import { DAY_MS, DEFAULT_DATA_ROOT, OWNER_MENTION, addDays, atomicWriteJson, localParts, localDayStart, localIso, fmtDate, fmtDateTime, join, parseJsonLoose, readJson, realRunner, realSend, withLock } from './gap-common.mjs';
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
 import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
 const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
+const R = W.notices.reminders; // fixed reminders for the owner follow config "locale"
 export const DEFAULT_CONFIG = {
   提醒小时: 9, // reminders go out from 09:00 local time (config timezone)
   到期前天数: [7, 1],
@@ -63,12 +64,12 @@ export function dueReminders({ nowMs, gate, login, cfg = DEFAULT_CONFIG, status 
       const expDate = localParts(exp).date;
       for (const d of cfg.到期前天数) {
         if (after && today === dayMinus(expDate, d)) {
-          const first = `这一期 API 额度 ${cnDateTime(exp)} 到期，还剩 ${d} 天。`;
+          const first = R.apiFirst(fmtDateTime(exp), d);
           let text;
-          if (used && d >= 3) text = `【API 额度提醒】${MENTION} 额度已经用完，日审、巡查、异常深审、周审已经停了；${first}请去 Anthropic Console 的 Billing 页看有没有下一期可领。`;
-          else if (d >= 3) text = `【API 额度提醒】${MENTION} ${first}请去 Anthropic Console 的 Billing 页看有没有下一期可领；这期用不完的话，可以叫总控调备用A、备用B多用一点。`;
-          else if (used) text = `【API 额度提醒】${MENTION} 额度已经用完，日审、巡查、异常深审、周审已经停了；${first}下一期领了吗？领了回总控一句“新一期到 X 月 X 日到期”。`;
-          else text = `【API 额度提醒】${MENTION} 明天（${cnDateTime(exp)}）这一期 API 额度到期。领了下一期的话，回总控一句“新一期到 X 月 X 日到期”；没领到的话，到点后四个审计任务会自动暂停。这期还有用不完的额度，可以叫总控今天调备用A、备用B用掉。`;
+          if (used && d >= 3) text = R.apiUsedLong(MENTION, first);
+          else if (d >= 3) text = R.apiLong(MENTION, first);
+          else if (used) text = R.apiUsedShort(MENTION, first);
+          else text = R.apiTomorrow(MENTION, fmtDateTime(exp));
           out.push({ key: `到期前${d}天@${expDate}`, text });
         }
       }
@@ -77,22 +78,22 @@ export function dueReminders({ nowMs, gate, login, cfg = DEFAULT_CONFIG, status 
       const t = ms(gate.暂停时间);
       if (t != null && after && today >= localParts(t + cfg.停满天数 * DAY_MS).date) {
         const days = Math.max(cfg.停满天数, Math.round((nowMs - t) / DAY_MS));
-        out.push({ key: `停满${cfg.停满天数}天@${localParts(t).date}`, text: `【API 额度提醒】${MENTION} 日审、巡查、异常深审、周审已经停了 ${days} 天（${gate.暂停原因 ?? '额度'}）。下一期领了吗？领了回总控一句“新一期到 X 月 X 日到期”，我就恢复。` });
+        out.push({ key: `停满${cfg.停满天数}天@${localParts(t).date}`, text: R.apiStopped(MENTION, days, R.pauseReason(gate.暂停原因)) });
       }
     }
     if (after && today.endsWith('-01') && (exp == null || exp <= nowMs)) {
-      out.push({ key: `月初@${today.slice(0, 7)}`, text: `【API 额度提醒】${MENTION} 我没记着下一期 API 额度的到期日。请去 Console 看一下，回总控一句“新一期到 X 月 X 日到期”。` });
+      out.push({ key: `月初@${today.slice(0, 7)}`, text: R.apiNoExpiry(MENTION) });
     }
   } else if (after && today.endsWith('-01')) {
-    out.push({ key: `月初@${today.slice(0, 7)}`, text: `【API 额度提醒】${MENTION} 我这边读不到额度闸的状态，也就不知道下一期到期日。请去 Console 看一下，回总控一句“新一期到 X 月 X 日到期”。` });
+    out.push({ key: `月初@${today.slice(0, 7)}`, text: R.apiNoGate(MENTION) });
   }
 
   // —— 复议提醒：不依赖额度闸状态；读不到状态也照发——
   if (after && today === cfg.复议日期) {
     const zones = gate?.暂停区间 ?? [];
     const days = zones.reduce((s, z) => { const a = ms(z.开始); const e = z.结束 ? ms(z.结束) : nowMs; return a != null && e != null ? s + Math.max(0, e - a) : s; }, 0) / DAY_MS;
-    const hist = !gate ? '额度闸的记录我这次读不到，审计任务停过几次不清楚。' : zones.length ? `这段时间审计任务共停过 ${zones.length} 次，约 ${Math.round(days)} 天。` : '这段时间审计任务没因额度停过。';
-    out.push({ key: `复议@${cfg.复议日期}`, text: `【API 额度·复议】${MENTION} 当初约好这个时候复议，现在该定了：①继续“用完即停” ②改成“用完转订阅” ③撤回订阅，三选一。${hist}用量请再去 Console 看一眼。` });
+    const hist = !gate ? R.reviewNoGate : zones.length ? R.reviewZones(zones.length, Math.round(days)) : R.reviewNone;
+    out.push({ key: `复议@${cfg.复议日期}`, text: R.review(MENTION, hist) });
   }
 
   // —— Claude 本机登录 ——
@@ -100,24 +101,24 @@ export function dueReminders({ nowMs, gate, login, cfg = DEFAULT_CONFIG, status 
   let loginExp = null; let caveat = '';
   if (status?.ok) {
     if (status.loggedIn === false) {
-      out.push({ key: `登录已退出@${today}`, text: `【Claude 登录】${MENTION} 本机的 Claude 已经退出登录了。所有走 Claude 订阅的 bot 现在可能都不能回话。重新登录：打开「终端」→ 输入 \`~/.local/bin/claude auth login\` 回车 → 浏览器里按平时登 Claude 的方式登录并同意授权。` });
+      out.push({ key: `登录已退出@${today}`, text: R.loginOut(MENTION) });
     } else loginExp = status.expiresAt;
-  } else { loginExp = ms(lg.记录到期); caveat = '（按记录的到期日，没能向 Claude 核实）'; }
+  } else { loginExp = ms(lg.记录到期); caveat = R.loginCaveat; }
   if (loginExp != null) {
     const prev = ms(lg.上次看到到期);
     const expIso = new Date(loginExp).toISOString().slice(0, 19) + 'Z';
     if (status?.ok && prev != null && loginExp - prev > 60000) { // 新到期日比记着的晚一分钟以上才算“更新”（官方返回带毫秒，不能直接比）
-      out.push({ key: `登录已更新@${expIso}`, text: `【Claude 登录】${MENTION} 登录已更新，新的到期日是 ${cnDateTime(loginExp)}。旧的提醒作废。`, 登录看到: expIso });
+      out.push({ key: `登录已更新@${expIso}`, text: R.loginRenewed(MENTION, fmtDateTime(loginExp)), 登录看到: expIso });
     }
     const expDate = localParts(loginExp).date;
     const [d1, d2] = cfg.登录前天数;
     const w1 = atHour(dayMinus(expDate, d1)); const w2 = atHour(dayMinus(expDate, d2));
     const daysLeft = Math.round((localDayStart(expDate) - localDayStart(today)) / DAY_MS);
-    const body = (n) => `本机的 Claude 登录 **${cnDateTime(loginExp)}** 到期（还剩 ${n} 天）${caveat}。到期后**所有走 Claude 订阅的 bot 会同时不能回话**（走 API 额度的备用A、备用B和四个审计任务不受这个影响）。重新登录大约 2 分钟：\n1. 打开 Mac 上的「终端」。\n2. 输入 \`~/.local/bin/claude auth login\` 然后回车。（直接敲 \`claude\` 会提示找不到命令。）\n3. 浏览器会自动弹出 Claude 的登录页，按平时登 Claude 的方式登，出现授权就点同意。\n4. 回到终端，看到登录成功就行。\n登完不用做别的：这条提醒下次会自动发现新到期日并停发。`;
+    const body = (n) => R.loginBody(fmtDateTime(loginExp), n, caveat);
     // 和 API 提醒一样：到点（当天 09:00 起）、当天内补发，过了当天作废
-    if (nowMs >= w1 && today === dayMinus(expDate, d1) && nowMs < loginExp) out.push({ key: `登录前${d1}天@${expIso}`, text: `【Claude 登录快到期】${MENTION}：${body(daysLeft)}` });
-    if (nowMs >= w2 && today === dayMinus(expDate, d2) && nowMs < loginExp) out.push({ key: `登录前${d2}天@${expIso}`, text: `【Claude 登录快到期】${MENTION}：${body(daysLeft)}` });
-    if (nowMs >= loginExp && nowMs < loginExp + cfg.登录过期后还提醒天数 * DAY_MS) out.push({ key: `登录已过期@${expIso}`, text: `【Claude 登录已过期】${MENTION} 本机的 Claude 登录已经过期（${cnDateTime(loginExp)}）${caveat}。所有走 Claude 订阅的 bot 现在应该都不能回话。请尽快重新登录：打开「终端」→ 输入 \`~/.local/bin/claude auth login\` 回车 → 浏览器里登录并同意授权。` });
+    if (nowMs >= w1 && today === dayMinus(expDate, d1) && nowMs < loginExp) out.push({ key: `登录前${d1}天@${expIso}`, text: R.loginSoon(MENTION, body(daysLeft)) });
+    if (nowMs >= w2 && today === dayMinus(expDate, d2) && nowMs < loginExp) out.push({ key: `登录前${d2}天@${expIso}`, text: R.loginSoon(MENTION, body(daysLeft)) });
+    if (nowMs >= loginExp && nowMs < loginExp + cfg.登录过期后还提醒天数 * DAY_MS) out.push({ key: `登录已过期@${expIso}`, text: R.loginExpired(MENTION, fmtDateTime(loginExp), caveat) });
   }
   return out;
 }
@@ -175,7 +176,7 @@ export async function cmdInitLogin(deps, arg) {
     const state = readJson(p.state, null) ?? { 已发: {}, 尝试: {}, 登录: {} };
     state.登录 = { ...(state.登录 ?? {}), 上次看到到期: arg, 记录到期: arg };
     atomicWriteJson(p.state, state);
-    deps.out(`已预置登录到期日 ${arg}（本地时区 ${cnDateTime(t)}）。`);
+    deps.out(`已预置登录到期日 ${arg}（本地时区 ${fmtDateTime(t)}）。`);
     return 0;
   }, { now: deps.now });
   return res.busy ? 1 : res.value;

@@ -23,6 +23,7 @@ import { loadWords, recordObservation, loadObservations, classifyCall, describeD
 import { crew, botId } from './crew-config.mjs';
 import { lexicon, escapeRe } from './lexicon.mjs';
 const W = lexicon(); // words and instruction texts follow config "locale" (zh-CN: the texts this file always sent)
+const ND = W.notices.desktopApproval; // fixed sentences of the approval card and the notices
 const Q = W.queueText;
 const desktopDir = join(crew.paths.workspaceRoot, 'desktop');
 export const defaultLockPath = join(desktopDir, 'screen.lock');
@@ -1094,7 +1095,7 @@ export function notifyText(hold, holdMinutes) {
 
 // 主人的件过号（桌面角色这一轮没接上）时，用总控账号在原线程点名他一句。每个留位只会过号一次，所以只发一次。
 export function expiredNoticeText(queueNo) {
-  return `<@${OWNER_USER_ID}> 桌面角色这一轮没接上（排队号 ${queueNo}），你那件事先让给下一位了；还要做就在这个线程再叫她一次。`;
+  return ND.expired(`<@${OWNER_USER_ID}>`, queueNo);
 }
 
 function findAttempt(q, queueNo, token) {
@@ -1114,7 +1115,7 @@ export async function stuckReminderTick({ lockPath, deps, now = Date.now, logPat
   }
   const sentFor = [];
   for (const { threadId } of stuckDueReminders(path, now())) {
-    const message = `${OWNER_MENTION} 桌面角色在线程 https://discord.com/channels/${GUILD_ID}/${threadId} 卡住了，点名任务审计求助，已经超过 20 分钟没有收到她的“【求助回复】”。桌面角色不会再自己动屏幕，屏幕停在卡住的地方。你可以去那个线程说一声怎么办，或者叫任务审计再看一眼。`;
+    const message = ND.stuck(OWNER_MENTION, `https://discord.com/channels/${GUILD_ID}/${threadId}`);
     const r = await deps.send({ target: APPROVAL_CHANNEL_ID, message, timeoutMs: 30_000, account: 'default' });
     if (r?.kind === 'sent' || r?.kind === 'unknown') { stuckMarkReminded(path, threadId); sentFor.push(threadId); } // 结果不明也算这一次用掉了，不自动重发
     logEvent(logPath, { at: now(), event: 'stuck-help-reminder', threadId, result: r?.kind ?? null });
@@ -1361,7 +1362,7 @@ async function tickVerify(env, plan) {
   const hold = plan.hold;
   let lower = idFromTime(hold.selectedAt - 60_000);
   if (hold.requestMessageId && isDiscordId(hold.requestMessageId) && compareIds(hold.requestMessageId, lower) < 0) lower = hold.requestMessageId;
-  const found = await findMarkedMessage({ deps, remaining, clock: now }, { target: hold.threadId, after: lower, marker: `（排队号 ${hold.queueNo}）`, authorId: sendRouteFor(hold.requester).authorId });
+  const found = await findMarkedMessage({ deps, remaining, clock: now }, { target: hold.threadId, after: lower, marker: Q.noMarker(hold.queueNo), authorId: sendRouteFor(hold.requester).authorId });
   return withLockGuard(lockPath, hooks, () => {
     const at = now();
     const read = readQueueSafe(paths.queuePath);
@@ -1418,12 +1419,12 @@ async function tickVerify(env, plan) {
 export async function runSelftest({ threadId, resultPath, deps = defaultDeps(), clock: now = Date.now } = {}) {
   const startedAt = now();
   const remaining = () => TICK_BUDGET_MS - (now() - startedAt);
-  const marker = `（自检号 S${startedAt}）`;
+  const marker = ND.selfCheckMarker(startedAt);
   const result = { startedAt, startedAtText: clock(startedAt), threadId, marker, send: null, readBack: null, paging: null, ok: false };
   if (!isDiscordId(String(threadId ?? ''))) {
     result.error = '线程编号不对';
   } else {
-    result.send = await deps.send({ target: threadId, message: `桌面角色排队自检（不是点名）${marker}`, timeoutMs: SEND_TIMEOUT_MS });
+    result.send = await deps.send({ target: threadId, message: ND.selfCheck(marker), timeoutMs: SEND_TIMEOUT_MS });
     if (result.send.kind === 'sent') {
       const back = await deps.read({ target: threadId, after: (BigInt(result.send.messageId) - 1n).toString(), limit: 1, timeoutMs: 20_000 });
       result.readBack = { ok: Boolean(back?.ok), error: back?.error ?? null, matched: Boolean(back?.messages?.some((m) => m.id === result.send.messageId && m.content.includes(marker) && m.authorId === DESKTOP_USER_ID)), count: back?.messages?.length ?? null };
@@ -1615,9 +1616,9 @@ export function findCardByThread(threadId, { dataRoot = crew.paths.dataRoot || `
 
 // 审批卡上“来自任务卡”这一栏的文字
 export function cardTextOf(found, threadId) {
-  if (found?.ambiguous) return `这个线程对应多张还没结束的卡（${found.ambiguous.map((c) => `${c.id}${c.title ? `《${c.title}》` : ''}`).join('、')}），没法确定是哪张（线程 ${threadId}）`;
-  if (found) return `${found.id}${found.title ? `《${found.title}》` : ''}`;
-  return `没查到关联任务卡（线程 ${threadId}）`;
+  if (found?.ambiguous) return ND.ambiguous(found.ambiguous.map((c) => `${c.id}${c.title ? W.notices.titleQuote(c.title) : ''}`).join(ND.jn), threadId);
+  if (found) return `${found.id}${found.title ? W.notices.titleQuote(found.title) : ''}`;
+  return ND.noCard(threadId);
 }
 
 // 界面元素表放在锁文件同目录的小状态文件里（几份插件拷贝共用）。
@@ -1661,27 +1662,27 @@ export function createScreenGate({ lockPath = defaultLockPath, logPath = default
         // 先后：先砍末尾的提示 → 再截“多张卡没法确定”那一栏（给张数上限）→ 再截“什么事”；“批的是什么”“申请的 bot”“原线程”始终保留。
         const link = info.link ?? `https://discord.com/channels/${GUILD_ID}/${info.threadId}`;
         const cardField = found?.ambiguous
-          ? (text, room) => { const n = found.ambiguous.length; const shown = found.ambiguous.slice(0, Math.max(1, Math.min(n, Math.floor((room - 40) / 40)))); return `这个线程对应多张还没结束的卡（${shown.map((c) => `${plainApprovalText(c.id)}${c.title ? `《${cutCodePoints(plainApprovalText(c.title), 8)}》` : ''}`).join('、')}${shown.length < n ? `等 ${n} 张` : ''}），没法确定是哪张（线程 ${info.threadId}）`; }
+          ? (text, room) => { const n = found.ambiguous.length; const shown = found.ambiguous.slice(0, Math.max(1, Math.min(n, Math.floor((room - 40) / 40)))); return ND.ambiguous(`${shown.map((c) => `${plainApprovalText(c.id)}${c.title ? W.notices.titleQuote(cutCodePoints(plainApprovalText(c.title), 8)) : ''}`).join(ND.jn)}${shown.length < n ? ND.ambiguousMore(n) : ''}`, info.threadId); }
           : undefined;
         const description = composeApprovalDescription([
-          { kind: 'keep', text: '什么事：' },
-          { kind: 'var', order: 1, min: 20, text: `${info.what ?? '（没有记下是哪件事）'}`, cut: (text, room) => cutCodePoints(text, room) },
-          { kind: 'keep', text: `。批的是什么：只放行桌面角色的这一次屏幕调用（用过就作废，下一项要重新记等确认、重新批）。${info.auto ? PROGRAM_NOTE : ''}申请的 bot：桌面角色。来自任务卡：` },
+          { kind: 'keep', text: ND.whatHead },
+          { kind: 'var', order: 1, min: 20, text: `${info.what ?? ND.whatMissing}`, cut: (text, room) => cutCodePoints(text, room) },
+          { kind: 'keep', text: ND.approved(info.auto ? PROGRAM_NOTE : '') },
           { kind: 'var', order: 0, min: 60, text: cardText, cut: cardField },
-          { kind: 'keep', text: `；原线程：${link}。` },
-          { kind: 'tail', text: `桌面角色在线程 ${info.threadId} 里要继续动屏幕；之后要再做六类操作，桌面角色要先重新记“等确认”、重新批。` },
+          { kind: 'keep', text: ND.linkTail(link) },
+          { kind: 'tail', text: ND.tail(info.threadId) },
         ]);
 // 同一线程又出了新的审批卡（重新申请）→ 把还没处理的“审批过期”条目改已定（失败不影响卡）。
         try { Promise.resolve(approvalLedger?.reissued?.({ kind: W.ledgerKinds.desktop, cardId: info.cardId ?? found?.id ?? null, threadId: info.threadId })).catch(() => {}); } catch { /* 只是记录 */ }
         // 每出一张卡，异步用总控账号往“审批”频道另发一条点名主人的短消息（做法二）；发失败只记日志，不影响卡。
         try {
-          notifyApprovalCard({ dedupKey: `desktop:${info.fingerprint ?? info.threadId}`, what: info.what, cardId: info.cardId ?? found?.id ?? null, source: '桌面角色六类操作', now, send: sendApprovalNotice, dedupPath, log: (row) => logDecision(logPath, { at: now(), toolName, agentId, ...row }) });
+          notifyApprovalCard({ dedupKey: `desktop:${info.fingerprint ?? info.threadId}`, what: info.what, cardId: info.cardId ?? found?.id ?? null, source: ND.source, now, send: sendApprovalNotice, dedupPath, log: (row) => logDecision(logPath, { at: now(), toolName, agentId, ...row }) });
         } catch { /* 另发提醒失败不影响卡 */ }
         return {
           requireApproval: {
-            title: cutCodePoints('六类操作确认', APPROVAL_TITLE_MAX),
+            title: cutCodePoints(ND.title, APPROVAL_TITLE_MAX),
             description,
-            severity: 'warning', allowedDecisions: ['allow-once', 'deny'], timeoutMs: 600_000, timeoutReason: '没有批准，屏幕上的东西没有被动', pluginId: 'personal-inbox',
+            severity: 'warning', allowedDecisions: ['allow-once', 'deny'], timeoutMs: 600_000, timeoutReason: ND.timeoutReason, pluginId: 'personal-inbox',
             onResolution: (decision) => {
               const d = typeof decision === 'string' ? decision : decision?.decision;
               if (d === 'allow-once') {

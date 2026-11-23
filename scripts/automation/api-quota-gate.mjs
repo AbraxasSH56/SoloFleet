@@ -13,9 +13,10 @@
 import { localIsoAt } from '../../plugins/personal-inbox/tz.mjs';
 export const EXPIRY_HOUR = 7; // local hour at which an API credit period ends (edit to match your plan's period end)
 import { fileURLToPath } from 'node:url';
-import { DAY_MS, DEFAULT_DATA_ROOT, atomicWriteJson, localParts, localDayStart, localIso, cnDate, cnDateTime, isRealDate, join, parseJsonLoose, readJson, realRunner, realSend, withLock } from './gap-common.mjs';
+import { DAY_MS, DEFAULT_DATA_ROOT, atomicWriteJson, localParts, localDayStart, localIso, fmtDate, fmtDateTime, isRealDate, join, parseJsonLoose, readJson, realRunner, realSend, withLock } from './gap-common.mjs';
 import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
 const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
+const G = W.notices.quotaGate; // fixed notices for the owner follow config "locale"
 
 export const TASK_NAMES = [W.jobNames.daily, W.jobNames.patrol, W.jobNames.deepReview, W.jobNames.weekly];
 export const PROBE_AFTER_MIN = 17 * 60 + 30; // 正常状态：17:30 之后才试探（赶在 18:05 日审之前，不是之后）
@@ -106,14 +107,14 @@ async function flushNotices(state, deps) {
 
 // ---------- 文案（大白话）----------
 function pauseText(state, nowMs) {
-  const why = state.暂停原因 === '到期' ? `本期额度已到期（${state.当期到期 ? cnDateTime(ms(state.当期到期)) : '到期日'}）` : state.暂停原因 === '手动' ? 'API 额度被手动暂停' : 'API 额度用完了（官方回的是“钱不够”）';
-  return `【API 额度】${why}。已暂停日审、巡查、异常深审、周审，不再每天往工坊报失败。\n暂停期间：这四个任务都不跑；挂在日审触发脚本上的每日命令抽查和文件对账也会一起停；没人每天巡检系统，“白天看护”照常跑。备用A、备用B和走订阅的 bot 不受影响。\n恢复办法：额度回来后我会自动试探并恢复；也可以告诉总控“新一期到 X 月 X 日到期”。（${cnDateTime(nowMs)} 记）`;
+  const why = state.暂停原因 === '到期' ? G.pauseWhyExpired(state.当期到期 ? fmtDateTime(ms(state.当期到期)) : G.pauseWhyExpiredFallback) : state.暂停原因 === '手动' ? G.pauseWhyManual : G.pauseWhyUsed;
+  return G.pause(why, fmtDateTime(nowMs));
 }
 function resumeText(state, nowMs, startMs, why) {
   const days = startMs ? Math.max(0, Math.round((nowMs - startMs) / DAY_MS)) : null;
-  const head = why === '手动' ? '已按指令恢复' : '额度回来了，已自动恢复';
-  const exp = state.当期到期 ? `新一期记到 ${cnDateTime(ms(state.当期到期))} 到期。` : '请告诉我新一期的到期日（回总控一句“新一期到 X 月 X 日到期”），不然我不知道下次什么时候停。';
-  return `【API 额度】${head}日审、巡查、异常深审、周审${days != null ? `（停了约 ${days} 天）` : ''}。${exp}\n提醒：恢复后第一次日审要补审暂停这几天，可能比平时久。`;
+  const head = why === '手动' ? G.resumeHeadManual : G.resumeHeadAuto;
+  const exp = state.当期到期 ? G.resumeExp(fmtDateTime(ms(state.当期到期))) : G.resumeNoExp;
+  return G.resume(head, days, exp);
 }
 
 // ---------- 暂停／恢复动作（可分几轮做完）----------
@@ -142,9 +143,9 @@ function advanceAction(state, deps, nowMs) {
   if (failed.length) {
     state.待补轮数 += 1;
     state.已提示 ??= {};
-    const verb = pausing ? '没停成' : '没启用成';
-    if (state.待补轮数 === 1 && !state.已提示.部分) { state.已提示.部分 = true; queueNotice(state, `部分-${action}`, `【API 额度】${failed.join('、')} ${failed.length} 个${verb}，我会每 30 分钟继续试。`); }
-    if (state.待补轮数 >= 3 && !state.已提示.请人看) { state.已提示.请人看 = true; queueNotice(state, `请人看-${action}`, `【API 额度】${failed.join('、')} 连着 3 轮都${verb}，请人看一下（可在终端用 openclaw cron list --all 查）。`); }
+    const verb = pausing ? G.verbStop : G.verbEnable;
+    if (state.待补轮数 === 1 && !state.已提示.部分) { state.已提示.部分 = true; queueNotice(state, `部分-${action}`, G.partial(failed.join(G.jn), failed.length, verb)); }
+    if (state.待补轮数 >= 3 && !state.已提示.请人看) { state.已提示.请人看 = true; queueNotice(state, `请人看-${action}`, G.stuck(failed.join(G.jn), verb)); }
     return;
   }
   const info = state.待补信息 ?? {};
@@ -279,7 +280,7 @@ export async function cmdResume(deps, arg) {
     if (state.状态 === '正常' && !state.待补动作) {
       state.当期到期 = parsed.expiry;
       atomicWriteJson(p.state, state);
-      deps.out(parsed.expiry ? `现在本来就是正常运行，已把当期到期日记成 ${cnDateTime(ms(parsed.expiry))}。` : '现在本来就是正常运行，到期日已清空（未知）。');
+      deps.out(parsed.expiry ? `现在本来就是正常运行，已把当期到期日记成 ${fmtDateTime(ms(parsed.expiry))}。` : '现在本来就是正常运行，到期日已清空（未知）。');
       return 0;
     }
     if (state.待补动作 !== '启用') startAction(state, '启用', { 原因: '手动', 新到期: parsed.expiry }, nowMs);
@@ -287,7 +288,7 @@ export async function cmdResume(deps, arg) {
     try { advanceAction(state, deps, nowMs); } catch (e) { deps.out(`恢复没做完：${e.message}。状态已记下，定时任务下一轮会接着做。`); atomicWriteJson(p.state, state); return 1; }
     await flushNotices(state, deps);
     atomicWriteJson(p.state, state);
-    deps.out(state.待补动作 ? '有任务没启用成，已记下，定时任务每 30 分钟会接着补。' : `已恢复四个审计任务${parsed.expiry ? `，当期到期日记为 ${cnDateTime(ms(parsed.expiry))}` : '（到期日未知，记得告诉我新一期到期日）'}。`);
+    deps.out(state.待补动作 ? '有任务没启用成，已记下，定时任务每 30 分钟会接着补。' : `已恢复四个审计任务${parsed.expiry ? `，当期到期日记为 ${fmtDateTime(ms(parsed.expiry))}` : '（到期日未知，记得告诉我新一期到期日）'}。`);
     return state.待补动作 ? 1 : 0;
   }, { now: deps.now });
   if (res.busy) { deps.out('额度闸正在跑，请 1 分钟后再试。'); return 1; }

@@ -27,8 +27,8 @@ export const POST_UNTIL = 21 * 60 + 30; // 21:30
 export const MAX_TRIES = 3;
 export const KEEP_DAYS = 14;
 
-export const TEXT_PRE = '【每日重置提醒】18:00 整，工坊和各项目频道主区域的会话会重置：之后各 bot 在主区域的第一句话会开新会话，靠任务记录接着做，你不用重新解释。任务线程不受影响（闲置满 24 小时才重置）。有话没说完的话，18:00 前说完最稳。';
-export const TEXT_POST = '【每日重置】18:00 已过。从现在起各 bot 在主区域的下一句话会用新会话；做到一半的活靠任务记录接着做。如果哪个 bot 不记得上文，叫它先读任务记录。';
+export const TEXT_PRE = W.notices.reset.pre;
+export const TEXT_POST = W.notices.reset.post;
 
 export function paths(dataRoot, test = false) {
   const dir = join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.reminders);

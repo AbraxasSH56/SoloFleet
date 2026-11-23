@@ -8,8 +8,9 @@ import { createHash } from 'node:crypto';
 import { APPROVAL_CHANNEL_ID } from './approval-card.mjs';
 
 import { crew } from './crew-config.mjs';
-import { lexicon } from './lexicon.mjs';
+import { lexicon, escapeRe } from './lexicon.mjs';
 const W = lexicon(); // words follow config "locale" (zh-CN: the literals this file always used)
+const N = W.notices.ledger; // fixed sentences for the owner follow config "locale"
 const S = W.ledgerStatus;
 export const OWNER_ID = crew.owner.userId;
 // 审批卡（官方上限 10 分钟）过期不算拒绝，登记进本台账留 24 小时；到点前 2 小时在审批频道点名提醒一次；24 小时到了还没批，算没批、原线程说一句。
@@ -192,20 +193,20 @@ export const TABLE_MAX_CHARS = 1900; // Discord 一条消息最多 2000 字
 export const TABLE_MAX_LINES = 16; // 官方 Discord 渠道每条消息默认最多 17 行，超了会被拆成几条，留 1 行余量
 // 三档详细程度：2 行（标题＋建议／卡住／截止，第二行原请示链接）→ 1 行（标题＋链接）→ 只剩标题
 function itemLines(it, k, level) {
-  const link = it.requestLink ?? `消息 ${it.requestMessageId}`;
-  const flags = [it.possibleReply ? `你可能回过（消息 ${it.possibleReply.messageId}），bot 还没对上` : null, it.responseUnknown ? `回应：未知（${it.responseUnknown}）` : null].filter(Boolean).join('；');
-  const st = it.status === S.received ? `${S.received}（${it.recheckDefault ? '未约定日期，默认' : ''}${it.recheckDate} 再看）` : it.status;
-  if (level === 0) return [`${k + 1}. ${it.title}（建议：${it.suggestion}；不定会卡住：${it.blocks}；截止：${it.deadline ?? W.noDeadline}；状态：${st}${flags ? `；${flags}` : ''}）`, `   原请示：${link}`];
-  if (level === 1) return [`${k + 1}. ${it.title}（${st}）原请示 ${link}`];
-  return [`${k + 1}. ${it.title}（${st}）`];
+  const link = it.requestLink ?? N.linkFallback(it.requestMessageId);
+  const flags = [it.possibleReply ? N.flagPossible(it.possibleReply.messageId) : null, it.responseUnknown ? N.flagUnknown(it.responseUnknown) : null].filter(Boolean).join(N.flagJoin);
+  const st = it.status === S.received ? N.received(S.received, it.recheckDefault, it.recheckDate) : it.status;
+  if (level === 0) return N.itemFull(k + 1, it.title, it.suggestion, it.blocks, it.deadline ?? W.noDeadline, st, flags, link);
+  if (level === 1) return [N.itemOne(k + 1, it.title, st, link)];
+  return [N.itemTitle(k + 1, it.title, st)];
 }
 export function buildTable(ledger, now) {
   const rows = activeForTable(ledger, now);
-  const head = ['**等你定的事（总表）**', '只列还没定的；点链接回到原请示，在原请示下回复或在那件的线程里回才算数。'];
-  const foot = [`上次整理：${new Date(now).toISOString().slice(0, 16).replace('T', ' ')} UTC`];
+  const head = [N.tableTitle, N.tableNote];
+  const foot = [N.updated(new Date(now).toISOString().slice(0, 16).replace('T', ' '))];
   const build = (nFull, nOne) => {
     const lines = [...head];
-    if (rows.length === 0) lines.push('（现在没有）');
+    if (rows.length === 0) lines.push(N.none);
     rows.forEach((it, k) => lines.push(...itemLines(it, k, k < nFull ? 0 : k < nFull + nOne ? 1 : 2)));
     lines.push(...foot);
     return lines.join('\n');
@@ -215,12 +216,12 @@ export function buildTable(ledger, now) {
   let text = build(rows.length, 0);
   for (let n = rows.length - 1; !ok(text) && n >= 0; n--) text = build(n, rows.length - n);
   for (let n = rows.length; !ok(text) && n >= 0; n--) text = build(0, n); // 只留 n 件一行的，其余只写标题
-  if (!ok(text)) { const lines = text.split('\n').slice(0, TABLE_MAX_LINES - 2); text = `${lines.join('\n').slice(0, TABLE_MAX_CHARS - 60)}\n…（太长，其余见台账）\n${foot[0]}`; }
+  if (!ok(text)) { const lines = text.split('\n').slice(0, TABLE_MAX_LINES - 2); text = `${lines.join('\n').slice(0, TABLE_MAX_CHARS - 60)}\n${N.tooLong}\n${foot[0]}`; }
   return text;
 }
 
 const mention = `<@${OWNER_ID}>`;
-const tag = (fp) => `〔等你定·${fp}〕`;
+const tag = (fp) => N.tag(fp);
 const withTag = (text) => `${text}\n${tag(sha8(text))}`;
 
 // ----- 每 30 分钟一遍 -----
@@ -252,11 +253,11 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
       if (it.status === S.judging && it.pendingJudgeSince && t - it.pendingJudgeSince >= JUDGE_TIMEOUT_MS) {
         // 超时：把那条回应记成“已超时处理”，以后同一条回应再被读到也不再触发
         if (it.lastReplyId && !it.handledReplies.includes(String(it.lastReplyId))) it.handledReplies.push(String(it.lastReplyId));
-        it.status = S.noReply; it.pendingJudgeSince = null; it.judgeCall = null; it.possibleReply = { messageId: it.lastReplyId ?? null, note: '你回过，bot 没判出，请看一眼' }; actions.push({ type: 'judge-timeout', id: it.id });
+        it.status = S.noReply; it.pendingJudgeSince = null; it.judgeCall = null; it.possibleReply = { messageId: it.lastReplyId ?? null, note: N.judgeTimeoutNote }; actions.push({ type: 'judge-timeout', id: it.id });
       }
       let msgs;
       if (late()) { skippedReads++; continue; } // 到点：这条留给下一轮，不改 responseUnknown、不算读取失败
-      try { msgs = await (deadlineAt == null ? discord.readReplies(it) : discord.readReplies(it, Math.max(1000, Math.min(60000, deadlineAt - now())))); it.responseUnknown = null; } catch (e) { readOk = false; it.responseUnknown = `读取失败，${new Date(t).toISOString().slice(11, 16)}`; continue; }
+      try { msgs = await (deadlineAt == null ? discord.readReplies(it) : discord.readReplies(it, Math.max(1000, Math.min(60000, deadlineAt - now())))); it.responseUnknown = null; } catch (e) { readOk = false; it.responseUnknown = N.readFailed(new Date(t).toISOString().slice(11, 16)); continue; }
       for (const m of msgs ?? []) {
         if (String(m.authorId) !== OWNER_ID) continue;
         const linked = (m.replyToId && String(m.replyToId) === it.requestMessageId) || (it.threadId && String(m.channelId) === it.threadId);
@@ -282,7 +283,7 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
     if (skippedReads > 0) actions.push({ type: 'deadline-skip-reads', n: skippedReads });
     // 3) 总表：不同才改；第一次发出并置顶
     const table = buildTable(L, t);
-    const th = sha8(table.replace(/\n上次整理：.*$/s, ''));
+    const th = sha8(table.replace(new RegExp(`\\n${escapeRe(N.updatedLabel)}.*$`, 's'), ''));
     if (late()) { /* 到点：本轮不再发送／编辑，留给下一轮 */ } else if (!L.pinnedMessageId) {
       const r = await discord.send({ target: WORKSHOP_CHANNEL, text: table });
       if (r?.messageId) {
@@ -301,8 +302,8 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
     for (const [, items] of groups) {
       if (late()) break; // 到点：没点过名的留给下一轮（firstAskedAt 没设，不会少点）
       const body = items.length > 1 || items[0].batch === '搭建期首批'
-        ? `${mention} 搭建期遗留的 ${items.length} 件还要你定，总表置顶在这里：\n${items.map((it, k) => `${k + 1}. ${it.title}（原请示 ${it.requestLink ?? it.requestMessageId}）`).join('\n')}`
-        : `${mention} 新的一件等你定：${items[0].title}，原请示 ${items[0].requestLink ?? items[0].requestMessageId}`;
+        ? N.batchAsk(mention, items.length, items.map((it, k) => N.batchLine(k + 1, it.title, it.requestLink ?? it.requestMessageId)).join('\n'))
+        : N.newAsk(mention, items[0].title, items[0].requestLink ?? items[0].requestMessageId);
       await sendNotice(L, items, body, 'first', t, discord, actions);
     }
     if (!L.lastMergedReminderAt && L.items.some((it) => it.firstAskedAt)) L.lastMergedReminderAt = t; // 第一次点名时起算 3 天
@@ -313,9 +314,9 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
         .sort((a, b) => (a.lastRemindedAt ?? -1) - (b.lastRemindedAt ?? -1));
       const pick = cand.slice(0, MERGE_MAX_ITEMS);
       if (pick.length > 0) {
-        const extra = (L.readFailures ?? 0) >= READ_FAIL_NOTICE ? '\n（读不到 Discord，以下几件状态未知）' : '';
-        const lines = pick.map((it, k) => `${k + 1}. ${it.title}（${it.possibleReply ? '你可能回过，bot 还没对上；' : ''}原请示 ${it.requestLink ?? it.requestMessageId}）`);
-        const body = `${mention} 合并提醒：这几件还在等你定${extra}\n${lines.join('\n')}\n全表在置顶。`;
+        const extra = (L.readFailures ?? 0) >= READ_FAIL_NOTICE ? N.mergedExtra : '';
+        const lines = pick.map((it, k) => N.mergedLine(k + 1, it.title, it.possibleReply, it.requestLink ?? it.requestMessageId));
+        const body = N.mergedBody(mention, extra, lines.join('\n'));
         const sent = await sendNotice(L, pick, body, 'merged', t, discord, actions);
         if (sent) L.lastMergedReminderAt = t;
       }
@@ -326,7 +327,7 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
       if (late()) break; // 到点：留给下一轮
       const dl = Date.parse(it.deadline);
       if (Number.isNaN(dl) || dl - t > DEADLINE_LEAD_MS || dl < t) continue;
-      const body = `${mention} 快到截止了（${it.deadline}）：${it.title}，原请示 ${it.requestLink ?? it.requestMessageId}`;
+      const body = N.deadlineAsk(mention, it.deadline, it.title, it.requestLink ?? it.requestMessageId);
       if (await sendNotice(L, [it], body, 'deadline', t, discord, actions)) it.preDeadlineRemindedAt = t;
     }
     if (!late()) await runApprovalExpiryTick(L, t, discord, actions);
@@ -340,10 +341,10 @@ export async function runTick({ path, now = () => Date.now(), discord, watchDir 
 export function registerApprovalExpiry(ledger, { kind, what = null, cardId = null, threadId = null, link = null, expiredAt }, now, { probe = false, deadlineAt = null, leadMs = null } = {}) {
   const kindKey = kind === W.ledgerKinds.closing ? W.ledgerKindKeys.closing : W.ledgerKindKeys.desktop;
   const rid = `${W.approvalIdPrefix}:${kindKey}:${cardId ?? threadId ?? W.unknownWord}:${expiredAt ?? now}`;
-  const one = String(what ?? '（没写事由）').replace(/\s+/g, ' ').trim().slice(0, 60);
+  const one = String(what ?? N.expiryNoReason).replace(/\s+/g, ' ').trim().slice(0, 60);
   const dl = deadlineAt ?? (now + APPROVAL_EXPIRY_MS);
   const r = registerItem(ledger, {
-    title: `审批过期没批：${kind}——${one}`, suggestion: '要做就告诉总控，她会让那个 bot 重新申请，新卡弹出你再点允许；不管就按没批处理', blocks: `${kind}那件事没有做`,
+    title: N.expiryTitle(kind, one), suggestion: N.expirySuggestion, blocks: N.expiryBlocks(kind),
     requestMessageId: rid, requestLink: link, threadId, isTest: false,
   }, now);
   if (r.error || r.existing) return r;
@@ -370,7 +371,7 @@ export async function recordApprovalReissue(path, info, { now = () => Date.now()
   return withLedger(path, (L) => { const n = closeApprovalExpiryOnReissue(L, info, now()); return n > 0 ? { closed: n } : { noWrite: true, closed: 0 }; }, { now });
 }
 // 每次 runTick 末尾：①到“截止−提前量”→ 审批频道点名主人一次；②到截止仍没处理 → 撤销，原线程说一句（发失败下一轮再试，最多 3 次）。
-export const APPROVAL_EXPIRED_THREAD_TEXT = '这件审批过期了（超过 24 小时没批），按没批处理；要做请再叫我。';
+export const APPROVAL_EXPIRED_THREAD_TEXT = N.expiryThread;
 export async function runApprovalExpiryTick(L, t, discord, actions) {
   // 调用方没明确传发送函数就什么都不发，只记一行（不去猜一个默认的真发送）。
   if (typeof discord?.send !== 'function') {
@@ -395,7 +396,7 @@ export async function runApprovalExpiryTick(L, t, discord, actions) {
       continue;
     }
     if (!it.reminded && it.deadlineAt - t <= (it.leadMs ?? APPROVAL_EXPIRY_LEAD_MS)) {
-      const text = `<@${OWNER_ID}> 有一件审批过期没批，快到 24 小时了（${it.deadline}）：${it.title}${it.cardId ? `（任务卡 ${it.cardId}）` : ''}${it.link ? `，原线程 ${it.link}` : ''}。要做的话告诉总控，她会让那个 bot 重新申请，新卡弹出你再点允许；不管就按没批处理。`;
+      const text = N.expiryReminder(`<@${OWNER_ID}>`, it.deadline, it.title, it.cardId, it.link);
       try { await discord.send({ target: APPROVAL_CHANNEL_ID, text }); it.reminded = t; actions.push({ type: 'approval-expiry-reminded', id: it.id }); }
       catch { actions.push({ type: 'approval-expiry-remind-failed', id: it.id }); }
     }

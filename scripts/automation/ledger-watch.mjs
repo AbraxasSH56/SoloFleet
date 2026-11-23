@@ -18,6 +18,7 @@ import { DAY_MS, DEFAULT_DATA_ROOT, NODE_BIN, atomicWriteJson, localParts, local
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
 import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
 const W = lexicon(); // words follow config "locale" (zh-CN: the literals this script always used)
+const LW = W.notices.ledgerWatch; // fixed notices for the owner follow config "locale"
 export const WAKE_AFTER_MS = 24 * 3600000;
 export const WAKE_MAX = 3;
 export const STALE_NOTICE_MS = 3 * DAY_MS;
@@ -226,12 +227,12 @@ export async function runCheck(deps) {
           rec.次数 += 1; rec.最近时间 = localIso(nowMs); acts.push('叫醒');
         } else deps.warn(`叫醒总控没成：${w.error ?? '未知'}`);
       } else if (rec.次数 >= WAKE_MAX && !data.提示.叫满[batch]) {
-        const s = await deps.send(`【账本待补】还有 ${pend.length} 条决定没写进账本，已经叫过总控 ${WAKE_MAX} 次没补上，请人看一下。`);
+        const s = await deps.send(LW.gaveUp(pend.length, WAKE_MAX));
         if (s.ok) { data.提示.叫满[batch] = localIso(nowMs); acts.push('叫满提示'); } else deps.warn(`叫满提示没发出去：${s.error}`);
       }
     }
     if (age >= STALE_NOTICE_MS && (!data.提示.超3天上次 || nowMs - ms(data.提示.超3天上次) >= STALE_NOTICE_MS)) {
-      const s = await deps.send(`【账本待补】账本还有 ${pend.length} 条决定没补，最早一条已经 ${Math.floor(age / DAY_MS)} 天了，请看一下。`);
+      const s = await deps.send(LW.old(pend.length, Math.floor(age / DAY_MS)));
       if (s.ok) { data.提示.超3天上次 = localIso(nowMs); acts.push('超3天提示'); } else deps.warn(`超3天提示没发出去：${s.error}`);
     }
     if (acts.length) save(p, data, nowMs);

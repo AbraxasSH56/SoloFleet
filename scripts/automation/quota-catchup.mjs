@@ -17,6 +17,7 @@ import { isQuotaSentence, nextOccurrence, previousOccurrence, resetAt, writeRepl
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
 import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
 const W = lexicon(); // folder names follow config "locale" (zh-CN: the names this file always used)
+const C = W.notices.catchup; // fixed notices for the owner follow config "locale"
 export const DEFAULT_DATA_ROOT = process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot; // env var first, then config
 // 4-12 原设计：这四个任务有本轮记录接着做、发布脚本防重发。近线小时＝离下一轮不到这么久就跳过（周审 24 小时）。
 const J = W.jobNames;
@@ -108,7 +109,7 @@ export function classify(entry, bench) {
   if (entry.status === 'ok') return { kind: 'ok' };
   const text = errorText(entry);
   if (isQuotaSentence(text)) return { kind: 'quota', text };
-  return { kind: 'other', reason: entry.errorReason ?? text.slice(0, 80) ?? '未知' };
+  return { kind: 'other', reason: entry.errorReason ?? text.slice(0, 80) ?? W.unknownWord };
 }
 
 // ---------- CodexBar 参考读数（只用来推迟，不当发起的硬条件；边界②：同一登录来源、账号未直接比对）----------
@@ -143,7 +144,7 @@ export function runCatchup({ dataRoot = DEFAULT_DATA_ROOT, deps = realDeps(), be
     const age = now() - (statSync(P.lock).mtimeMs ?? now());
     if (age > LOCK_STALE_MS) {
       const day = localDate(now());
-      if (readJson(P.stuck)?.日期 !== day) { writeReplace(P.stuck, { 日期: day }); return ['补跑检查卡住，待核（锁文件比时限的两倍还老，没有抢锁）']; }
+      if (readJson(P.stuck)?.日期 !== day) { writeReplace(P.stuck, { 日期: day }); return [C.lockStuck]; }
     }
     return [];
   }
@@ -218,7 +219,7 @@ function decideAndLaunch(P, task, job, last, snapshot, due, nextDue, existing, a
     if (notice) acc.通知 = { 文字: notice, 状态: '待交出' };
     saveAccount(accFile, acc, now);
   };
-  if (k > MAX_TRIES) { close('补跑失败', '额度两次未恢复', `补跑失败：${task}（${date}）额度两次未恢复，不再试`); return; }
+  if (k > MAX_TRIES) { close('补跑失败', '额度两次未恢复', C.failedTwice(task, date)); return; }
   // 计划快照：必须唯一对上“任务开始”事件存档；事后读到的计划不能顶替失败时的计划
   const origin = existing?.原计划快照 ?? snapshot?.计划;
   if (!origin) { close('不再补跑', '原计划未知', null); return; }
@@ -242,7 +243,7 @@ function decideAndLaunch(P, task, job, last, snapshot, due, nextDue, existing, a
   const nearMs = TASKS[task].近线小时 * 3600000;
   const effective = Math.max(now(), earliest);
   if (nextDue && nextDue.atMs - effective < nearMs) {
-    close('已跳过', '离下一轮太近', `已跳过：${task}（${date}）离下一轮太近，不补了`);
+    close('已跳过', '离下一轮太近', C.skipped(task, date));
     return;
   }
   if (now() < earliest) { log(`${task}：还没到最早可试时间 ${fmt(earliest)}`); return; }
@@ -305,14 +306,14 @@ function finishAccount(P, task, job, acc, runs, deps, now, bench) {
     if (after.length === 1) {
       const tries = [...d.尝试]; tries[k - 1] = { ...att, 状态: '已发起', 运行编号: after[0].runId };
       saveAccount(acc.file, { ...d, 状态: `已发起（第 ${k} 次）`, 尝试: tries }, now);
-    } else if (after.length > 1) save('待核', `补跑待核：${task}（${date}），发起后出现了不止一条运行，不再自动发起`);
-    else if (now() - att.发起时间毫秒 > PREPARED_WAIT_MS) save('待核', `补跑待核：${task}（${date}），没找到发起记录，不再自动发起`);
+    } else if (after.length > 1) save('待核', C.uncertainMany(task, date));
+    else if (now() - att.发起时间毫秒 > PREPARED_WAIT_MS) save('待核', C.uncertainNoRecord(task, date));
     return;
   }
   if (s !== '已发起') { save('待核'); return; }
   const entry = runs.find((e) => e.runId === att.运行编号);
   if (!entry) {
-    if (now() - att.发起时间毫秒 > QUEUED_MAX_MS) save('补跑结果待核', `补跑结果待核：${task}（${date}），排队太久查不到结果，不再追加请求`);
+    if (now() - att.发起时间毫秒 > QUEUED_MAX_MS) save('补跑结果待核', C.resultQueue(task, date));
     return; // 还在排队或跑：等，不能拿第二次名额重发
   }
   // 唯一对上：发起以后只能有这一条运行；运行不能跨进下一轮
@@ -322,26 +323,26 @@ function finishAccount(P, task, job, acc, runs, deps, now, bench) {
   const others = runs.filter((e) => e.runAtMs >= att.发起时间毫秒 - 1000 && e.runId !== entry.runId);
   const verdict = classify(entry, bench);
   if (crossed || others.length > 0) {
-    save('补跑结果待核', `补跑结果待核：${task}（${date}），查不清这条运行属于哪一轮，不再追加请求`);
+    save('补跑结果待核', C.resultUnclear(task, date));
     return;
   }
   if (verdict.kind === 'ok') {
     const tries = [...d.尝试]; tries[k - 1] = { ...att, 结束毫秒: endedAt(entry), 实际用量: usageNote(entry) }; d.尝试 = tries;
-    if (roundDone(P, task, date)) save('已补跑', `已补跑：${task}（${date}）`);
-    else save('补跑结果待核', `补跑结果待核：${task}（${date}），运行成功但本轮记录或发送凭据没核过`);
+    if (roundDone(P, task, date)) save('已补跑', C.done(task, date));
+    else save('补跑结果待核', C.resultUnverified(task, date));
     return;
   }
   if (verdict.kind === 'quota') {
     const tries = [...d.尝试]; tries[k - 1] = { ...att, 状态: '额度未恢复', 结束毫秒: endedAt(entry), 报错: verdict.text.slice(0, 200), 实际用量: usageNote(entry) };
     if (k >= MAX_TRIES) {
-      saveAccount(acc.file, { ...d, 尝试: tries, 状态: '补跑失败（额度两次未恢复）', 通知: { 文字: `补跑失败：${task}（${date}）额度两次未恢复，不再试`, 状态: '待交出' } }, now);
+      saveAccount(acc.file, { ...d, 尝试: tries, 状态: '补跑失败（额度两次未恢复）', 通知: { 文字: C.failedTwice(task, date), 状态: '待交出' } }, now);
     } else {
       saveAccount(acc.file, { ...d, 尝试: tries, 状态: `额度未恢复（第 ${k} 次）`, 失败登记: { ...d.失败登记, 结束毫秒: endedAt(entry), 型号: entry.model ?? d.失败登记?.型号, 报错: verdict.text.slice(0, 200) } }, now);
     }
     return;
   }
   { const tries = [...d.尝试]; tries[k - 1] = { ...att, 结束毫秒: endedAt(entry), 实际用量: usageNote(entry) }; d.尝试 = tries; }
-  save(`补跑失败（${verdict.reason}）`, `补跑失败：${task}（${date}）${verdict.reason}，不再试`);
+  save(`补跑失败（${verdict.reason}）`, C.failedWithReason(task, date, verdict.reason));
 }
 
 // 10. 通知：每个任务每个业务日期每种只一次；先记账再交出；下一次核投递状态，不重发

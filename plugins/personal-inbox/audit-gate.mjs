@@ -14,6 +14,8 @@ import { composeApprovalDescription, cutCodePoints, notifyApprovalCard, APPROVAL
 import { crew, botId } from './crew-config.mjs';
 import { lexicon, locale, labelRe, escapeRe, tagCloseRe } from './lexicon.mjs';
 const W = lexicon(); // words follow config "locale" (zh-CN: the literals this file always matched)
+const N = W.notices; // fixed sentences for the owner follow config "locale"
+const [TQ_PRE, TQ_POST] = N.titleQuote('\u0000').split('\u0000'); // the brackets around a card title, to cut the title inside them
 const EN = locale() === 'en';
 // ---------- 常量 ----------
 export const DONE_STATES = ['done']; // 官方状态里只有 done 算完成（第 0 步：dist/src-uqZESs4H.mjs）
@@ -326,12 +328,12 @@ export function decideClosing({ ledger, cardId, card, fingerprintFn = fingerprin
   const sub = ledger.latestSubmission(cardId);
   if (!sub) return need('还没有送审记录：先送审（总控开审计线程），通过后再完成');
   const approvalCase = [];
-  if (sub.duplicate) approvalCase.push('送审重复，待核');
-  if (sub.unverifiableFlag) approvalCase.push('成果无法核对');
+  if (sub.duplicate) approvalCase.push(N.closing.reasons.duplicate);
+  if (sub.unverifiableFlag) approvalCase.push(N.closing.reasons.unverifiable);
   const report = ledger.reportFor(sub.threadId);
   const opus = ledger.opusFor(cardId, sub.n);
   const boundOpus = opus.filter((o) => o.bound);
-  if (opus.some((o) => !o.bound)) approvalCase.push('补审绑定核不了');
+  if (opus.some((o) => !o.bound)) approvalCase.push(N.closing.reasons.unbound);
   // ③ 已送达的“不通过”（任务审计的，或绑定成立的 Opus 补审）→ 挡，不给本人批准
   if (report?.delivered && report.verdict === W.reportVerdictWord.fail) return need('这次送审的审计报告是“不通过”，要返工后重新送审；本人批准也不能覆盖');
   if (boundOpus.some((o) => o.verdict === W.reportVerdictWord.fail)) return need('这次送审的 Opus 补审是“不通过”，要返工后重新送审；本人批准也不能覆盖');
@@ -360,8 +362,8 @@ function approveCase(ledger, sub, cardId, reasons) {
   return {
     approval: true,
     reason: reasons.join('、'),
-    title: '结案确认',
-    description: `卡 ${cardId}、送审第 ${sub.n} 次：${reasons.join('、')}，需要主人本人批准才能完成。批准只对这一张卡这一次结案有效。`,
+    title: N.closing.title,
+    description: N.closing.description(cardId, sub.n, reasons.join(N.closing.jn)),
     submissionKey: key,
   };
 }
@@ -383,7 +385,7 @@ export function createFileStore(path) {
 export const GUILD_ID = crew.guildId; // 私人工作台服务器
 export function threadLinkOf(sessionKey) {
   const m = /:(?:channel|thread):(\d{5,})\b/.exec(String(sessionKey ?? ''));
-  return m ? `https://discord.com/channels/${GUILD_ID}/${m[1]}` : `（会话 ${sessionKey ?? '未知'}）`;
+  return m ? `https://discord.com/channels/${GUILD_ID}/${m[1]}` : N.closing.sessionFallback(sessionKey ?? W.unknownWord);
 }
 
 export function registerAuditGate(api, opts = {}) {
@@ -423,15 +425,15 @@ export function registerAuditGate(api, opts = {}) {
       // 说明在程序里先换掉会被官方清理放大的字符、再截到 480 码点以内（官方清理后超 512 会整张拒掉）；先截卡名、再截具体事由，“申请的 bot”“任务卡号”“原线程”“批准只放行…”始终保留。
       const approvalDescription = composeApprovalDescription([
         { kind: 'var', order: 1, min: 30, text: String(d.description ?? '') },
-        { kind: 'keep', text: `\n——申请的 bot：${ctx?.agentId ?? '未知'}；任务卡：${cardId}` },
-        ...(card?.title ? [{ kind: 'var', order: 0, min: 8, text: `《${card.title}》`, cut: (text, room) => `《${cutCodePoints(text.slice(1, -1), Math.max(1, room - 3))}》` }] : []),
-        { kind: 'keep', text: `；原线程：${threadLinkOf(ctx?.sessionKey)}。批准只放行这一张卡这一次结案。` },
+        { kind: 'keep', text: N.closing.botLine(ctx?.agentId ?? W.unknownWord, cardId) },
+        ...(card?.title ? [{ kind: 'var', order: 0, min: 8, text: W.notices.titleQuote(card.title), cut: (text, room) => `${TQ_PRE}${cutCodePoints(text.slice(TQ_PRE.length, text.length - TQ_POST.length), Math.max(1, room - TQ_PRE.length - TQ_POST.length - 1))}${TQ_POST}` }] : []),
+        { kind: 'keep', text: N.closing.threadLine(threadLinkOf(ctx?.sessionKey)) },
       ]);
 // 同一张任务卡又出了新的审批卡（重新申请）→ 把还没处理的“审批过期”条目改已定。失败不影响卡。
       try { Promise.resolve(opts.approvalLedger?.reissued?.({ kind: W.ledgerKinds.closing, cardId })).catch(() => {}); } catch { /* 只是记录 */ }
       // 每出一张卡，异步用总控账号往“审批”频道另发一条点名主人的短消息；发失败只记日志，不影响卡。
-      try { notifyApprovalCard({ dedupKey: `closing:${cardId}:${d.submissionKey ?? ''}`, what: d.description, cardId, source: '结案确认', send: opts.sendApprovalNotice, dedupPath: opts.dedupPath ?? null, log: (row) => log({ 结果: '审批卡另发提醒', 事件: row.event, 卡: cardId, 详情: row.detail ?? row.error ?? row.why ?? null }) }); } catch { /* 另发提醒失败不影响卡 */ }
-      return { requireApproval: { title: cutCodePoints(String(d.title ?? ''), APPROVAL_TITLE_MAX), description: approvalDescription, severity: 'warning', allowedDecisions: ['allow-once', 'deny'], timeoutMs: 600000, timeoutReason: '没有批准，结案没有进行', pluginId: 'personal-inbox', onResolution: (decision) => { if (decision === 'allow-once' || decision?.decision === 'allow-once') { ledger.grantApproval(cardId, d.submissionKey); ledger.addRelease({ cardId, via: '本人批准（审批卡点了允许一次）', at: new Date().toISOString(), tool, agent: ctx?.agentId }); log({ 结果: '本人批准放行', 工具: tool, 卡: cardId, 角色: ctx?.agentId }); return; }
+      try { notifyApprovalCard({ dedupKey: `closing:${cardId}:${d.submissionKey ?? ''}`, what: d.description, cardId, source: N.closing.source, send: opts.sendApprovalNotice, dedupPath: opts.dedupPath ?? null, log: (row) => log({ 结果: '审批卡另发提醒', 事件: row.event, 卡: cardId, 详情: row.detail ?? row.error ?? row.why ?? null }) }); } catch { /* 另发提醒失败不影响卡 */ }
+      return { requireApproval: { title: cutCodePoints(String(d.title ?? ''), APPROVAL_TITLE_MAX), description: approvalDescription, severity: 'warning', allowedDecisions: ['allow-once', 'deny'], timeoutMs: 600000, timeoutReason: N.closing.timeoutReason, pluginId: 'personal-inbox', onResolution: (decision) => { if (decision === 'allow-once' || decision?.decision === 'allow-once') { ledger.grantApproval(cardId, d.submissionKey); ledger.addRelease({ cardId, via: '本人批准（审批卡点了允许一次）', at: new Date().toISOString(), tool, agent: ctx?.agentId }); log({ 结果: '本人批准放行', 工具: tool, 卡: cardId, 角色: ctx?.agentId }); return; }
 // 卡过期（timeout）或被取消（cancelled）不算拒绝——登记进“等你定”留 24 小时；他明确点“拒绝”（deny）不登记。失败只记日志，不影响结案关口。
         const dec = typeof decision === 'string' ? decision : decision?.decision;
         if (dec === 'deny') { log({ 结果: '审批卡被拒绝', 工具: tool, 卡: cardId, 角色: ctx?.agentId }); return; }

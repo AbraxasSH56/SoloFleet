@@ -5,7 +5,7 @@
 //   exec：按命令文字判断——每个程序只认规则文件里列明的只读用法，不认识的选项一律拒绝；
 //   write / edit：只许规则文件列明的位置（先规范化、跟随链接，再比对真实路径）。
 // 边界：这是按命令文字守门，不是沙箱；规则文件读不到或格式错时，exec/write/edit 一律挡。
-import { locale } from './lexicon.mjs';
+import { locale, lexicon } from './lexicon.mjs';
 import { crew } from './crew-config.mjs';
 import { tzName } from './tz.mjs';
 import { existsSync, mkdirSync, appendFileSync, readFileSync, realpathSync, statSync, lstatSync } from 'node:fs';
@@ -766,8 +766,8 @@ export function createAuditGuard({ rulesPath, logDir, readText = (p) => readFile
         if (on) {
           return {
             requireApproval: {
-              title: 'P4 转发测试',
-              description: '这是插件审批转发测试：请点“拒绝”。通过与否都不会改动任何东西。',
+              title: lexicon().notices.auditGuard.p4Title,
+              description: lexicon().notices.auditGuard.p4Description,
               severity: 'info',
               timeoutMs: 120000,
               allowedDecisions: ['allow-once', 'deny'],

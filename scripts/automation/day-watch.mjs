@@ -17,6 +17,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rename
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
 import { lexicon, labelRe, escapeRe, locale } from '../../plugins/personal-inbox/lexicon.mjs';
 const W = lexicon(); // words, report markers and folder names follow config "locale" (zh-CN: the literals this script always used)
+const D = W.notices.dayWatch; // fixed anomaly sentences follow config "locale"
 // the "complete" line the format check and the blind-spot check write at the top of their files: zh-CN `状态：完整`, en `Status: complete`
 const COMPLETE_RE = new RegExp(`^${locale() === 'en' ? `${escapeRe(W.statusLabel)}:\\s*` : `${W.statusLabel}：`}${escapeRe(W.reportComplete)}`, 'm');
 const DATA_ROOT = process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot; // env var first (offline smoke tests), then config
@@ -75,8 +76,8 @@ export function collectDiscordHealthFlags(logDir, nowMs) {
     }
   }
   const hour = Math.floor(nowMs / HEALTH_WINDOW_MS) * HEALTH_WINDOW_MS;
-  if (resumeFalse > 0) out.push({ type: 'discord-resume-failed', object: `discord-resume:${hour}`, startedAt: firstAt ?? hour, text: `最近 1 小时 Discord 有 ${resumeFalse} 次重连没能续上原来的连接（resume=false），可能丢了这几秒的消息` });
-  if (hbTimeout >= HEARTBEAT_TIMEOUT_ALERT) out.push({ type: 'discord-heartbeat-timeout', object: `discord-heartbeat:${hour}`, startedAt: firstAt ?? hour, text: `最近 1 小时 Discord 心跳没回 ${hbTimeout} 次（平时一天约 1 次）` });
+  if (resumeFalse > 0) out.push({ type: 'discord-resume-failed', object: `discord-resume:${hour}`, startedAt: firstAt ?? hour, text: D.discordResume(resumeFalse) });
+  if (hbTimeout >= HEARTBEAT_TIMEOUT_ALERT) out.push({ type: 'discord-heartbeat-timeout', object: `discord-heartbeat:${hour}`, startedAt: firstAt ?? hour, text: D.discordHeartbeat(hbTimeout) });
   return out;
 }
 
@@ -106,13 +107,13 @@ export function collectCatchupFlags(dataRoot, nowMs, watchDir = join(dataRoot, W
   for (const [n, f] of listJson(base)) {
     const d = jread(f, null); if (!d) continue;
     const st = String(d.状态 ?? '').split('（')[0];
-    if (st === '待核' || st === '补跑结果待核') out.push({ type: 'catchup-flag', object: `补跑账:${n}:${st}`, startedAt: d.更新时间毫秒 ?? day, text: `补跑账“${n.replace(/\.json$/, '')}”状态是“${st}”（第一段补跑留下的，要人看一眼）` });
+    if (st === '待核' || st === '补跑结果待核') out.push({ type: 'catchup-flag', object: `补跑账:${n}:${st}`, startedAt: d.更新时间毫秒 ?? day, text: D.catchupState(n.replace(/\.json$/, ''), D.stateWord(st)) });
     const ns = d.通知?.状态;
-    if (ns === '未送达' || ns === '待核') out.push({ type: 'catchup-flag', object: `补跑账:${n}:通知${ns}`, startedAt: d.更新时间毫秒 ?? day, text: `补跑账“${n.replace(/\.json$/, '')}”的通知${ns}（工坊可能没收到）` });
+    if (ns === '未送达' || ns === '待核') out.push({ type: 'catchup-flag', object: `补跑账:${n}:通知${ns}`, startedAt: d.更新时间毫秒 ?? day, text: D.catchupNotice(n.replace(/\.json$/, ''), D.stateWord(ns)) });
   }
   // 补跑锁卡住
   const stuck = jread(join(base, '.stuck-notified'), null);
-  if (stuck?.日期) out.push({ type: 'catchup-flag', object: '补跑检查卡住', startedAt: localDayStart(stuck.日期) || day, text: `补跑检查卡住过（${stuck.日期}，锁比时限的两倍还老，没有抢锁）` });
+  if (stuck?.日期) out.push({ type: 'catchup-flag', object: '补跑检查卡住', startedAt: localDayStart(stuck.日期) || day, text: D.catchupStuck(stuck.日期) });
   // 没接住的撞额度：额度登记里不属于补跑四个任务、失败时间在近 48 小时内、终态已确认的
   const resumeLedger = readResumeLedger(dataRoot, nowMs);
   for (const [n, f] of listJson(join(dataRoot, W.layout.runLogs, W.layout.runLogDirs.quota))) {
@@ -125,13 +126,13 @@ export function collectCatchupFlags(dataRoot, nowMs, watchDir = join(dataRoot, W
       const hit = ledgerLookup(resumeLedger, q.运行编号);
       if (hit.found ? !CALL_STATES.includes(hit.state) : nowMs - q.失败时间毫秒 < RESUME_GRACE_MS) continue;
     }
-    out.push({ type: 'quota-hit', object: String(q.运行编号 ?? n), startedAt: q.失败时间毫秒, text: `额度用完停下：${q.角色 ?? '未知角色'}${q.是定时任务 ? `（定时任务 ${q.任务编号}）` : '（对话里）'}，${q.报错前200字 ? `“${String(q.报错前200字).slice(0, 80)}”，` : ''}恢复时间 ${q.恢复时间 ?? '未知'}；不是补跑管的那四个任务，请判断要不要接着做` });
+    out.push({ type: 'quota-hit', object: String(q.运行编号 ?? n), startedAt: q.失败时间毫秒, text: D.quotaHit(q.角色 ?? D.quotaRoleUnknown, q.是定时任务 ? D.quotaJob(q.任务编号) : D.quotaChat, q.报错前200字 ? D.quotaSnippet(String(q.报错前200字).slice(0, 80)) : '', (q.恢复时间 && q.恢复时间 !== '未知') ? q.恢复时间 : D.quotaResumeUnknown) });
   }
   // 台账锁／看护锁待核日志
-  for (const [name, what] of [['台账锁待核.log', '“等你定”台账锁太老'], ['看护锁待核.log', '白天看护锁太老']]) {
+  for (const [name, what] of [['台账锁待核.log', D.lockWhatLedger], ['看护锁待核.log', D.lockWhatWatch]]) {
     try {
       const f = join(watchDir, name); const st = statSync(f);
-      if (nowMs - st.mtimeMs < 3 * 86400000) out.push({ type: 'catchup-flag', object: name, startedAt: Math.floor(st.mtimeMs / 86400000) * 86400000, text: `${what}，没有抢锁（日志 ${name}，最后一次 ${new Date(st.mtimeMs).toISOString().slice(0, 16)}），要人处理` });
+      if (nowMs - st.mtimeMs < 3 * 86400000) out.push({ type: 'catchup-flag', object: name, startedAt: Math.floor(st.mtimeMs / 86400000) * 86400000, text: D.lockStale(what, name, new Date(st.mtimeMs).toISOString().slice(0, 16)) });
     } catch { /* 没有这个日志 */ }
   }
   return out;
@@ -145,7 +146,7 @@ export function collectAnomalies(d) {
   const t = d.now();
   const out = [];
   let cards = [];
-  try { cards = d.listCards(); } catch (e) { out.push({ type: 'read-fail', object: '任务板', startedAt: Math.floor(t / 86400000) * 86400000, text: `读不到任务板：${e.message}` }); }
+  try { cards = d.listCards(); } catch (e) { out.push({ type: 'read-fail', object: '任务板', startedAt: Math.floor(t / 86400000) * 86400000, text: D.boardUnreadable(e.message) }); }
   const waitingCard = d.deskWaitingCard?.();
   for (const c of cards) {
     const status = String(c.status ?? '');
@@ -157,7 +158,7 @@ export function collectAnomalies(d) {
     if (WAITING_LABELS.some((w) => blob.includes(w))) continue;
     if (waitingCard && (c.id === waitingCard)) continue;
     if (t - (c.updatedAt ?? t) < STALE_MS) continue;
-    out.push({ type: 'card-stale', object: c.id, startedAt: c.updatedAt, text: `任务卡“${c.title}”（${c.id}）运行中，${Math.round((t - c.updatedAt) / 60000)} 分钟没动` });
+    out.push({ type: 'card-stale', object: c.id, startedAt: c.updatedAt, text: D.cardStale(c.title, c.id, Math.round((t - c.updatedAt) / 60000)) });
   }
   // 3.5 留下的待核和卡住的锁；额度未接住的
   for (const x of d.collectCatchupFlags?.() ?? []) out.push(x);
@@ -173,9 +174,9 @@ export function collectAnomalies(d) {
     let runs = [];
     try { runs = d.listRuns(m[1]); } catch { /* 任务已移除或读不到 */ }
     const last = runs.at(-1) ?? runs[0];
-    if (!last) { out.push({ type: 'oneshot-missed', object: c.id, startedAt: due, text: `卡“${c.title}”的到点任务 ${m[1]} 时间已过，没有运行记录` }); continue; }
-    if (last.status !== 'ok') out.push({ type: 'oneshot-failed', object: c.id, startedAt: last.runAtMs ?? due, text: `卡“${c.title}”的到点任务 ${m[1]} 运行状态是 ${last.status}` });
-    else out.push({ type: 'oneshot-ok-not-done', object: c.id, startedAt: last.runAtMs ?? due, text: `卡“${c.title}”的到点任务 ${m[1]} 跑完了（ok），但卡还没完成：核实事情是不是真做成了` });
+    if (!last) { out.push({ type: 'oneshot-missed', object: c.id, startedAt: due, text: D.oneshotMissed(c.title, m[1]) }); continue; }
+    if (last.status !== 'ok') out.push({ type: 'oneshot-failed', object: c.id, startedAt: last.runAtMs ?? due, text: D.oneshotFailed(c.title, m[1], last.status) });
+    else out.push({ type: 'oneshot-ok-not-done', object: c.id, startedAt: last.runAtMs ?? due, text: D.oneshotOkNotDone(c.title, m[1]) });
   }
   // 事后核账：启用以后新完成或重新完成的卡有没有放行记录
   const base = jread(d.closingBaselinePath, null);
@@ -187,7 +188,7 @@ export function collectAnomalies(d) {
       const completedAt = c.completedAt ?? c.updatedAt;
       if (b && completedAt <= b.completedAt) continue;
       if (rel.some((r) => r.cardId === c.id)) continue;
-      out.push({ type: 'closing-unlogged', object: c.id, startedAt: completedAt, text: `卡“${c.title}”（${c.id}）完成了，但结案关口没有放行记录（可能是你本人在控制台改的，也可能走了绕法）` });
+      out.push({ type: 'closing-unlogged', object: c.id, startedAt: completedAt, text: D.closingUnlogged(c.title, c.id) });
     }
   }
   return out;
@@ -342,7 +343,7 @@ export async function main(d = realDeps()) {
       // 连续 3 天每天都还在，或事后核账发现没有放行记录 → 登记台账交主人（丙档，建议“停用这项看护或人工处理”）
       if (r.action === 'escalate' || an.type === 'closing-unlogged') {
         await withLedger(d.pendingLedgerPath, (L) => {
-          const res = registerItem(L, { title: `白天看护：${an.text}`, suggestion: r.action === 'escalate' ? '停用这项看护或人工处理' : '看一眼这张卡是不是你本人改的；不是就让总控查', blocks: '这件异常目前没人处理，会一直重复出现', requestMessageId: `watch-${sha(`${an.object}|${an.type}|${an.startedAt}`)}`, requestChannelId: WORKSHOP_CHANNEL }, d.now());
+          const res = registerItem(L, { title: D.ledgerTitle(an.text), suggestion: r.action === 'escalate' ? D.suggestionEscalate : D.suggestionLook, blocks: D.blocks, requestMessageId: `watch-${sha(`${an.object}|${an.type}|${an.startedAt}`)}`, requestChannelId: WORKSHOP_CHANNEL }, d.now());
           return res.error ? { noWrite: true } : {};
         }, { now: d.now, watchDir: d.watchDir }).catch(() => null);
       }

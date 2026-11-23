@@ -6,6 +6,8 @@ import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import { crew as _crew } from '../../plugins/personal-inbox/crew-config.mjs';
+import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
+const N = lexicon().notices; // date wording follows config "locale"
 export const DEFAULT_DATA_ROOT = _crew.paths.dataRoot;
 export const WORKSHOP_CHANNEL = _crew.channels.workshop; // workshop channel (shared with quota catch-up and pending decisions)
 export const OWNER_MENTION = `<@${_crew.owner.userId}>`;
@@ -79,8 +81,8 @@ export function isRealDate(s) {
   const ms = Date.parse(`${s}T00:00:00Z`);
   return Number.isFinite(ms) && new Date(ms).toISOString().slice(0, 10) === s;
 }
-export function cnDate(ms) { const b = localParts(ms).date.split('-'); return `${Number(b[1])} 月 ${Number(b[2])} 日`; }
-export function cnDateTime(ms) { const b = localParts(ms); const hh = String(Math.floor(b.minutes / 60)).padStart(2, '0'); const mm = String(b.minutes % 60).padStart(2, '0'); const d = b.date.split('-'); return `${Number(d[1])} 月 ${Number(d[2])} 日 ${hh}:${mm}`; }
+export function fmtDate(ms) { const b = localParts(ms).date.split('-'); return N.dateMD(Number(b[1]), Number(b[2])); }
+export function fmtDateTime(ms) { const b = localParts(ms); const hh = String(Math.floor(b.minutes / 60)).padStart(2, '0'); const mm = String(b.minutes % 60).padStart(2, '0'); const d = b.date.split('-'); return N.dateTime(Number(d[1]), Number(d[2]), hh, mm); }
 
 // ---------- 文件：读、原子写、锁 ----------
 export function readJson(path, fallback = null) {
