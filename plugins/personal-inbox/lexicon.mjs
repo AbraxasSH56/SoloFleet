@@ -1,9 +1,14 @@
-// Lexicon: literal words the programs match in text (progress-sentence openers, card labels,
-// report headers, sensitive button words ...). Selected by config "locale".
-// Status: the zh-CN set is complete (it is what the reference deployment ran on).
-// The "en" set is NOT finished yet: see docs/*/localization.md for the list of places that
-// still match literals. The desktop sensitive-word list is the exception: Chinese and English
-// words are ALWAYS both active (it guards payments, sends and deletions).
+// Lexicon: the literal words the programs match or write (progress-sentence openers, card labels,
+// report headers, ledger status words, folder and file names ...). Selected by config "locale"
+// ("en" is the default, "zh-CN" is what the reference deployment ran on).
+// Both sets have exactly the same keys (tests/en/lexicon-parity.en.test.mjs), the rule files, the
+// templates and the job instructions use the same words (tests/en/docs-consistency.en.test.mjs),
+// and every zh-CN value is byte-identical to the literal the programs matched before the
+// lexicon existed (tests/lexicon-zh-snapshot.test.mjs).
+// Words that take a colon are stored as a bare word; labelText() writes the colon and labelRe() matches it
+// (zh-CN keeps accepting both the full-width and the half-width colon, en accepts the half-width colon and optional spaces).
+// The desktop sensitive-word list is the exception: Chinese and English words are ALWAYS both active (it guards payments, sends and deletions).
+// The remaining places that still hold Chinese on purpose are listed in docs/*/localization.md ("Remaining boundary").
 import { crew } from './crew-config.mjs';
 
 export const LOCALES = ['en', 'zh-CN'];
@@ -11,40 +16,191 @@ export const locale = () => (LOCALES.includes(crew.locale) ? crew.locale : 'en')
 
 const OWNER = () => crew.owner?.title ? crew.owner.title : 'the owner';
 
+const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** Text to write for a label word: zh-CN "状态：", en "Status: ". */
+export const labelText = (word, loc = locale()) => (loc === 'en' ? `${word}: ` : `${word}：`);
+/** Pattern source to match a label word followed by its colon and the given whitespace pattern (default \s*). */
+export const labelRe = (word, ws = '\\s*', loc = locale()) => `${escapeRe(word)}${loc === 'en' ? ':' : '[：:]'}${ws}`;
+/** Bracketed tag around a word: zh-CN "【授权范围】", en "[Authorization scope]". */
+export const tagText = (word, loc = locale()) => (loc === 'en' ? `[${word}]` : `【${word}】`);
+/** Pattern source that closes a tag word: zh-CN accepts "】", "：" or ":" after the word; en accepts "]" or ":". */
+export const tagCloseRe = (loc = locale()) => (loc === 'en' ? '(?:\\]|:)' : '[】：:]');
+
 const ZH = {
+  // ---- progress sentences, task record layout ----
   progressOpeners: ['完成：', '进行中：', '没跑成：', '等主人：', '卡住：'],
-  statusLine: '状态：',
+  statusHeads: ['完成', '进行中', '没跑成', '等主人', '卡住'],
+  statusLabel: '状态',
   sectionCurrentStatus: '当前状态',
   sectionWaitingForOwner: '等主人拍板',
   sectionResults: '当前成果',
-  auditLevelLabel: '审计级别',
-  authorizationLabel: '授权范围',
+  noneWord: '无',
+  placeholderCell: '暂无（待写）',
+  placeholderCells: ['暂无（待写）', '（待写）', '暂无', '<名称>'],
+  placeholderFragment: '待写',
+  indexProjectHeader: '项目',
+  idLabel: '编号',
+  projectEntryLinkText: '项目入口',
+  taskRecordTitle: '任务记录',
+  resultTableHead: ['成果', '当前位置', '说明'],
+  noteStart: '<!-- 模板说明开始 -->',
+  noteEnd: '<!-- 模板说明结束 -->',
+  placeholders: {
+    projectEntry: { projectName: '项目名', goal: '一句话目标', channel: '频道', leadBot: '主责bot', date: '日期' },
+    taskRecord: { taskTitle: '任务标题', projectName: '项目名', goal: '目标', quote: '原话', datetime: '日期时间', executor: '执行者', cardId: '任务卡号', threadLink: '线程链接' },
+  },
+  // ---- task card, audit ----
+  auditLabelPrefix: '审计:',
+  auditLabelValues: ['单审任务审计', '单审独立', '串联'],
+  auditLevelWord: '审计级别',
+  authorizationWord: '授权范围',
+  authorizationLines: ['目标', '允许做的', '要主人确认的', '停止条件'],
+  ownerWord: '主人',
+  confirmWords: ['确认', '批准'],
+  auditBodyValues: { task: '单审（任务审计）', independent: '单审（独立审计）', chained: '串联' },
+  auditBodyToLabel: { '单审任务审计': '单审任务审计', '单审（任务审计）': '单审任务审计', '单审独立审计': '单审独立', '单审（独立审计）': '单审独立', '串联': '串联' },
+  submissionHead: { pre: '任务审计 ', mid: ' 请审：', roundOpen: '（第 ', roundClose: ' 次）' },
+  submissionCard: '任务卡',
+  submissionPaths: '成果位置',
+  auditThreadWord: '审计',
+  reportLead: '我得',
   reportVerdict: { pass: '我得：通过', fail: '我得：不通过', cannot: '我得：审不了' },
-  ledgerStatus: { received: '收到', decided: '已定', revoked: '撤销', pending: '没回' },
-  ledgerQuoteLabel: '原话',
-  queueSkipReasons: ['不用了', '完成', '被接手'],
-  autoRegisterPrefix: '（程序补登记）',
-  quotaResumePrefix: '【额度恢复·程序代发】',
+  reportVerdictWord: { pass: '通过', fail: '不通过', cannot: '审不了' },
+  // ---- help requests, desktop queue, pending-decision ledger ----
   helpRequestMarker: '【求助】',
   helpReplyMarker: '【求助回复】',
+  queueSkipReasons: ['不用了', '完成', '被接手'],
+  ledgerStatus: { received: '收到', decided: '已定', revoked: '撤销', noReply: '没回', judging: '待判' },
+  ledgerSources: { approvalExpired: '审批过期' },
+  ledgerKinds: { closing: '结案确认', desktop: '桌面角色六类操作' },
+  ledgerKindKeys: { closing: '结案', desktop: '桌面角色' },
+  approvalIdPrefix: '审批',
+  autoRegisterPrefix: '（程序补登记）',
+  noDeadline: '没截止',
+  testMarker: '【测试】',
+  approvalReminderMarker: '【待批提醒——程序加的，不是主人说的话】',
+  quotaResumePrefix: '【额度恢复·程序代发】',
+  // ---- completion record, decision ledger ----
+  reminderWord: '提醒',
+  unknownWord: '未知',
+  ledgerQuoteLabel: '原话',
+  ledgerDateLabel: '日期',
+  ledgerScopeLabel: '适用范围',
+  ledgerReplacesLabel: '取代关系',
+  ledgerSections: ['一、有效的决定', '二、已被取代的决定'],
+  // ---- generated reports ----
+  businessDateLabel: '业务日期',
+  reportComplete: '完整',
+  reportIncomplete: '不完整',
+  reportUnfinished: '未完成',
+  waitingLabels: ['等确认', '等主人确认', '已取消'],
+  timedJobLabels: { id: '定时任务编号', due: '到点时间' },
+  // ---- names that follow the locale ----
+  mainRoleDisplayName: '总控',
+  dataAlias: '资料',
+  jobNames: { daily: '日审', patrol: '巡查', deepReview: '异常深审', weekly: '周审', quotaCatchup: '额度补跑', deskQueue: '桌面排队推进' },
+  fileNameLint: { versionWords: ['当前', '最新', '新版', '旧版', '草案', '副本', '临时', '定稿', '终稿'], versionNumberRe: '第[一二三四五六七八九十\\d]+版', testLike: ['测试', 'test', 'tmp', 'selftest'] },
+  // ---- data-root folder and file names ----
+  layout: {
+    projects: '项目', tasks: '任务', outputs: '成果', history: '历史', templates: '模板', trash: '垃圾桶',
+    audit: '审计', auditDaily: '日审', auditWeekly: '周审', auditPatrol: '巡查', auditDeep: '异常深审', auditFlags: '异常标记',
+    auditAwaiting: '等你定', awaitingLedgerFile: '台账.json', auditChecksums: '程序校验清单', auditQuota: '额度读数', auditPublish: '发布', auditReceipts: '凭据',
+    runLogs: '运行记录', scratch: '临时', diaryProject: '日记',
+    ledgerFile: '决定账本.md', ownerStatusFile: '主人现况.md', ruleChangeSheet: '规则改法单.md',
+    taskRecordTemplate: '任务记录.md', projectEntryTemplate: '项目入口.md',
+    diaryFilePrefix: '日记_', diaryRerunSuffixes: ['重跑前副本', '待合并'],
+    dailyFiles: { formatCheck: '格式抽查.md', blindspot: '盲区抽查.md', commandCheck: '命令抽查.md', fileReconcile: '文件对账.md', botRoster: 'bot编号表.json' },
+    runLogDirs: {
+      closing: '结案', gate: '守门', cardThreads: '卡线程', requestWatch: '请示待核', ledgerBacklog: '账本待补', apiQuota: 'API额度', quota: '额度',
+      quotaResume: '接续', quotaPlanArchive: '计划存档', watch: '看护', formatCheck: '格式抽查', blindspot: '盲区抽查', fileReconcile: '文件对账',
+      englishCleanupRaw: '英文清理原文', reminders: '提醒', catchup: '补跑', publish: '发布',
+    },
+  },
 };
 
 const EN = {
-  progressOpeners: ['Done: ', 'In progress: ', 'Failed to run: ', 'Waiting for owner: ', 'Stuck: '],
-  statusLine: 'Status: ',
+  progressOpeners: ['Done:', 'In progress:', 'Did not run:', 'Waiting on owner:', 'Stuck:'],
+  statusHeads: ['Done', 'In progress', 'Did not run', 'Waiting on owner', 'Stuck'],
+  statusLabel: 'Status',
   sectionCurrentStatus: 'Current status',
-  sectionWaitingForOwner: 'Waiting for the owner',
+  sectionWaitingForOwner: "Waiting for the owner's decision",
   sectionResults: 'Current results',
-  auditLevelLabel: 'Audit level',
-  authorizationLabel: 'Authorization scope',
+  noneWord: 'None',
+  placeholderCell: 'None yet (to be written)',
+  placeholderCells: ['None yet (to be written)', '(to be written)', 'None yet', '<name>'],
+  placeholderFragment: 'to be written',
+  indexProjectHeader: 'Project',
+  idLabel: 'ID',
+  projectEntryLinkText: 'Project entry',
+  taskRecordTitle: 'Task record',
+  resultTableHead: ['Result', 'Location', 'Note'],
+  noteStart: '<!-- template note begin -->',
+  noteEnd: '<!-- template note end -->',
+  placeholders: {
+    projectEntry: { projectName: 'PROJECT_NAME', goal: 'ONE_LINE_GOAL', channel: 'CHANNEL', leadBot: 'LEAD_BOT', date: 'DATE' },
+    taskRecord: { taskTitle: 'TASK_TITLE', projectName: 'PROJECT_NAME', goal: 'GOAL', quote: 'OWNER_QUOTE', datetime: 'DATETIME', executor: 'EXECUTOR', cardId: 'TASK_CARD_ID', threadLink: 'THREAD_LINK' },
+  },
+  auditLabelPrefix: 'audit:',
+  auditLabelValues: ['single-task', 'single-independent', 'chained'],
+  auditLevelWord: 'Audit level',
+  authorizationWord: 'Authorization scope',
+  authorizationLines: ['Goal', 'Allowed', 'Needs owner confirmation', 'Stop conditions'],
+  ownerWord: 'owner',
+  confirmWords: ['confirmed', 'approved'],
+  auditBodyValues: { task: 'Single (task audit)', independent: 'Single (independent audit)', chained: 'Chained' },
+  auditBodyToLabel: { 'Single (task audit)': 'single-task', 'Single (independent audit)': 'single-independent', 'Chained': 'chained' },
+  submissionHead: { pre: 'Task audit ', mid: ' please review: ', roundOpen: ' (round ', roundClose: ')' },
+  submissionCard: 'Task card',
+  submissionPaths: 'Result location',
+  auditThreadWord: 'Audit',
+  reportLead: 'Verdict',
   reportVerdict: { pass: 'Verdict: pass', fail: 'Verdict: fail', cannot: 'Verdict: cannot audit' },
-  ledgerStatus: { received: 'received', decided: 'decided', revoked: 'revoked', pending: 'no reply' },
-  ledgerQuoteLabel: 'quote',
-  queueSkipReasons: ['not needed', 'done', 'taken over'],
-  autoRegisterPrefix: '(auto-registered) ',
-  quotaResumePrefix: '[Quota restored · sent by program] ',
-  helpRequestMarker: '[Help]',
+  reportVerdictWord: { pass: 'pass', fail: 'fail', cannot: 'cannot audit' },
+  helpRequestMarker: '[Help request]',
   helpReplyMarker: '[Help reply]',
+  queueSkipReasons: ['not-needed', 'done', 'taken-over'],
+  ledgerStatus: { received: 'received', decided: 'decided', revoked: 'revoked', noReply: 'no-reply', judging: 'to-judge' },
+  ledgerSources: { approvalExpired: 'approval-expired' },
+  ledgerKinds: { closing: 'closing-confirmation', desktop: 'desktop-six-actions' },
+  ledgerKindKeys: { closing: 'closing', desktop: 'desktop' },
+  approvalIdPrefix: 'approval',
+  autoRegisterPrefix: '(auto-registered) ',
+  noDeadline: 'no deadline',
+  testMarker: '[test]',
+  approvalReminderMarker: "[Pending-approval reminder — added by the program, not the owner's words]",
+  quotaResumePrefix: '[Quota restored · sent by program]',
+  reminderWord: 'Reminder',
+  unknownWord: 'unknown',
+  ledgerQuoteLabel: 'Quote',
+  ledgerDateLabel: 'Date',
+  ledgerScopeLabel: 'Scope',
+  ledgerReplacesLabel: 'Replaces',
+  ledgerSections: ['1. Active decisions', '2. Superseded decisions'],
+  businessDateLabel: 'Business date',
+  reportComplete: 'complete',
+  reportIncomplete: 'incomplete',
+  reportUnfinished: 'unfinished',
+  waitingLabels: ['waiting-confirm', 'waiting-owner-confirm', 'cancelled'],
+  timedJobLabels: { id: 'Timed job ID', due: 'Due time' },
+  mainRoleDisplayName: 'Controller',
+  dataAlias: 'dataroot',
+  jobNames: { daily: 'daily-audit', patrol: 'patrol', deepReview: 'deep-review', weekly: 'weekly-audit', quotaCatchup: 'quota-catchup', deskQueue: 'desktop-queue-advance' },
+  fileNameLint: { versionWords: ['current', 'latest', 'new', 'old', 'draft', 'copy', 'temp', 'final', 'revised'], versionNumberRe: 'v\\d+', testLike: ['test', 'tmp', 'selftest', 'dummy'] },
+  layout: {
+    projects: 'projects', tasks: 'tasks', outputs: 'outputs', history: 'history', templates: 'templates', trash: 'trash',
+    audit: 'audit', auditDaily: 'daily', auditWeekly: 'weekly', auditPatrol: 'patrol', auditDeep: 'deep-review', auditFlags: 'anomaly-flags',
+    auditAwaiting: 'awaiting-decision', awaitingLedgerFile: 'ledger.json', auditChecksums: 'program-checksums', auditQuota: 'quota-readings', auditPublish: 'publish', auditReceipts: 'receipts',
+    runLogs: 'run-logs', scratch: 'scratch', diaryProject: 'diary',
+    ledgerFile: 'decision-ledger.md', ownerStatusFile: 'owner-status.md', ruleChangeSheet: 'rule-change-sheet.md',
+    taskRecordTemplate: 'task-record.md', projectEntryTemplate: 'project-entry.md',
+    diaryFilePrefix: 'diary_', diaryRerunSuffixes: ['pre-rerun', 'to-merge'],
+    dailyFiles: { formatCheck: 'format-check.md', blindspot: 'blindspot-check.md', commandCheck: 'command-check.md', fileReconcile: 'file-reconcile.md', botRoster: 'bot-roster.json' },
+    runLogDirs: {
+      closing: 'closing', gate: 'gate', cardThreads: 'card-threads', requestWatch: 'request-watch', ledgerBacklog: 'ledger-backlog', apiQuota: 'api-quota', quota: 'quota',
+      quotaResume: 'resume', quotaPlanArchive: 'plan-archive', watch: 'watch', formatCheck: 'format-check', blindspot: 'blindspot-check', fileReconcile: 'file-reconcile',
+      englishCleanupRaw: 'english-cleanup-raw', reminders: 'reminders', catchup: 'catchup', publish: 'publish',
+    },
+  },
 };
 
 export const lexicon = (loc = locale()) => (loc === 'en' ? EN : ZH);
