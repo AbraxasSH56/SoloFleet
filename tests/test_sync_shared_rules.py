@@ -726,7 +726,7 @@ ZH_FILE_HASHES = {
     "templates/rule-change-sheet-header.zh-CN.md": "fc2d91218a3c08dd41f3ded44d7932dfc68f32c56906b30db57cacbaa50aaa2b",
     "jobs/daily-audit.zh-CN.md": "01b44582fae0da1d77ebbeb506c445027102082b30b407ad570eda0e221d329d",
     "jobs/weekly-audit.zh-CN.md": "5ccc3c679020e4bf08678d1ac471c333bacafd75ac103f61eab2ee9e5856cd27",
-    "jobs/patrol.zh-CN.md": "66b45c6dbbb8ba48845e8ddaf4d9a9ed38f2d77b7da48acba77549aab83fc3bb",
+    "jobs/patrol.zh-CN.md": "58ac497d820ee3b5bd5499d5ac97385c8378db010e8f1d58135cbef2458546a4",
     "jobs/deep-review.zh-CN.md": "6bb254778771eea37a130f3b6f8d55e720bb149b9640d5489a626c6b61856f21",
     "jobs/diary.zh-CN.md": "d9003a55a9d7d2aabd36e93d0f2b44b9c8ee72b67ab71e2a5e3e01cd138555f2",
     "jobs/README.zh-CN.md": "c363151d69a56a494f0881149ac6dc8bde4859e907d56c545d6989feffcbb158",
