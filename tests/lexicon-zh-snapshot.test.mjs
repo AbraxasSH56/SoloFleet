@@ -154,3 +154,19 @@ test('pending-decision tool texts', () => {
   assert.ok(T.updateDescription.startsWith('判定主人对某件“等你定”的回应：收到（带约定日期）／已定（带结论）／撤销。'));
   assert.ok(T.updateDescription.endsWith('source 随便填一个编号或“无”。'));
 });
+
+test('quota wake text, ledger backlog view and commit messages', () => {
+  assert.equal(Z.quotaResumeWakeText('【额度恢复·程序代发】'), '【额度恢复·程序代发】你上一轮因额度用完中断了。等同于主人说了“继续”：先读你的任务记录和这个线程，在线程里说一句已完成到哪里，再接着做；不要重做已经完成的步骤，不要重复发过的消息。如果任务其实已经做完，说一句“已完成”就行。');
+  const B = Z.ledgerBacklog;
+  assert.equal(B.title, '账本待补清单');
+  assert.equal(B.note('T', 1, 2), '（脚本自动生成，别手改；T 更新。待补 1 条，已入账 2 条。）');
+  assert.equal(B.pendingHead, '## 待补（请写进 `资料/决定账本.md`：短版、带原话；写好后对每条跑 `done`）');
+  assert.equal(B.none, '（没有）');
+  assert.equal(B.entryHead(3, true, '标题'), '### 待补 3 【测试】：标题');
+  assert.equal(B.entryHead(3, false, '标题'), '### 待补 3：标题');
+  assert.deepEqual([B.date('D'), B.quote('Q'), B.position('P'), B.added('A')], ['- 日期：D', '- 主人原话：Q', '- 记录位置：P', '- 登记时间：A']);
+  assert.equal(B.doneHead, '## 已入账（最近 20 条）');
+  assert.equal(B.doneLine(2, '标题', 'D-052', 'T'), '- 2 标题 → D-052（T）');
+  assert.equal(B.commitWithIds('2026-11-22', '3、4'), '决定账本：程序自动提交（总控补写，2026-11-22，待补编号 3、4）');
+  assert.equal(B.commitFallback('2026-11-22'), '决定账本：程序自动提交（2026-11-22，定时兜底）');
+});

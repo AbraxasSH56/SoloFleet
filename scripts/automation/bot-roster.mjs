@@ -13,10 +13,12 @@ import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
+import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // words follow config "locale" (zh-CN: the literals this script always used)
 export const DEFAULT_CONFIG = `${homedir()}/.openclaw/openclaw.json`;
-export const DEFAULT_OUT = join(process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot, '审计', '日审', 'bot编号表.json');
+export const DEFAULT_OUT = join(process.env.OPENCLAW_DATA_ROOT || crew.paths.dataRoot, W.layout.audit, W.layout.auditDaily, W.layout.dailyFiles.botRoster);
 // 默认账号（总控）在配置里没有自己的显示名，这里补一个；其余角色用账号项里的 name。
-const DISPLAY_FALLBACK = { main: '总控' };
+const DISPLAY_FALLBACK = { main: W.mainRoleDisplayName };
 const ID_PATTERN = /^\d{17,20}$/;
 
 export function localNow(date = new Date()) {

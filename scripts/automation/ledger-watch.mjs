@@ -16,6 +16,8 @@ import { appendFileSync, chmodSync, existsSync, mkdirSync, realpathSync } from '
 import { DAY_MS, DEFAULT_DATA_ROOT, NODE_BIN, atomicWriteJson, localParts, localIso, isRealDate, join, parseJsonLoose, readJson, realRunner, realSend, withLock, writeTextAtomic } from './gap-common.mjs';
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
+import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // words follow config "locale" (zh-CN: the literals this script always used)
 export const WAKE_AFTER_MS = 24 * 3600000;
 export const WAKE_MAX = 3;
 export const STALE_NOTICE_MS = 3 * DAY_MS;
@@ -23,7 +25,7 @@ const SCRIPT = join(crew.paths.projectRoot, 'scripts', 'automation', 'ledger-wat
 
 export function paths(dataRoot) {
   const dir = join(dataRoot, '运行记录', '账本待补');
-  return { dir, data: join(dir, '待补.json'), view: join(dir, '待补清单.md'), lock: join(dir, '.待补.lock'), ledger: join(dataRoot, '决定账本.md') };
+  return { dir, data: join(dir, '待补.json'), view: join(dir, '待补清单.md'), lock: join(dir, '.待补.lock'), ledger: join(dataRoot, W.layout.ledgerFile) };
 }
 const ms = (s) => { const v = Date.parse(s ?? ''); return Number.isFinite(v) ? v : null; };
 const emptyData = () => ({ 下个编号: 1, 条目: [], 已叫醒批次: [], 提示: { 超3天上次: null, 叫满: {} } });
@@ -31,12 +33,13 @@ const emptyData = () => ({ 下个编号: 1, 条目: [], 已叫醒批次: [], 提
 export function renderView(data, nowMs) {
   const pend = data.条目.filter((e) => e.状态 === '待补');
   const done = data.条目.filter((e) => e.状态 === '已入账');
-  const lines = ['# 账本待补清单', '', `（脚本自动生成，别手改；${localIso(nowMs)} 更新。待补 ${pend.length} 条，已入账 ${done.length} 条。）`, ''];
-  lines.push('## 待补（请写进 `资料/决定账本.md`：短版、带原话；写好后对每条跑 `done`）', '');
-  if (!pend.length) lines.push('（没有）');
-  for (const e of pend) lines.push(`### 待补 ${e.编号}${e.测试 ? ' 【测试】' : ''}：${e.标题}`, `- 日期：${e.日期}`, `- 主人原话：${e.原话}`, ...(e.行号 ? [`- 记录位置：${e.行号}`] : []), `- 登记时间：${e.添加时间}`, '');
-  lines.push('## 已入账（最近 20 条）', '');
-  for (const e of done.slice(-20)) lines.push(`- ${e.编号} ${e.标题} → ${e.账本编号}（${e.完成时间}）`);
+  const B = W.ledgerBacklog;
+  const lines = [`# ${B.title}`, '', B.note(localIso(nowMs), pend.length, done.length), ''];
+  lines.push(B.pendingHead, '');
+  if (!pend.length) lines.push(B.none);
+  for (const e of pend) lines.push(B.entryHead(e.编号, e.测试, e.标题), B.date(e.日期), B.quote(e.原话), ...(e.行号 ? [B.position(e.行号)] : []), B.added(e.添加时间), '');
+  lines.push(B.doneHead, '');
+  for (const e of done.slice(-20)) lines.push(B.doneLine(e.编号, e.标题, e.账本编号, e.完成时间));
   return lines.join('\n') + '\n';
 }
 
@@ -47,7 +50,7 @@ function save(p, data, nowMs) { atomicWriteJson(p.data, data); writeTextAtomic(p
 // 触发点：①done 标已入账之后；②每天 17:20 定时检查开头（兜底）；③手动 commit。任何出错只写日志，不抛错、不影响调用方。
 // deps.git(args) 没有就整个跳过（离线老测试不用改）；真实运行时由 realDeps 给 /usr/bin/git，node --test 环境下默认不给。
 export const GIT_BIN = '/usr/bin/git';
-export const LEDGER_FILE = '决定账本.md';
+export const LEDGER_FILE = W.layout.ledgerFile;
 const gitErr = (r) => String(r?.stderr || r?.stdout || '').split('\n').find((l) => l.trim())?.trim().slice(0, 200) || `退出码 ${r?.code}`;
 
 function writeCommitLog(deps, { 触发, 结果, 提交号 = '', 原因 = '' }) {
@@ -64,8 +67,8 @@ function writeCommitLog(deps, { 触发, 结果, 提交号 = '', 原因 = '' }) {
 export function commitMessage(deps, 编号) {
   const date = localParts(deps.now()).date;
   return Array.isArray(编号) && 编号.length
-    ? `决定账本：程序自动提交（总控补写，${date}，待补编号 ${编号.join('、')}）`
-    : `决定账本：程序自动提交（${date}，定时兜底）`;
+    ? W.ledgerBacklog.commitWithIds(date, 编号.join(W.listSep))
+    : W.ledgerBacklog.commitFallback(date);
 }
 
 export async function commitLedger(deps, { 触发 = '手动', 编号 = null, dryRun = false } = {}) {

@@ -23,12 +23,14 @@ import { GUILD_ID, readConfigSlice, roleAccountMap, roleDiscordId } from './lead
 import { windowResetAt } from './quota-catchup.mjs';
 import { isQuotaSentence } from '../../plugins/personal-inbox/quota-recovery.mjs';
 import { CALL_STATES, SESSION_KEY_RE, SKIP_ROLES, ledgerLookup, managedByResume } from './quota-resume-lib.mjs';
+import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // words follow config "locale" (zh-CN: the literals this script always used)
 export { CALL_STATES, SESSION_KEY_RE, SKIP_ROLES, ledgerLookup, managedByResume };
 
 export const CHAT_CHANNEL = crew.channels.lounge; // 闲聊茶会
 export const APPROVAL_CHANNEL = crew.channels.approval; // 审批频道
 export const OWNER_ID = crew.owner.userId;
-export const MARK = '【额度恢复·程序代发】';
+export const MARK = W.quotaResumePrefix;
 export const MIN = 60000;
 export const READY_MARGIN_MS = 2 * MIN;
 export const FALLBACK_AFTER_MS = 5 * 3600000;
@@ -44,7 +46,7 @@ export const READ_TIMEOUT_MS = 90000;
 const PENDING = new Set(['待发起', '发起失败待重试']);
 const OPEN = new Set(['待发起', '已发起', '发起失败待重试', '结果待核', '读不出']); // 新登记可以并进这些链
 
-export const WAKE_TEXT = `${MARK}你上一轮因额度用完中断了。等同于主人说了“继续”：先读你的任务记录和这个线程，在线程里说一句已完成到哪里，再接着做；不要重做已经完成的步骤，不要重复发过的消息。如果任务其实已经做完，说一句“已完成”就行。`;
+export const WAKE_TEXT = W.quotaResumeWakeText(MARK);
 
 // ---------- 纯判断 ----------
 // 只认官方额度报错的样子（Fable 叫醒后 bot 回话里提到“上次因额度中断”不该被当成没接上。

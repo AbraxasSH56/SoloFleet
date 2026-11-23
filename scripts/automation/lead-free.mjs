@@ -23,6 +23,8 @@ import { parseJsonLoose, realRunner } from './gap-common.mjs';
 import { readIndex } from '../../plugins/personal-inbox/project-files.mjs';
 
 import { crew } from '../../plugins/personal-inbox/crew-config.mjs';
+import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // words follow config "locale" (zh-CN: the literals this script always used)
 export const GUILD_ID = crew.guildId;
 export const WORKSHOP_ID = crew.channels.workshop;
 export const DEFAULT_CONFIG_PATH = `${homedir()}/.openclaw/openclaw.json`;
@@ -88,7 +90,7 @@ export function roleDiscordId(slice, role) {
 export function accountByDisplayName(slice, display) {
   const want = stripParen(display);
   if (!want) return null;
-  if (want === '总控') return 'default';
+  if (want === W.mainRoleDisplayName) return 'default';
   for (const [acct, v] of Object.entries(slice?.accounts ?? {})) {
     if (v?.enabled === false) continue;
     if (stripParen(v?.name) === want) return acct;

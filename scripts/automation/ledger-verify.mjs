@@ -2,6 +2,8 @@
 // 检查：①账本里原样有清单的新增段；②编号连续；④没有写死的模型版本号、没有邮箱
 //      ⑤三处订正的句子原样在；⑥补写前账本的每一行都还在（要么原样，要么只是末尾追加了字）。
 import { readFileSync } from 'node:fs';
+import { lexicon } from '../../plugins/personal-inbox/lexicon.mjs';
+const W = lexicon(); // words follow config "locale" (zh-CN: the literals this script always used)
 
 export const BEGIN = '<<<BEGIN>>>';
 export const END = '<<<END>>>';
@@ -20,8 +22,8 @@ export function verifyLedger({ listText, ledgerText, recordText, baselineText, f
   const at = ledgerText.indexOf(block);
   if (at < 0) problems.push('账本里找不到清单的新增段（有字被改动、漏抄或多抄）');
   else {
-    const sec2 = ledgerText.indexOf('## 二、已被取代的决定');
-    if (sec2 >= 0 && at > sec2) problems.push('新增段放到“二、已被取代的决定”后面去了');
+    const sec2 = ledgerText.indexOf(`## ${W.ledgerSections[1]}`);
+    if (sec2 >= 0 && at > sec2) problems.push(`新增段放到“${W.ledgerSections[1]}”后面去了`);
     if (ledgerText.indexOf(block, at + 1) >= 0) problems.push('新增段在账本里出现了两遍');
   }
   // ② 编号连续

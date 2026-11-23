@@ -2,7 +2,7 @@
 import { spawn } from 'node:child_process';
 import { crew } from './crew-config.mjs';
 import { tzName } from './tz.mjs';
-import { cardText, cardTextAll, englishCleanupEnabled } from './lexicon.mjs';
+import { cardText, cardTextAll, englishCleanupEnabled, lexicon } from './lexicon.mjs';
 import { createTrailingCard } from './trailing-card.mjs';
 import { createHash } from 'node:crypto';
 import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path';
@@ -534,7 +534,8 @@ export function listLiteral(raw, workspace, ziliaoRoot) {
   const s = raw.trim();
   if (!s || s.startsWith('~') || badChars(s)) return null;
   if (isAbsolute(s)) return resolve(s);
-  if (s === '资料' || s.startsWith('资料/')) return ziliaoRoot ? resolve(ziliaoRoot, s.slice(3)) : null;
+  const alias = lexicon().dataAlias; // zh-CN "资料", en "dataroot": the short name of the data root in the changed-files list
+  if (s === alias || s.startsWith(`${alias}/`)) return ziliaoRoot ? resolve(ziliaoRoot, s.slice(alias.length + 1)) : null;
   return workspace ? resolve(workspace, s) : null;
 }
 const evidenceLiteral = raw => typeof raw === 'string' && isAbsolute(raw) && !badChars(raw) ? resolve(raw) : null;
