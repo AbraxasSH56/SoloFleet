@@ -18,7 +18,7 @@
 
 **建数据根之前先定好 `locale`，以后不要改。** 台账和状态文件里存的是写入时那个语言的词（比如状态 `没回` 或 `no-reply`）。把已有的数据根从一种 locale 改成另一种，程序不会帮你迁移；换语言就新建一个数据根。已经在跑的中文部署照旧，行为不变。
 
-两个沙箱触发脚本（`scripts/automation/command-spot-check-trigger.js`、`scripts/automation/deep-review-trigger.js`）跑在 OpenClaw 的脚本沙箱里，读不了 `config/crew.json`。每个脚本顶部有一行手填常量 `const LOCALE = "en";`（见 [configuration.md](configuration.md) 第 5 节），要和 `locale` 填成一样；每个脚本里还带着一张自己要用的小词表，`tests/trigger-literals-consistency.test.mjs` 保证它和 `lexicon.mjs` 一致。`scripts/automation/publish-self.py` 从配置里读 `locale`，也自带一张表（`tests/publish-table-consistency.test.mjs` 核对）。
+三个沙箱触发脚本（`scripts/automation/command-spot-check-trigger.js`、`scripts/automation/deep-review-trigger.js`、`scripts/followups-trigger.js`）跑在 OpenClaw 的脚本沙箱里，读不了 `config/crew.json`。每个脚本顶部有一行手填常量 `const LOCALE = "en";`（见 [configuration.md](configuration.md) 第 5 节），要和 `locale` 填成一样；每个脚本里还带着一张自己要用的小词表，`tests/trigger-literals-consistency.test.mjs` 保证它和 `lexicon.mjs` 一致。`scripts/automation/publish-self.py` 从配置里读 `locale`，也自带一张表（`tests/publish-table-consistency.test.mjs` 核对）。
 
 ## 1. 程序按字面认或写的词
 
@@ -201,7 +201,7 @@
 下面这些地方在英文部署里仍然是中文。它们都不是"一个程序写、bot、规则或另一种语言的程序要按字面认"的词。极少数是我们自己两个程序之间一写一认的词（补跑账的状态 `待核`、`补跑结果待核`、`未送达`，和叫起记录的状态 `叫起待核`），两种语言下都保持中文，免得两头对不上；叫起句或作业要给 bot 看这几个词时，用反引号照字面引出。
 
 - **机器自己读写的 JSON 键名和文件名。** 只有程序读写的文件保留中文名和键：运行记录文件夹里的状态和账本文件（比如额度接续账、补跑账、账本待补的 `待补.json`、API 额度闸的 `状态.json`、`卡标签快照.json`、`基线.json`、锁文件和日志文件），名册文件 `bot编号表.json`（en：`bot-roster.json`）里的键（`人设bot`、`角色`、`显示名`、`Discord编号` 等），以及提醒通知的内部状态。规则和任务指令里要 bot 读到这样的名字时，用反引号原样引出。
-- **内部提示和日志。** 报错、日志行、诊断说明、审计守门拒绝命令时给的原因；盲区抽查报告里的细节句子（返工次数的定义、备份几行、规则文件几行）和文件对账报告；`scripts/followups-trigger.js` 的异常分支提示、`ledger-verify.mjs` 的提示、`project-files.mjs` 各工具的报错（格式抽查、命令抽查、盲区抽查的标题、标签、结论词和固定行，以及“业务日期：”“状态：完整”这些标记，是跟着语言翻的）；`publish-self.py` 打印的输出行（要看的是它的退出码）。
+- **内部提示和日志。** 报错、日志行、诊断说明、审计守门拒绝命令时给的原因；盲区抽查报告里的细节句子（返工次数的定义、备份几行、规则文件几行）和文件对账报告；`ledger-verify.mjs` 的提示、`project-files.mjs` 各工具的报错（格式抽查、命令抽查、盲区抽查的标题、标签、结论词和固定行，以及“业务日期：”“状态：完整”这些标记，是跟着语言翻的）；`publish-self.py` 打印的输出行（要看的是它的退出码）。
 - **往 Discord 发给主人的固定通知**（每日重置通知、API 额度提醒、登录提醒、审批卡的另发通知和它的标题与来源、"等你定"总表、给主人看的排队和求助提醒、白天看护的告警）。这些句子目前在各种 locale 下都是中文。
 - `builder-tools/` 和 `personas/` 不属于部署，没翻。
 

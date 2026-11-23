@@ -25,7 +25,18 @@ async function run(src, exec) {
 const decodeWrite = (cmd) => Buffer.from(cmd.match(/printf %s '([A-Za-z0-9+/=]*)'/)[1], 'base64').toString('utf8');
 
 test('the shipped trigger scripts default to LOCALE "en"', () => {
-  for (const f of ['command-spot-check-trigger.js', 'deep-review-trigger.js']) assert.match(readFileSync(join(ROOT, 'scripts/automation', f), 'utf8'), /^const LOCALE = "en";/m, f);
+  for (const f of ['scripts/automation/command-spot-check-trigger.js', 'scripts/automation/deep-review-trigger.js', 'scripts/followups-trigger.js']) assert.match(readFileSync(join(ROOT, f), 'utf8'), /^const LOCALE = "en";/m, f);
+});
+
+test('follow-ups trigger: the sentence sent to the Controller is English', async () => {
+  const src = readFileSync(join(ROOT, 'scripts/followups-trigger.js'), 'utf8');
+  const list = (items) => ({ isError: false, kind: 'text', content: '```json\n' + JSON.stringify({ items }) + '\n```' });
+  const item = (id, nextReview) => ({ id, nextReview, lastMentionedDate: null, status: 'active', withoutDeadline: false });
+  const r = await new AsyncFunction('read', src)(async () => list([item('F-1', '2020-01-01'), item('F-2', '2020-01-02')]));
+  assert.equal(r.fire, true);
+  assert.match(r.message, /^FOLLOWUPS\.md due candidates: 2 \(\d{4}-\d{2}-\d{2} UTC\): F-1, F-2\. Please re-read the list and judge whether a reminder is worthwhile\.$/);
+  assert.ok(!HAN.test(r.message));
+  assert.deepEqual(await new AsyncFunction('read', src)(async () => list([item('F-1', '2999-01-01')])), { fire: false });
 });
 
 test('command spot-check trigger: result file under audit/daily with English name and header; scan command; brief message', async () => {

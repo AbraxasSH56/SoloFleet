@@ -83,7 +83,7 @@ Trigger scripts that OpenClaw runs in its script sandbox cannot import the confi
 |---|---|
 | `scripts/automation/command-spot-check-trigger.js` | `DATA_ROOT`, `PROJECT_ROOT`, `WORKSPACE_ROOT`, `TIMEZONE`, `CLAUDE_ROOT`, `CONFIG_FILE`, `AGENTS_ROOT`, `NODE_BIN`, `LOCALE` (same value as `locale`), `CUT_H`/`CUT_M` (daily audit time) |
 | `scripts/automation/deep-review-trigger.js` | `DATA_ROOT`, `TIMEZONE`, `LOCALE` (same value as `locale`), `CUT_HOUR` |
-| `scripts/followups-trigger.js` | `TIMEZONE` |
+| `scripts/followups-trigger.js` | `TIMEZONE`, `LOCALE` (same value as `locale`) |
 
 Clock times in regular scripts (all in local time of `timezone`): `scripts/automation/daily-format-check.mjs` (`CUT_H`, `CUT_M`), `reset-notice.mjs` (`PRE_FROM`, `RESET_AT`, `POST_UNTIL`), `timed-reminders.mjs` (`提醒小时` = reminder hour, reminder lead days, optional review date `复议日期`, set in `<DATA_ROOT>/run-logs/reminders/配置.json`; the file name `配置.json` and these three key names are Chinese on purpose: only the program reads them, so they are not translated), `api-quota-gate.mjs` (`EXPIRY_HOUR`, default 7: the local hour at which an API credit period ends).
 

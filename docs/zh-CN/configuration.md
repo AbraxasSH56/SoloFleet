@@ -83,7 +83,7 @@ OpenClaw 在脚本沙箱里跑的触发脚本没法 import 配置文件，所以
 |---|---|
 | `scripts/automation/command-spot-check-trigger.js` | `DATA_ROOT`、`PROJECT_ROOT`、`WORKSPACE_ROOT`、`TIMEZONE`、`CLAUDE_ROOT`、`CONFIG_FILE`、`AGENTS_ROOT`、`NODE_BIN`、`LOCALE`（和 `locale` 填一样）、`CUT_H`／`CUT_M`（日审钟点） |
 | `scripts/automation/deep-review-trigger.js` | `DATA_ROOT`、`TIMEZONE`、`LOCALE`（和 `locale` 填一样）、`CUT_HOUR` |
-| `scripts/followups-trigger.js` | `TIMEZONE` |
+| `scripts/followups-trigger.js` | `TIMEZONE`、`LOCALE`（和 `locale` 填一样） |
 
 普通脚本里的钟点（都是 `timezone` 的本地时间）：`scripts/automation/daily-format-check.mjs`（`CUT_H`、`CUT_M`）、`reset-notice.mjs`（`PRE_FROM`、`RESET_AT`、`POST_UNTIL`）、`timed-reminders.mjs`（`提醒小时`、提前天数、可选的复议日期 `复议日期`，写在 `<DATA_ROOT>/运行记录/提醒/配置.json`；这是 `locale: zh-CN` 时的路径，`locale: en` 时是 `<DATA_ROOT>/run-logs/reminders/配置.json`，文件名 `配置.json` 和这几个键名在两种语言下都是中文，因为只有程序读它）、`api-quota-gate.mjs`（`EXPIRY_HOUR`，默认 7：API 额度周期按本地时间几点结束）。
 

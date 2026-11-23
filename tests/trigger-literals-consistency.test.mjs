@@ -9,14 +9,14 @@ import { fileURLToPath } from 'node:url';
 import { lexicon, labelText } from '../plugins/personal-inbox/lexicon.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-function tableOf(file) {
-  const src = readFileSync(join(ROOT, 'scripts/automation', file), 'utf8');
+function tableOf(file, dir = 'scripts/automation') {
+  const src = readFileSync(join(ROOT, dir, file), 'utf8');
   const a = src.indexOf('const LX = (');
   const b = src.indexOf(')[LOCALE];', a);
   assert.ok(a >= 0 && b > a, `${file}: the LX table was not found`);
   return new Function(`return (${src.slice(a + 'const LX = ('.length, b)});`)();
 }
-const localeOfFile = (file) => (readFileSync(join(ROOT, 'scripts/automation', file), 'utf8').match(/^const LOCALE = "([^"]*)";/m) ?? [])[1];
+const localeOfFile = (file, dir = 'scripts/automation') => (readFileSync(join(ROOT, dir, file), 'utf8').match(/^const LOCALE = "([^"]*)";/m) ?? [])[1];
 
 for (const loc of ['zh-CN', 'en']) {
   const L = lexicon(loc);
@@ -49,9 +49,15 @@ for (const loc of ['zh-CN', 'en']) {
 }
 
 test('both tables have the same keys in zh-CN and en, and the shipped LOCALE is "en" or "zh-CN"', () => {
-  for (const f of ['command-spot-check-trigger.js', 'deep-review-trigger.js']) {
-    const t = tableOf(f);
+  for (const [f, dir] of [['command-spot-check-trigger.js'], ['deep-review-trigger.js'], ['followups-trigger.js', 'scripts']]) {
+    const t = tableOf(f, dir);
     assert.deepEqual(Object.keys(t['zh-CN']).sort(), Object.keys(t.en).sort(), f);
-    assert.ok(['en', 'zh-CN'].includes(localeOfFile(f)), f);
+    assert.ok(['en', 'zh-CN'].includes(localeOfFile(f, dir)), f);
   }
+});
+
+test('follow-ups trigger: the zh-CN sentence is the old one, the en sentence has no Chinese', () => {
+  const t = tableOf('followups-trigger.js', 'scripts');
+  assert.equal(t['zh-CN'].due(2, '2026-11-22', 'UTC', ['F-1', 'F-2']), 'FOLLOWUPS.md 到期候选 2 项（2026-11-22 UTC）：F-1、F-2。请回读清单并判断提醒价值。');
+  assert.equal(t.en.due(2, '2026-11-22', 'UTC', ['F-1', 'F-2']), 'FOLLOWUPS.md due candidates: 2 (2026-11-22 UTC): F-1, F-2. Please re-read the list and judge whether a reminder is worthwhile.');
 });

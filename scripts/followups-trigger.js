@@ -1,6 +1,11 @@
 // OpenClaw automation trigger.script. Read only the owning agent's workspace list.
 // EDIT: this runs inside OpenClaw's script sandbox and cannot import local modules; keep TIMEZONE equal to config/crew.json "timezone".
 const TIMEZONE = "UTC";
+const LOCALE = "en"; // config "locale": "en" or "zh-CN". This trigger cannot import lexicon.mjs, so the one sentence it sends is in the table below (tests/trigger-literals-consistency.test.mjs keeps both languages in step).
+const LX = ({
+  "zh-CN": { due: (n, today, tz, ids) => `FOLLOWUPS.md 到期候选 ${n} 项（${today} ${tz}）：${ids.join("、")}。请回读清单并判断提醒价值。` },
+  "en": { due: (n, today, tz, ids) => `FOLLOWUPS.md due candidates: ${n} (${today} ${tz}): ${ids.join(", ")}. Please re-read the list and judge whether a reminder is worthwhile.` },
+})[LOCALE];
 const result = await read({ path: "FOLLOWUPS.md" });
 if (!result || result.isError || result.kind === "truncated" || typeof result.content !== "string") {
   throw new Error("FOLLOWUPS.md could not be read completely");
@@ -59,5 +64,5 @@ const due = [...dated, ...undated.slice(0, 1)];
 if (due.length === 0) return { fire: false };
 return {
   fire: true,
-  message: `FOLLOWUPS.md 到期候选 ${due.length} 项（${today} ${TIMEZONE}）：${due.map(item => item.id).join("、")}。请回读清单并判断提醒价值。`,
+  message: LX.due(due.length, today, TIMEZONE, due.map(item => item.id)),
 };

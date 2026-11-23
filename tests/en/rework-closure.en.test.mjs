@@ -95,6 +95,7 @@ test('report headings: the names the English jobs quote are the names the report
   assert.ok(daily.includes('"Could not check"') && F.secNotChecked === '## Could not check');
   assert.ok(daily.includes('"hand to daily audit"') && F.rowOk('a', 'b', 9, 9, 8).includes('**hand to daily audit**'));
   assert.ok(daily.includes('"Summary of leads"') && bare(B.secClues) === 'Summary of leads');
+  assert.ok(daily.includes('"1. Rework count"') && bare(B.secRework) === '1. Rework count');
   assert.ok(daily.includes('"3. Backup status"') && bare(B.secBackup) === '3. Backup status');
   assert.ok(daily.includes('"2. Out-of-scope files') && bare(B.secOutside).startsWith('2. Out-of-scope files'));
   assert.ok(weekly.includes(`"${bare(B.secLock).replace(/ \(from .*$/, '')}"`));
