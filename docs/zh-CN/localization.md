@@ -28,18 +28,18 @@
 
 | 键名 | zh-CN | en | 在哪些文件用到 |
 |---|---|---|---|
-| `progressOpeners` | `完成：` / `进行中：` / `没跑成：` / `等主人：` / `卡住：` | `Done:` / `In progress:` / `Did not run:` / `Waiting on owner:` / `Stuck:` | scripts/automation/daily-format-check.mjs (status word of the record), rules |
-| `statusLabel` | `状态` | `Status` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/project-files.mjs, templates (label word; the colon is written by the program) |
-| `sectionCurrentStatus` | `当前状态` | `Current status` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/project-files.mjs, templates |
-| `sectionWaitingForOwner` | `等主人拍板` | `Waiting for the owner's decision` | scripts/automation/daily-format-check.mjs, templates, rules |
-| `sectionResults` | `当前成果` | `Current results` | plugins/personal-inbox/project-files.mjs, templates, rules |
+| `progressOpeners` | `完成：` / `进行中：` / `没跑成：` / `等主人：` / `卡住：` | `Done:` / `In progress:` / `Did not run:` / `Waiting on owner:` / `Stuck:` | scripts/automation/daily-format-check.mjs （记录的状态词）、规则 |
+| `statusLabel` | `状态` | `Status` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/project-files.mjs, 模板 （标签词；冒号由程序写） |
+| `sectionCurrentStatus` | `当前状态` | `Current status` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/project-files.mjs, 模板 |
+| `sectionWaitingForOwner` | `等主人拍板` | `Waiting for the owner's decision` | scripts/automation/daily-format-check.mjs, 模板, 规则 |
+| `sectionResults` | `当前成果` | `Current results` | plugins/personal-inbox/project-files.mjs, 模板, 规则 |
 | `noneWord` | `无` | `None` | scripts/automation/daily-format-check.mjs |
-| `placeholderCell` | `暂无（待写）` | `None yet (to be written)` | plugins/personal-inbox/project-files.mjs, templates |
-| `indexProjectHeader` | `项目` | `Project` | plugins/personal-inbox/project-files.mjs (first column of the project table in INDEX.md) |
-| `idLabel` | `编号` | `ID` | plugins/personal-inbox/project-files.mjs, scripts/automation/lead-free.mjs (channel cell: name (ID digits)) |
-| `projectEntryLinkText` | `项目入口` | `Project entry` | plugins/personal-inbox/project-files.mjs (entry column of INDEX.md) |
-| `taskRecordTitle` | `任务记录` | `Task record` | plugins/personal-inbox/project-files.mjs, templates (title line of a task record) |
-| `noteStart` | `<!-- 模板说明开始 -->` | `<!-- template note begin -->` | plugins/personal-inbox/project-files.mjs, templates (usage note removed when a file is created) |
+| `placeholderCell` | `暂无（待写）` | `None yet (to be written)` | plugins/personal-inbox/project-files.mjs, 模板 |
+| `indexProjectHeader` | `项目` | `Project` | plugins/personal-inbox/project-files.mjs （INDEX.md 项目表第一列） |
+| `idLabel` | `编号` | `ID` | plugins/personal-inbox/project-files.mjs, scripts/automation/lead-free.mjs （频道格：名称（编号数字）） |
+| `projectEntryLinkText` | `项目入口` | `Project entry` | plugins/personal-inbox/project-files.mjs （INDEX.md 的入口列） |
+| `taskRecordTitle` | `任务记录` | `Task record` | plugins/personal-inbox/project-files.mjs, 模板 （任务记录的标题行） |
+| `noteStart` | `<!-- 模板说明开始 -->` | `<!-- template note begin -->` | plugins/personal-inbox/project-files.mjs, 模板 （建文件时删掉的用法说明） |
 
 五个开头写在线程里进度句的最前面，后面跟冒号（`Done:`、`完成：`）。任务记录里的状态行是标签加词（`状态：完成`）。
 
@@ -48,17 +48,17 @@
 | 键名 | zh-CN | en | 在哪些文件用到 |
 |---|---|---|---|
 | `auditLabelPrefix` | `审计:` | `audit:` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/audit-gate.mjs |
-| `auditLabelValues` | `单审任务审计` / `单审独立` / `串联` | `single-task` / `single-independent` / `chained` | plugins/personal-inbox/audit-gate.mjs, templates, rules |
-| `auditLevelWord` | `审计级别` | `Audit level` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/audit-gate.mjs (the tag [Audit level] and the comment label) |
-| `auditBodyValues` | `[object Object]` | `[object Object]` | plugins/personal-inbox/audit-gate.mjs (first line of the card body), templates |
-| `authorizationWord` | `授权范围` | `Authorization scope` | scripts/automation/daily-format-check.mjs (the tag [Authorization scope]), rules |
+| `auditLabelValues` | `单审任务审计` / `单审独立` / `串联` | `single-task` / `single-independent` / `chained` | plugins/personal-inbox/audit-gate.mjs, 模板, 规则 |
+| `auditLevelWord` | `审计级别` | `Audit level` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/audit-gate.mjs （标签【审计级别】和评论标签） |
+| `auditBodyValues` | `单审（任务审计）` / `单审（独立审计）` / `串联` | `Single (task audit)` / `Single (independent audit)` / `Chained` | plugins/personal-inbox/audit-gate.mjs （任务卡正文第一行）、模板 |
+| `authorizationWord` | `授权范围` | `Authorization scope` | scripts/automation/daily-format-check.mjs （标签【授权范围】）、规则 |
 | `authorizationLines` | `目标` / `允许做的` / `要主人确认的` / `停止条件` | `Goal` / `Allowed` / `Needs owner confirmation` / `Stop conditions` | scripts/automation/daily-format-check.mjs |
-| `ownerWord` | `主人` | `owner` | scripts/automation/daily-format-check.mjs (owner … confirmed / approved) |
+| `ownerWord` | `主人` | `owner` | scripts/automation/daily-format-check.mjs （主人……已确认／已批准） |
 | `confirmWords` | `确认` / `批准` | `confirmed` / `approved` | scripts/automation/daily-format-check.mjs |
-| `submissionHead` | `[object Object]` | `[object Object]` | plugins/personal-inbox/audit-gate.mjs (first line of a submission sheet) |
-| `submissionCard` | `任务卡` | `Task card` | plugins/personal-inbox/audit-gate.mjs (second line) |
-| `submissionPaths` | `成果位置` | `Result location` | plugins/personal-inbox/audit-gate.mjs (the block that lists the result paths) |
-| `reportVerdict` | `[object Object]` | `[object Object]` | plugins/personal-inbox/audit-gate.mjs (first line of an audit report), task auditor rules |
+| `submissionHead` | `任务审计 ` + 任务卡号 + ` 请审：`，复审时再加 `（第 N 次）`（拆成 `pre` / `mid` / `roundOpen` / `roundClose` 四段：`任务审计 ` / ` 请审：` / `（第 ` / ` 次）`） | `Task audit ` + 任务卡号 + ` please review: `，复审时再加 ` (round N)`（四段：`Task audit ` / ` please review: ` / ` (round ` / `)`） | plugins/personal-inbox/audit-gate.mjs （送审单第一行） |
+| `submissionCard` | `任务卡` | `Task card` | plugins/personal-inbox/audit-gate.mjs （第二行） |
+| `submissionPaths` | `成果位置` | `Result location` | plugins/personal-inbox/audit-gate.mjs （列出成果路径的那一块） |
+| `reportVerdict` | `我得：通过` / `我得：不通过` / `我得：审不了` | `Verdict: pass` / `Verdict: fail` / `Verdict: cannot audit` | plugins/personal-inbox/audit-gate.mjs （审计报告第一行）、任务审计员规则 |
 
 规则里还引了几个标签，但没有程序按它们匹配（`主人原话：`、`验收标准：`、`任务类型：`、`执行者：`、`上次报告：`、`我问：`、`证据：`、`严重程度：`）；它们跟着正文用同一种语言写。
 
@@ -66,60 +66,60 @@
 
 | 键名 | zh-CN | en | 在哪些文件用到 |
 |---|---|---|---|
-| `helpRequestMarker` | `【求助】` | `[Help request]` | plugins/personal-inbox/stuck-guard.mjs, plugins/personal-inbox/desktop-lock.mjs, rules |
-| `helpReplyMarker` | `【求助回复】` | `[Help reply]` | plugins/personal-inbox/stuck-guard.mjs, rules |
-| `queueSkipReasons` | `不用了` / `完成` / `被接手` | `not-needed` / `done` / `taken-over` | plugins/personal-inbox/desktop-lock.mjs (skip --why), rules |
+| `helpRequestMarker` | `【求助】` | `[Help request]` | plugins/personal-inbox/stuck-guard.mjs, plugins/personal-inbox/desktop-lock.mjs, 规则 |
+| `helpReplyMarker` | `【求助回复】` | `[Help reply]` | plugins/personal-inbox/stuck-guard.mjs, 规则 |
+| `queueSkipReasons` | `不用了` / `完成` / `被接手` | `not-needed` / `done` / `taken-over` | plugins/personal-inbox/desktop-lock.mjs （skip 的 --why 参数）、规则 |
 
 ### 1.4 "等你定"台账和程序代发的标记
 
 | 键名 | zh-CN | en | 在哪些文件用到 |
 |---|---|---|---|
-| `ledgerStatus.received` | `收到` | `received` | plugins/personal-inbox/pending-ledger.mjs, plugins/personal-inbox/pending-tools.mjs, rules |
-| `ledgerStatus.decided` | `已定` | `decided` | same |
-| `ledgerStatus.revoked` | `撤销` | `revoked` | same |
-| `ledgerStatus.noReply` | `没回` | `no-reply` | same |
-| `ledgerStatus.judging` | `待判` | `to-judge` | plugins/personal-inbox/pending-ledger.mjs (internal state) |
-| `ledgerSources.approvalExpired` | `审批过期` | `approval-expired` | plugins/personal-inbox/pending-ledger.mjs, rules |
+| `ledgerStatus.received` | `收到` | `received` | plugins/personal-inbox/pending-ledger.mjs, plugins/personal-inbox/pending-tools.mjs, 规则 |
+| `ledgerStatus.decided` | `已定` | `decided` | 同上 |
+| `ledgerStatus.revoked` | `撤销` | `revoked` | 同上 |
+| `ledgerStatus.noReply` | `没回` | `no-reply` | 同上 |
+| `ledgerStatus.judging` | `待判` | `to-judge` | plugins/personal-inbox/pending-ledger.mjs （内部状态） |
+| `ledgerSources.approvalExpired` | `审批过期` | `approval-expired` | plugins/personal-inbox/pending-ledger.mjs, 规则 |
 | `ledgerKinds.closing` | `结案确认` | `closing-confirmation` | plugins/personal-inbox/audit-gate.mjs, plugins/personal-inbox/pending-ledger.mjs |
 | `ledgerKinds.desktop` | `桌面角色六类操作` | `desktop-six-actions` | plugins/personal-inbox/desktop-lock.mjs, plugins/personal-inbox/pending-ledger.mjs |
 | `autoRegisterPrefix` | `（程序补登记）` | `(auto-registered) ` | plugins/personal-inbox/request-watch.mjs, plugins/personal-inbox/pending-tools.mjs |
 | `noDeadline` | `没截止` | `no deadline` | plugins/personal-inbox/pending-ledger.mjs, plugins/personal-inbox/pending-tools.mjs, plugins/personal-inbox/request-watch.mjs |
 | `testMarker` | `【测试】` | `[test]` | plugins/personal-inbox/request-watch.mjs, scripts/automation/ledger-watch.mjs |
-| `approvalReminderMarker` | `【待批提醒——程序加的，不是主人说的话】` | `[Pending-approval reminder — added by the program, not the owner's words]` | plugins/personal-inbox/approval-reminder.mjs, rules |
-| `quotaResumePrefix` | `【额度恢复·程序代发】` | `[Quota restored · sent by program]` | scripts/automation/quota-resume.mjs, rules |
+| `approvalReminderMarker` | `【待批提醒——程序加的，不是主人说的话】` | `[Pending-approval reminder — added by the program, not the owner's words]` | plugins/personal-inbox/approval-reminder.mjs, 规则 |
+| `quotaResumePrefix` | `【额度恢复·程序代发】` | `[Quota restored · sent by program]` | scripts/automation/quota-resume.mjs, 规则 |
 
 ### 1.5 完成记录、决定账本、生成的报告、名字
 
 | 键名 | zh-CN | en | 在哪些文件用到 |
 |---|---|---|---|
-| `reminderWord` | `提醒` | `Reminder` | plugins/personal-inbox/completion-notice.mjs (the reminder at the end of a completion record), rules |
-| `ledgerQuoteLabel` | `原话` | `Quote` | scripts/automation/daily-format-check.mjs, scripts/automation/ledger-watch.mjs, templates |
-| `ledgerDateLabel` | `日期` | `Date` | scripts/automation/daily-format-check.mjs, templates |
-| `ledgerSections` | `一、有效的决定` / `二、已被取代的决定` | `1. Active decisions` / `2. Superseded decisions` | scripts/automation/ledger-verify.mjs, templates |
-| `businessDateLabel` | `业务日期` | `Business date` | report files written by the checks; scripts/automation/day-watch.mjs reads them |
-| `reportComplete` | `完整` | `complete` | scripts/automation/day-watch.mjs (the line "Status: complete") |
-| `timedJobLabels.id` | `定时任务编号` | `Timed job ID` | scripts/automation/day-watch.mjs (card body) |
-| `timedJobLabels.due` | `到点时间` | `Due time` | scripts/automation/day-watch.mjs (card body) |
-| `waitingLabels` | `等确认` / `等主人确认` / `已取消` | `waiting-confirm` / `waiting-owner-confirm` / `cancelled` | scripts/automation/day-watch.mjs (card labels) |
+| `reminderWord` | `提醒` | `Reminder` | plugins/personal-inbox/completion-notice.mjs （完成记录末尾的提醒）、规则 |
+| `ledgerQuoteLabel` | `原话` | `Quote` | scripts/automation/daily-format-check.mjs, scripts/automation/ledger-watch.mjs, 模板 |
+| `ledgerDateLabel` | `日期` | `Date` | scripts/automation/daily-format-check.mjs, 模板 |
+| `ledgerSections` | `一、有效的决定` / `二、已被取代的决定` | `1. Active decisions` / `2. Superseded decisions` | scripts/automation/ledger-verify.mjs, 模板 |
+| `businessDateLabel` | `业务日期` | `Business date` | 检查写出的报告文件；scripts/automation/day-watch.mjs 读取它们 |
+| `reportComplete` | `完整` | `complete` | scripts/automation/day-watch.mjs （“状态：完整”这一行） |
+| `timedJobLabels.id` | `定时任务编号` | `Timed job ID` | scripts/automation/day-watch.mjs （任务卡正文） |
+| `timedJobLabels.due` | `到点时间` | `Due time` | scripts/automation/day-watch.mjs （任务卡正文） |
+| `waitingLabels` | `等确认` / `等主人确认` / `已取消` | `waiting-confirm` / `waiting-owner-confirm` / `cancelled` | scripts/automation/day-watch.mjs （任务卡标签） |
 | `mainRoleDisplayName` | `总控` | `Controller` | scripts/automation/bot-roster.mjs, scripts/automation/lead-free.mjs |
-| `dataAlias` | `资料` | `dataroot` | plugins/personal-inbox/execution-record.mjs (changed-files list), rules |
+| `dataAlias` | `资料` | `dataroot` | plugins/personal-inbox/execution-record.mjs （改动文件清单）、规则 |
 
 ### 1.6 作业名、审计本轮记录、异常标记、发布回执
 
 | 键名 | zh-CN | en | 在哪些文件用到 |
 |---|---|---|---|
-| `jobNames.daily` | `日审` | `daily-audit` | scripts/automation/quota-catchup.mjs, scripts/automation/api-quota-gate.mjs, plugins/personal-inbox/quota-recovery.mjs, jobs |
-| `jobNames.patrol` | `巡查` | `patrol` | same, scripts/automation/publish-self.py |
-| `jobNames.deepReview` | `异常深审` | `deep-review` | same |
-| `jobNames.weekly` | `周审` | `weekly-audit` | same |
-| `jobNames.quotaCatchup` | `额度补跑` | `quota-catchup` | scripts/automation/quota-catchup.mjs (its own cron job) |
+| `jobNames.daily` | `日审` | `daily-audit` |scripts/automation/quota-catchup.mjs, scripts/automation/api-quota-gate.mjs, plugins/personal-inbox/quota-recovery.mjs, 作业说明|
+| `jobNames.patrol` | `巡查` | `patrol` | 同上，scripts/automation/publish-self.py |
+| `jobNames.deepReview` | `异常深审` | `deep-review` | 同上 |
+| `jobNames.weekly` | `周审` | `weekly-audit` | 同上 |
+| `jobNames.quotaCatchup` | `额度补跑` | `quota-catchup` | scripts/automation/quota-catchup.mjs （它自己的定时任务） |
 | `jobNames.deskQueue` | `桌面排队推进` | `desktop-queue-advance` | jobs/patrol.md |
-| `auditRecordKeys.execution` | `执行` | `execution` | round record written by the job; read by scripts/automation/daily-format-check.mjs, scripts/automation/quota-catchup.mjs, scripts/automation/publish-self.py |
-| `auditRecordValues.done` | `完成` | `done` | same |
-| `flagKeys.status` | `状态` | `status` | anomaly flags; scripts/automation/deep-review-trigger.js |
-| `flagStates.reviewed` | `已深审` | `reviewed` | same |
-| `receiptKeys.state` | `状态` | `state` | publish receipts; scripts/automation/publish-self.py, scripts/automation/quota-catchup.mjs |
-| `publishStates.delivered` | `已送达` | `delivered` | same |
+| `auditRecordKeys.execution` | `执行` | `execution` | 作业写的本轮记录；读取方：scripts/automation/daily-format-check.mjs, scripts/automation/quota-catchup.mjs, scripts/automation/publish-self.py |
+| `auditRecordValues.done` | `完成` | `done` | 同上 |
+| `flagKeys.status` | `状态` | `status` | 异常标记；scripts/automation/deep-review-trigger.js |
+| `flagStates.reviewed` | `已深审` | `reviewed` | 同上 |
+| `receiptKeys.state` | `状态` | `state` | 发布回执；scripts/automation/publish-self.py, scripts/automation/quota-catchup.mjs |
+| `publishStates.delivered` | `已送达` | `delivered` | 同上 |
 
 作业名同时是 OpenClaw 里定时任务的名字：改了 cron 任务的名字，要同步改 `lexicon.mjs` 里对应的词。`config/crew.json` 的 `jobs.publishSelf.effectiveFrom` 按你这个 locale 的任务名写键（en：`patrol`、`deep-review`、`weekly-audit`；zh-CN：`巡查`、`异常深审`、`周审`）。本轮记录、异常标记和发布回执是 JSON 文件，键和值由模型（照任务指令）或 `publish-self.py` 写；它们都在 `lexicon.mjs` 里（`auditRecordKeys`、`auditRecordValues`、`flagKeys`、`flagStates`、`receiptKeys`、`publishStates`、`publishFiles`）。
 
@@ -198,10 +198,10 @@
 
 ## 6. 剩余边界（有意没翻）
 
-下面这些地方在英文部署里仍然是中文。它们都不是"一个程序写、另一个程序或规则按字面认"的词。
+下面这些地方在英文部署里仍然是中文。它们都不是"一个程序写、bot、规则或另一种语言的程序要按字面认"的词。极少数是我们自己两个程序之间一写一认的词（补跑账的状态 `待核`、`补跑结果待核`、`未送达`，和叫起记录的状态 `叫起待核`），两种语言下都保持中文，免得两头对不上；叫起句或作业要给 bot 看这几个词时，用反引号照字面引出。
 
 - **机器自己读写的 JSON 键名和文件名。** 只有程序读写的文件保留中文名和键：运行记录文件夹里的状态和账本文件（比如额度接续账、补跑账、账本待补的 `待补.json`、API 额度闸的 `状态.json`、`卡标签快照.json`、`基线.json`、锁文件和日志文件），名册文件 `bot编号表.json`（en：`bot-roster.json`）里的键（`人设bot`、`角色`、`显示名`、`Discord编号` 等），以及提醒通知的内部状态。规则和任务指令里要 bot 读到这样的名字时，用反引号原样引出。
-- **内部提示和日志。** 报错、日志行、诊断说明、审计守门拒绝命令时给的原因；格式抽查、盲区抽查、命令抽查、文件对账写出的报告里的说明文字（`业务日期：`、`状态：完整` 这类标记是跟 locale 走的）；`publish-self.py` 打印的输出行（要看的是它的退出码）。
+- **内部提示和日志。** 报错、日志行、诊断说明、审计守门拒绝命令时给的原因；盲区抽查报告里的细节句子（返工次数的定义、备份几行、规则文件几行）和文件对账报告；`scripts/followups-trigger.js` 的异常分支提示、`ledger-verify.mjs` 的提示、`project-files.mjs` 各工具的报错（格式抽查、命令抽查、盲区抽查的标题、标签、结论词和固定行，以及“业务日期：”“状态：完整”这些标记，是跟着语言翻的）；`publish-self.py` 打印的输出行（要看的是它的退出码）。
 - **往 Discord 发给主人的固定通知**（每日重置通知、API 额度提醒、登录提醒、审批卡的另发通知和它的标题与来源、"等你定"总表、给主人看的排队和求助提醒、白天看护的告警）。这些句子目前在各种 locale 下都是中文。
 - `builder-tools/` 和 `personas/` 不属于部署，没翻。
 

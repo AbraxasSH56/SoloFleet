@@ -93,7 +93,9 @@ OpenClaw 用非交互模式（`claude -p`）把对话交给 Claude 命令行，�
 ```bash
 SOLOFLEET_CONFIG=tests/fixtures/crew.test.json node --test tests/*.test.mjs
 python3 -I -m unittest discover -s tests -p "test_*.py"
-python3 -I scripts/automation/publish-self-test.py
+SOLOFLEET_CONFIG=tests/fixtures/crew.test.en.json node --test tests/en/*.test.mjs
+SOLOFLEET_CONFIG=tests/fixtures/crew.test.json python3 -I scripts/automation/publish-self-test.py
+SOLOFLEET_CONFIG=tests/fixtures/crew.test.en.json python3 -I scripts/automation/publish-self-test.py
 ```
 
 测试全都用临时文件夹和假数据，不碰真实部署、Discord 和网络。`node` 要在 `PATH` 里。有一个用例（`execution-record-changes` 里的 T14）只有设了 `OPENCLAW_SDK_TEXT_CHUNKING`（指向已安装的 `plugin-sdk/text-chunking.js`）才会跑，其余都不需要真实 OpenClaw。

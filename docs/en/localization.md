@@ -50,15 +50,15 @@ The five openers are written at the start of a progress line in the thread, foll
 | `auditLabelPrefix` | `审计:` | `audit:` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/audit-gate.mjs |
 | `auditLabelValues` | `单审任务审计` / `单审独立` / `串联` | `single-task` / `single-independent` / `chained` | plugins/personal-inbox/audit-gate.mjs, templates, rules |
 | `auditLevelWord` | `审计级别` | `Audit level` | scripts/automation/daily-format-check.mjs, plugins/personal-inbox/audit-gate.mjs (the tag [Audit level] and the comment label) |
-| `auditBodyValues` | `[object Object]` | `[object Object]` | plugins/personal-inbox/audit-gate.mjs (first line of the card body), templates |
+| `auditBodyValues` | `单审（任务审计）` / `单审（独立审计）` / `串联` | `Single (task audit)` / `Single (independent audit)` / `Chained` | plugins/personal-inbox/audit-gate.mjs (first line of the card body), templates |
 | `authorizationWord` | `授权范围` | `Authorization scope` | scripts/automation/daily-format-check.mjs (the tag [Authorization scope]), rules |
 | `authorizationLines` | `目标` / `允许做的` / `要主人确认的` / `停止条件` | `Goal` / `Allowed` / `Needs owner confirmation` / `Stop conditions` | scripts/automation/daily-format-check.mjs |
 | `ownerWord` | `主人` | `owner` | scripts/automation/daily-format-check.mjs (owner … confirmed / approved) |
 | `confirmWords` | `确认` / `批准` | `confirmed` / `approved` | scripts/automation/daily-format-check.mjs |
-| `submissionHead` | `[object Object]` | `[object Object]` | plugins/personal-inbox/audit-gate.mjs (first line of a submission sheet) |
+| `submissionHead` | `任务审计 ` + card number + ` 请审：` (+ `（第 N 次）` on a re-review) (pieces `pre` / `mid` / `roundOpen` / `roundClose`: `任务审计 ` / ` 请审：` / `（第 ` / ` 次）`) | `Task audit ` + card number + ` please review: ` (+ ` (round N)` on a re-review) (pieces `pre` / `mid` / `roundOpen` / `roundClose`: `Task audit ` / ` please review: ` / ` (round ` / `)`) | plugins/personal-inbox/audit-gate.mjs (first line of a submission sheet) |
 | `submissionCard` | `任务卡` | `Task card` | plugins/personal-inbox/audit-gate.mjs (second line) |
 | `submissionPaths` | `成果位置` | `Result location` | plugins/personal-inbox/audit-gate.mjs (the block that lists the result paths) |
-| `reportVerdict` | `[object Object]` | `[object Object]` | plugins/personal-inbox/audit-gate.mjs (first line of an audit report), task auditor rules |
+| `reportVerdict` | `我得：通过` / `我得：不通过` / `我得：审不了` | `Verdict: pass` / `Verdict: fail` / `Verdict: cannot audit` | plugins/personal-inbox/audit-gate.mjs (first line of an audit report), task auditor rules |
 
 Other labels that the rules quote but no program matches (`Owner's words:`, `Acceptance criteria:`, `Task type:`, `Executor:`, `Previous report:`, `Checked against:`, `Evidence:`, `Severity:`) are written in the same language as the rest of the text.
 
@@ -198,10 +198,10 @@ Personas are optional (see [roles.md](roles.md)). The rule files only say "follo
 
 ## 6. Remaining boundary (not translated on purpose)
 
-These places still hold Chinese in an English deployment. None of them is a word that one program writes and another program or a rule matches.
+These places still hold Chinese in an English deployment. None of them is a word that a program writes and a bot, a rule or a program of the other language is expected to match by its letters. The few words that two of our own programs write and match between themselves (the states of the catch-up ledger `待核`, `补跑结果待核`, `未送达`, and the state `叫起待核` of the wake record) stay Chinese in both locales on purpose, so that the two ends can never drift apart; where a wake sentence or a job has to show one of them to a bot, it quotes the word in backticks.
 
 - **Machine-owned JSON keys and file names.** Files that only the programs read and write keep their Chinese names and keys: the state and ledger files inside the run-log folders (for example the quota-resume ledger, the catch-up ledger, `待补.json` of the ledger backlog, `状态.json` of the API-credit gate, `卡标签快照.json`, `基线.json`, the lock and log files), the keys of the roster file `bot-roster.json` (`人设bot`, `角色`, `显示名`, `Discord编号`, ...), and the internal states of the ledger notices. The rules and jobs quote such a name in backticks where a bot has to read it.
-- **Internal messages and logs.** Error messages, log lines, diagnostics and the reasons the audit guard gives when it refuses a command; the explanations inside the reports written by the format check, the blind-spot check, the command check and the file reconcile (the marks `Business date:` and `Status: complete` are translated); the output lines of `publish-self.py` (its exit code is what counts).
+- **Internal messages and logs.** Error messages, log lines, diagnostics and the reasons the audit guard gives when it refuses a command; the detail sentences inside the blind-spot check report (the rework definition, the backup lines, the rule-file lines) and the file reconcile report; the abnormal-branch messages of `scripts/followups-trigger.js`, the `ledger-verify.mjs` messages and the error messages of `project-files.mjs` tools (the headings, labels, verdicts and fixed lines of the format check, the command check and the blind-spot check, and the `Business date:` and `Status: complete` marks, are translated); the output lines of `publish-self.py` (its exit code is what counts).
 - **Fixed notices that go to the owner on Discord** (the daily reset notice, the API-credit reminders, the login reminders, the approval-card notice and its title and source, the master list of matters waiting for a decision, the queue and help reminders for the owner, the daytime-watch alerts). Their wording is Chinese in every locale for now.
 - `builder-tools/` and `personas/` are not part of a deployment and are not translated.
 

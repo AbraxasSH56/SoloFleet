@@ -93,7 +93,9 @@ Self-publishing of the daily summaries (`scripts/automation/publish-self.py`) is
 ```bash
 SOLOFLEET_CONFIG=tests/fixtures/crew.test.json node --test tests/*.test.mjs
 python3 -I -m unittest discover -s tests -p "test_*.py"
-python3 -I scripts/automation/publish-self-test.py
+SOLOFLEET_CONFIG=tests/fixtures/crew.test.en.json node --test tests/en/*.test.mjs
+SOLOFLEET_CONFIG=tests/fixtures/crew.test.json python3 -I scripts/automation/publish-self-test.py
+SOLOFLEET_CONFIG=tests/fixtures/crew.test.en.json python3 -I scripts/automation/publish-self-test.py
 ```
 
 All tests use temporary folders and fake data; none touches a real deployment, Discord or the network. `node` must be on `PATH`. One test (T14 in `execution-record-changes`) is skipped unless the real OpenClaw SDK is available (set `OPENCLAW_SDK_TEXT_CHUNKING` to the installed `plugin-sdk/text-chunking.js`).

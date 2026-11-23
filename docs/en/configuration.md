@@ -85,7 +85,7 @@ Trigger scripts that OpenClaw runs in its script sandbox cannot import the confi
 | `scripts/automation/deep-review-trigger.js` | `DATA_ROOT`, `TIMEZONE`, `LOCALE` (same value as `locale`), `CUT_HOUR` |
 | `scripts/followups-trigger.js` | `TIMEZONE` |
 
-Clock times in regular scripts (all in local time of `timezone`): `scripts/automation/daily-format-check.mjs` (`CUT_H`, `CUT_M`), `reset-notice.mjs` (`PRE_FROM`, `RESET_AT`, `POST_UNTIL`), `timed-reminders.mjs` (`提醒小时`, reminder lead days, optional review date `复议日期`, set in `<DATA_ROOT>/运行记录/提醒/配置.json`), `api-quota-gate.mjs` (`EXPIRY_HOUR`, default 7: the local hour at which an API credit period ends).
+Clock times in regular scripts (all in local time of `timezone`): `scripts/automation/daily-format-check.mjs` (`CUT_H`, `CUT_M`), `reset-notice.mjs` (`PRE_FROM`, `RESET_AT`, `POST_UNTIL`), `timed-reminders.mjs` (`提醒小时` = reminder hour, reminder lead days, optional review date `复议日期`, set in `<DATA_ROOT>/run-logs/reminders/配置.json`; the file name `配置.json` and these three key names are Chinese on purpose: only the program reads them, so they are not translated), `api-quota-gate.mjs` (`EXPIRY_HOUR`, default 7: the local hour at which an API credit period ends).
 
 Environment variables: `SOLOFLEET_CONFIG` (config file), `OPENCLAW_BIN` (override of `paths.openclawBin`), `OPENCLAW_DATA_ROOT` / `OPENCLAW_RUNTIME_ROOT` / `OPENCLAW_PROJECT_ROOT` (used by the reconciliation command; the spot-check trigger sets them), `OPENCLAW_SDK_TEXT_CHUNKING` (tests only).
 
