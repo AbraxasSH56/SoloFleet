@@ -2,7 +2,15 @@
 
 English | [简体中文](README.zh-CN.md)
 
-**One Claude subscription, driving a small crew of bots that work in Discord.** Built on [OpenClaw](https://github.com/openclaw/openclaw). Shared as a personal showcase.
+- **A desktop lock and a queue.** One computer, one bot on the screen at a time; the rest wait in line and get called when it is their turn.
+- **One Claude subscription** runs the whole crew, and every reply shows what it used.
+- **Code does the checking,** so the model and you can focus: bots stay quiet unless addressed, one report a day.
+
+![Three short clips from the launch film: the desktop lock and queue, one subscription, code does the checking](docs/images/readme-features.gif)
+
+<sub>Runs on a Mac with Discord and a Claude subscription.</sub>
+
+**One Claude subscription, driving a small crew of bots that work in Discord.** Built on [OpenClaw](https://github.com/openclaw/openclaw).
 
 SoloFleet is an open-source setup for running a crew of AI agents in Discord on a single Claude subscription. It is built on OpenClaw and connects the subscription through the Claude Code command line (`claude -p`), so a multi-agent team runs on one plan instead of each agent paying per use through its own API key.
 
@@ -17,7 +25,7 @@ This repository holds everything needed to set the same thing up: the rules the 
 | **What you need** | A Mac that stays on (desktop operation is verified on macOS only), OpenClaw, Node.js 24.16 or later, Python 3, a Discord application and bot account for each bot, a Claude subscription, and the `claude` command line signed in |
 | **Main features** | A reply card under every reply; requests to the owner in three tiers with a pending-decisions ledger; a program layer that takes over the fixed checks and gates (formats, reconciliation, completion only after an independent audit), so the model keeps its attention for judgement; write-through records with a daily session reset; one desktop operator with a lock, a queue and owner-only approval cards |
 | **License** | MIT |
-| **Status** | A personal showcase. The author uses it day to day |
+| **Status** | The author uses it day to day |
 
 ## What it is for
 

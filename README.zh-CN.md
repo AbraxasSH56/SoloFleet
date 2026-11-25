@@ -2,7 +2,15 @@
 
 [English](README.md) | 简体中文
 
-**一份 Claude 订阅，带一支在 Discord 里干活的 bot 小队。** 搭在 [OpenClaw](https://github.com/openclaw/openclaw) 上。个人展示用。
+- **桌面锁＋排队。** 一台电脑同一时间只有一个 bot 动屏幕，其余的排队，轮到了再叫它。
+- **一份 Claude 订阅**带整队 bot，每条回复都写明用了什么。
+- **检查交给程序**，模型和你都能专心：没点名的 bot 不出声，一天一份汇报。
+
+![宣传片里的三小段：桌面锁和排队、一份订阅、检查交给程序](docs/images/readme-features.gif)
+
+<sub>需要一台 Mac、Discord 和一份 Claude 订阅。</sub>
+
+**一份 Claude 订阅，带一支在 Discord 里干活的 bot 小队。** 搭在 [OpenClaw](https://github.com/openclaw/openclaw) 上。
 
 SoloFleet 是一套开源的搭法：用一份 Claude 订阅，在 Discord 里跑一支 AI agent 小队。它搭在 OpenClaw 上，订阅经 Claude Code 的命令行（`claude -p`）接进来，所以这支多智能体小队用的是同一份订阅，不是每个 agent 各拿一把密钥按量付费。
 
@@ -17,7 +25,7 @@ SoloFleet 是一套开源的搭法：用一份 Claude 订阅，在 Discord 里�
 | **需要什么** | 一台常开的 Mac（桌面操作只在 macOS 上验过）、OpenClaw、Node.js 24.16 或更新、Python 3、每个 bot 一个 Discord 应用和 bot 账号、一份 Claude 订阅、登录好的 `claude` 命令行 |
 | **主要功能** | 每条回复底下的回复附卡；给主人的请示分三档、配"等你定"台账；程序层接管必做的核对和把关（查格式、对账、独立审计通过才能结案），模型的注意力留给要判断的事；当轮写进记录、会话每天重置；一个桌面操作 bot，配独占锁、排队和只有主人能点的审批卡 |
 | **许可证** | MIT |
-| **状态** | 个人展示用。作者自己每天在用 |
+| **状态** | 作者自己每天在用 |
 
 ## 它要解决什么
 
